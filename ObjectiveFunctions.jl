@@ -1,13 +1,12 @@
 module ObjectiveFunctions
 export nse
 export lognse
+export einfach
 
-# """
-#     NSE(Qobserved, Qmodelled)
-#
-# Compute the Nash Sutclifee efficiency for a model using the observed discharge ('Qobserved')
-# and the modelled discharge ('Qmodeled')
-# """
+
+function einfach(x)
+    x + 1
+end
 
 function nse(Qobserved, Qmodelled)
     QobservedAverage = sum(Qobserved) / length(Qobserved) #float
@@ -17,13 +16,6 @@ function nse(Qobserved, Qmodelled)
     NashSutcliffe = 1 - (Nominator / Denominator)
     return NashSutcliffe
 end
-
-# """
-#     NSElog(Qobserved, Qmodelled)
-#
-# Compute the logarithmic Nash Sutclifee efficiency for a model using the observed discharge ('Qobserved')
-# and the modelled discharge ('Qmodeled')
-# """
 
 function lognse(Qobserved, Qmodelled)
     QobservedAverage = sum(Qobserved) / length(Qobserved) #float
