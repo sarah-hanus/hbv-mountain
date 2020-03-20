@@ -1,5 +1,12 @@
 function interception(Potential_Evaporation, Precipitation, Temp, Interceptionstorage, Interception_Evaporation,
                             Interceptionstoragecapacity, Temp_Thresh)
+    @assert Potential_Evaporation >= 0
+    @assert Precipitation >= 0
+    @assert Interceptionstorage >= 0
+    @assert Interception_Evaporation >= 0 #or maybe it should be 0??
+    @assert Interceptionstoragecapacity >= 0
+    @assert Temp_Thresh >= -5 and <= 5 # it should be within the parameter range
+
     # Storagecapacity is Imax
     if Temp > Temp_Thresh
         #if the temperature is higher than freezing temp, precipitation falls as rain
@@ -37,6 +44,13 @@ end
 
 function snow(Area_Glacier, Precipitation, Temp, Snowstorage, Meltfactor, Mm, Temp_Thresh)
 
+    @assert Area_Glacier >= 0
+    @assert Precipitation >= 0
+    @assert Snowstorage >= 0
+    @assert Meltfactor >= 0 #within the parameter range
+    @assert Mm >= 0 #within the parameter range
+    @assert Temp_Thresh >= -5 and <= 5 # it should be within the parameter range
+
     if Temp > Temp_Thresh
         # if temperature higher than freezing temperature, melting takes place
         Melt = Meltfactor * Mm * ( (Temp - Temp_Thresh) / Mm + log(1 + exp(- (Temp - Temp_Thresh) / Mm) ) )
@@ -59,6 +73,18 @@ end
 
 
 function soilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Soil_Evaporation, Soilstorage, beta, Ce, Percolationcapacity, Ratio_Pref, Soilstoragecapacity)
+    @assert Effective_Precipitation >= 0
+    @assert Interception_Evaporation >= 0
+    @assert Potential_Evaporation >= 0
+    @assert Soil_Evaporation >= 0 #or should it be zero?
+    @assert Soilstorage >= 0
+    @assert Soilstoragecapacity > 0 #within the parameter range
+    @assert beta > 0 #within the parameter range
+    @assert Ce > 0 #within the parameter range
+    @assert Percolationcapacity >= 0
+    @assert Ratio_Pref >= 0
+
+
     if Effective_Precipitation > 0
         # rho represents the non linear process that only part of precipitation enters soil
         # different rho??
@@ -97,6 +123,16 @@ function soilstorage(Effective_Precipitation, Interception_Evaporation, Potentia
 end
 
 function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soil_Evaporation, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity)
+    @assert Effective_Precipitation >= 0
+    @assert Interception_Evaporation >= 0
+    @assert Potential_Evaporation >= 0
+    @assert Riparian_Discharge >= 0
+    @assert Soil_Evaporation >= 0 #or should it be zero?
+    @assert Soilstorage >= 0
+    @assert Soilstoragecapacity > 0 #within the parameter range
+    @assert beta > 0 #within the parameter range
+    @assert Ce > 0 #within the parameter range
+    @assert Drainagecapacity >= 0
     if Effective_Precipitation > 0
         # non linear process: only part of precipitation enters soil
         Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
@@ -132,6 +168,9 @@ end
 
 
 function faststorage(Overlandflow, Faststorage, Kf)
+    @assert Overlandflow >= 0
+    @assert Faststorage >= 0
+    @assert Kf >=0 and <= 1
     # the fast storage increases with the overland flow
     Faststorage = Faststorage + Overlandflow
     # a part of the fast storage gets redirected into discharge depending on the reservoir constant (linear response)
@@ -142,6 +181,12 @@ function faststorage(Overlandflow, Faststorage, Kf)
 end
 
 function slowstorage(Percolationflow, Preferentialflow, Slowstorage, Ks, Ratio_Riparian)
+    @assert Percolationflow >= 0
+    @assert Preferentialflow >= 0
+    @assert Slowstorage >= 0
+    @assert Ks >=0 and <= 1
+    @assert Ratio_Riparian >=0 and <= 1
+
     Slowstorage = Slowstorage + Percolationflow + Preferentialflow
     Slow_Discharge = Ks * Slowstorage * (1 - Ratio_Riparian)
     Riparian_Discharge = Ratio_Riparian * Slow_Discharge
