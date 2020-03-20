@@ -1,11 +1,11 @@
 using Test
 @testset "slowstorage" begin
-    for i in 1:5
+    for i in 1:50
         Ks = rand(0.0001:0.001:0.1)[1]
         Ratio_Rip = rand(0.001:0.01:0.8)[1]
         Storage = rand(0.1:0.01:20)[1]
-        Percolation = rand(0:0.01:10)[1]
-        Preferential = rand(0:0.01:10)[1]
+        Percolation = rand(0:0.1:10)[1]
+        Preferential = rand(0:0.1:10)[1]
         # test that output 0, if input 0
         @test slowstorage(0, 0, 0, Ks, Ratio_Rip) == (0, 0, 0)
         # test that storage decreases if no input
@@ -16,12 +16,13 @@ using Test
         # test that discharge should be the Ks-ratio of sum of storage and overlandflow
         Riparian_Discharge, Slow_Discharge, Slowstorage = slowstorage(Percolation, Preferential, Storage, Ks, Ratio_Rip)
         Inflow = Percolation + Preferential
-        @test (Storage + Inflow) * Ks  == Slow_Discharge + Riparian_Discharge
-        @test Storage + Inflow - Slow_Discharge + Riparian_Discharge == Slowstorage
+        @test round((Storage + Inflow) * Ks, digits=12)  == round(Slow_Discharge + Riparian_Discharge, digits = 12)
+        @test round(Storage + Inflow - Slow_Discharge - Riparian_Discharge, digits = 12) == round(Slowstorage, digits = 12)
         # test right behavior if storage = 0
-        # Discharge, Faststorage = faststorage(Percolation, Preferential, 0, Ks, Ratio_Rip)
-        # @test (Percolation + Preferential) * Ks * (1 - Ratio_Rip) == Slow_Discharge
-        # @test (Percolation + Preferential) * Ks == Slow_Discharge + Riparian_Discharge
-        # @test round(Slow_Discharge + Riparian_Discharge + Faststorage, digits=12) == round(Percolation + Preferential, digits=12)
+        Riparian_Discharge, Slow_Discharge, Slowstorage = slowstorage(Percolation, Preferential, 0, Ks, Ratio_Rip)
+        @test (Percolation + Preferential) * Ks * (1 - Ratio_Rip) == Slow_Discharge
+        @test round((Percolation + Preferential) * Ks, digits=12) == round(Slow_Discharge + Riparian_Discharge, digits=12)
+        # if storage empty before, input = output+ new storage
+        @test round(Slow_Discharge + Riparian_Discharge + Slowstorage, digits=12) == round(Percolation + Preferential, digits=12)
     end
 end

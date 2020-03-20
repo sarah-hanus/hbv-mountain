@@ -189,8 +189,8 @@ function slowstorage(Percolationflow, Preferentialflow, Slowstorage, Ks, Ratio_R
 
     Slowstorage = Slowstorage + Percolationflow + Preferentialflow
     Slow_Discharge = Ks * Slowstorage * (1 - Ratio_Riparian)
-    Riparian_Discharge = Ratio_Riparian * Slow_Discharge
-    Slowstorage = Slowstorage - Slow_Discharge
+    Riparian_Discharge = Ks * Slowstorage * Ratio_Riparian
+    Slowstorage = Slowstorage - Slow_Discharge - Riparian_Discharge
 
     return Riparian_Discharge, Slow_Discharge, Slowstorage
 end
