@@ -31,3 +31,5 @@ function bareHRU(Area_Glacier, Precipitation, Temp_Elevation, Snowstorage, Meltf
     Fast_Discharge, Faststorage = faststorage(Overlandflow, Faststorage, Kf)
     # retungs water flows, evaporation, and states of the storage components
     return GWflow, Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
+
+end
