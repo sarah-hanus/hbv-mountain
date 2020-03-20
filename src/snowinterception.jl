@@ -1,9 +1,7 @@
-function interception(Potential_Evaporation, Precipitation, Temp, Interceptionstorage, Interception_Evaporation,
-                            Interceptionstoragecapacity, Temp_Thresh)
+function interception(Potential_Evaporation, Precipitation, Temp, Interceptionstorage, Interceptionstoragecapacity, Temp_Thresh)
     @assert Potential_Evaporation >= 0
     @assert Precipitation >= 0
     @assert Interceptionstorage >= 0
-    @assert Interception_Evaporation >= 0 #or maybe it should be 0??
     @assert Interceptionstoragecapacity >= 0
     @assert Temp_Thresh >= -5 and <= 5 # it should be within the parameter range
 
@@ -35,7 +33,7 @@ function interception(Potential_Evaporation, Precipitation, Temp, Interceptionst
         # snow accumulates
         # evporation is 0 and no effective precipitation is released
         Interception_Evaporation = 0
-        effective_Precipitation = 0
+        Effective_Precipitation = 0
         Interceptionstorage = Interceptionstorage #amount stored does not change??!
     end
     return Effective_Precipitation, Interception_Evaporation, Interceptionstorage
@@ -72,11 +70,11 @@ function snow(Area_Glacier, Precipitation, Temp, Snowstorage, Meltfactor, Mm, Te
 end
 
 
-function soilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Soil_Evaporation, Soilstorage, beta, Ce, Percolationcapacity, Ratio_Pref, Soilstoragecapacity)
+function soilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Soilstorage, beta, Ce, Percolationcapacity, Ratio_Pref, Soilstoragecapacity)
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
-    @assert Soil_Evaporation >= 0 #or should it be zero?
+    #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
     @assert Soilstoragecapacity > 0 #within the parameter range
     @assert beta > 0 #within the parameter range
@@ -180,14 +178,13 @@ function faststorage(Overlandflow, Faststorage, Kf)
     return Fast_Discharge, Faststorage
 end
 
-function slowstorage(Percolationflow, Preferentialflow, Slowstorage, Ks, Ratio_Riparian)
-    @assert Percolationflow >= 0
-    @assert Preferentialflow >= 0
+function slowstorage(GWflow, Slowstorage, Ks, Ratio_Riparian)
+    @assert GWflow >= 0
     @assert Slowstorage >= 0
     @assert Ks >=0 and <= 1
     @assert Ratio_Riparian >=0 and <= 1
 
-    Slowstorage = Slowstorage + Percolationflow + Preferentialflow
+    Slowstorage = Slowstorage + GWflow
     Slow_Discharge = Ks * Slowstorage * (1 - Ratio_Riparian)
     Riparian_Discharge = Ks * Slowstorage * Ratio_Riparian
     Slowstorage = Slowstorage - Slow_Discharge - Riparian_Discharge
