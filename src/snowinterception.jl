@@ -84,16 +84,68 @@ function soilstorage(Effective_Precipitation, Interception_Evaporation, Potentia
         Preferentialflow = 0
     end
     # Transpiration in soil, only the part that not evaporated in interception reservoir can evaporate
-    Potential_Soilevaporation = max(0, Potential_Evaporation - Interception_Evaporation)
+    Potential_Soilevaporation = Potential_Evaporation - Interception_Evaporation
     # transpiration can maximum be the amount stored in soil, or a percentage of potential evaporation
-    # possibly WRONG because more can evaporate than it is present
-    #plot it to see it!!!
     Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1)
     Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
     Soilstorage = Soilstorage - Soil_Evaporation
     # Part of the water stored in soil will percolate into groundwater depending on the percolation capacity
     Percolationflow = (Soilstorage / Soilstoragecapacity) * Percolationcapacity
-    Soilstorage = Soilstorage - Percolationflow #??
+    Soilstorage = Soilstorage - Percolationflow
 
     return Overlandflow, Percolationflow, Preferentialflow, Soil_Evaporation, Soilstorage
+end
+
+function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soil_Evaporation, Soilstorage, beta, Ce, Drainagecapcity, Soilstoragecapacity)
+    if Effective_Precipitation > 0
+        # non linear process: only part of precipitation enters soil
+        Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
+        # # part of precipitation doesn't enters soil, but flows directly to fast reservoir
+        # Overlandflow = Ratio_Soil * Effective_Precipitation * Ratio_pref
+        # # or flows into the groundwater reservoir
+        # Preferentialflow = Ratio_Soil * Effective_Precipitation * (1 - Ratio_pref)
+        # # the rest of the water enters the soil reservoir
+        # Soilstorage = Soilstorage + (1 - Ratio_Soil) * Effective_Precipitation #flow into unsaturated zone
+
+        # part of the water (Precipitation + melt + water from GW) enters the soil, it cannot exceed the soil storage capacity
+        Q_Soil = min(1 - Ratio_Soil) * (Effective_Precipitation + Riparian_Discharge), Soilstoragecapacity - Soilstorage)
+        Soilstorage = Soilstorage + Q_Soil
+        # the other part does not enter the soil but flows into the fast reservoir
+        Overlandflow = (Effective_Precipitation + Riparian_Discharge - Q_Soil)
+    else
+        # if it does not rain no overland flow occurs
+        Overlandflow = 0
+    end
+    # Transpiration in soil, only the part that not evaporated in interception reservoir can evaporate
+    Potential_Soilevaporation = Potential_Evaporation - Interception_Evaporation
+    # transpiration can maximum be the amount stored in soil, or a percentage of potential evaporation
+    Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1)
+    Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
+    Soilstorage = Soilstorage - Soil_Evaporation
+    # Part of the water stored in soil will drain to a maximum capacity, which is routed into the fast response reservoir
+    Fastdrainage = (Soilstorage / Soilstoragecapacity) * Drainagecapacity
+    Soilstorage = Soilstorage - Fastdrainage
+    Overlandflow = Overlandflow + Fastdrainage
+
+    return Overlandflow, Soil_Evaporation, Soilstorage
+end
+
+
+function faststorage(Overlandflow, Faststorage, Kf)
+    # the fast storage increases with the overland flow
+    Faststorage = Faststorage + Overlandflow
+    # a part of the fast storage gets redirected into discharge depending on the reservoir constant (linear response)
+    Fast_Discharge = Kf * Faststorage
+    Faststorage = Faststorage - Fast_Discharge
+
+    return Fast_Discharge, Faststorage
+end
+
+function slowstorage(Percolationflow, Preferentialflow, Slowstorage, Ks, Ratio_Riparian)
+    Slowstorage = Slowstorage + Percolationflow + Preferentialflow
+    Slow_Discharge = Ks * Slowstorage * (1 - Ratio_Riparian)
+    Riparian_Discharge = Ratio_Riparian * Slow_Discharge
+    Slowstorage = Slowstorage - Slow_Discharge
+
+    return Riparian_Discharge, Slow_Discharge, Slowstorage
 end
