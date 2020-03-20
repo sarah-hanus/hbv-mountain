@@ -30,8 +30,7 @@ function interception(Potential_Evaporation, Precipitation, Temp, Interceptionst
         Interception_Evaporation = 0
         effective_Precipitation = 0
         Interceptionstorage = Interceptionstorage #amount stored does not change??!
-
-
+    end
     return Effective_Precipitation, Interception_Evaporation, Interceptionstorage
 end
 
@@ -53,6 +52,7 @@ function snow(Area_Glacier, Precipitation, Temp, Snowstorage, Meltfactor, Mm, Te
         Snowstorage = Snowstorage + Precipitation
         # no snow melts
         Melt_Total = 0
+    end
 
     return Melt_Total, Snowstorage
 end
@@ -71,12 +71,12 @@ function soilstorage(Effective_Precipitation, Interception_Evaporation, Potentia
         # Soilstorage = Soilstorage + (1 - Ratio_Soil) * Effective_Precipitation #flow into unsaturated zone
 
         # part of the water enters the soil, it cannot exceed the soil storage capacity
-        Q_Soil = min(1 - Ratio_Soil) * Effective_Precipitation, Soilstoragecapacity - Soilstorage)
+        Q_Soil = min((1 - Ratio_Soil) * Effective_Precipitation, Soilstoragecapacity - Soilstorage)
         Soilstorage = Soilstorage + Q_Soil
         # the other part does not enter the soil but flows into the fast reservoir
         Overlandflow = (Effective_Precipitation - Q_Soil) * Ratio_Pref
         # or flows into the groundwater
-        Preferentialflow = = (Effective_Precipitation - Q_Soil) * (1 - Ratio_Pref)
+        Preferentialflow = (Effective_Precipitation - Q_Soil) * (1 - Ratio_Pref)
 
     else
         # if it does not rain no overland flow occurs
@@ -96,7 +96,7 @@ function soilstorage(Effective_Precipitation, Interception_Evaporation, Potentia
     return Overlandflow, Percolationflow, Preferentialflow, Soil_Evaporation, Soilstorage
 end
 
-function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soil_Evaporation, Soilstorage, beta, Ce, Drainagecapcity, Soilstoragecapacity)
+function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soil_Evaporation, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity)
     if Effective_Precipitation > 0
         # non linear process: only part of precipitation enters soil
         Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
@@ -108,7 +108,7 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
         # Soilstorage = Soilstorage + (1 - Ratio_Soil) * Effective_Precipitation #flow into unsaturated zone
 
         # part of the water (Precipitation + melt + water from GW) enters the soil, it cannot exceed the soil storage capacity
-        Q_Soil = min(1 - Ratio_Soil) * (Effective_Precipitation + Riparian_Discharge), Soilstoragecapacity - Soilstorage)
+        Q_Soil = min((1 - Ratio_Soil) * (Effective_Precipitation + Riparian_Discharge), Soilstoragecapacity - Soilstorage)
         Soilstorage = Soilstorage + Q_Soil
         # the other part does not enter the soil but flows into the fast reservoir
         Overlandflow = (Effective_Precipitation + Riparian_Discharge - Q_Soil)
@@ -149,3 +149,10 @@ function slowstorage(Percolationflow, Preferentialflow, Slowstorage, Ks, Ratio_R
 
     return Riparian_Discharge, Slow_Discharge, Slowstorage
 end
+
+export interception
+export snow
+export ripariansoilstorage
+export soilstorage
+export faststorage
+export slowstorage
