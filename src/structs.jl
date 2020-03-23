@@ -18,6 +18,7 @@ testInterception(bare)
 mutable struct HRU_Input
     #inputs (alphabetic order)
     Area_Elevations::Array{Float64,1}
+    Area_HRU:: Float64
     Area_Glacier:: Float64 # smaller than 1
     Nr_Elevationbands:: Int8
     Potential_Evaporation::Array{Float64,1} #muss später auch Array werden!!! average Epot for soiL!!!
