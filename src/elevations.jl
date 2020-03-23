@@ -11,16 +11,22 @@ function getelevationdata(Thickness_Band, Lowest_Elevation, Mean_Elevation, High
     return Precipitation, Temp_Elevation
 end
 
-function bareHRU(Area_Glacier, Precipitation, Temp_Elevation, Snowstorage, Meltfactor, Mm, Temp_Thresh, Potential_Evaporation, Interceptionstorage, Interceptionstoragecapacity, Soilstorage, beta, Ce, Percolationcapacity, Ratio_Pref, Soilstoragecapacity, Faststorage, Kf)
+Total_Effective_Precipitation = 0
+Total_Interception_Evaporation = 0
+#Total_Melt = 0
+
+function hillslopeHRU(Area_Elevations, Area_Glacier, Precipitation, Temp_Elevation, Nr_Elevationbands, Snowstorage, Meltfactor, Mm, Temp_Thresh, Potential_Evaporation, Interceptionstorage, Interceptionstoragecapacity, Soilstorage, beta, Ce, Percolationcapacity, Ratio_Pref, Soilstoragecapacity, Faststorage, Kf)
+    # Are_Elevations gives the areal percentage of each elevation band. The sum has to be 1
+    # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
     for i in 1 : Nr_Elevationbands
         # snow component
-        Melt, Snowstorage[i] = snow(Area_Glacier, Precipitation, Temp_Elevation, Snowstorage[i], Meltfactor, Mm, Temp_Thresh)
+        Melt, Snowstorage[i] = snow(Area_Glacier, Precipitation[i], Temp_Elevation[i], Snowstorage[i], Meltfactor, Mm, Temp_Thresh)
         #interception component
-        Effective_Precipitation, Interception_Evaporation, Interceptionstorage[i] = interception(Potential_Evaporation, Precipitation, Temp_Elevation, Interceptionstorage[i], Interceptionstoragecapacity, Temp_Thresh)
+        Effective_Precipitation, Interception_Evaporation, Interceptionstorage[i] = interception(Potential_Evaporation, Precipitation[i], Temp_Elevation[i], Interceptionstorage[i], Interceptionstoragecapacity, Temp_Thresh)
         # the melt, effective precipitation and evaporation can be summed up over all elevations according to the areal extent
-        global Total_Effective_Precipitation += (Effective_Precipitation * Area[i])
-        global Total_Melt += (Melt * Area[i])
-        global Total_Interception_Evaporation += (Interception_Evaporation * Area[i])
+        global Total_Effective_Precipitation += (Effective_Precipitation + Melt) * Area_Elevations[i]
+        #global Total_Melt += (Melt * Area_Elevations[i])
+        global Total_Interception_Evaporation += (Interception_Evaporation * Area_Elevations[i])
         # the storage components have to be saved for each  elevation seperately
     end
 
@@ -31,5 +37,31 @@ function bareHRU(Area_Glacier, Precipitation, Temp_Elevation, Snowstorage, Meltf
     Fast_Discharge, Faststorage = faststorage(Overlandflow, Faststorage, Kf)
     # retungs water flows, evaporation, and states of the storage components
     return GWflow, Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
+
+end
+
+function riparianHRU(Area_Elevations, Area_Glacier, Precipitation, Temp_Elevation, Nr_Elevationbands, Snowstorage, Meltfactor, Mm, Temp_Thresh, Potential_Evaporation, Interceptionstorage, Interceptionstoragecapacity, Riparian_Discharge, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity, Faststorage, Kf)
+    # Are_Elevations gives the areal percentage of each elevation band. The sum has to be 1
+    # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
+    # riparian HRU has no preferential and percolation flow
+    for i in 1 : Nr_Elevationbands
+        # snow component
+        Melt, Snowstorage[i] = snow(Area_Glacier, Precipitation[i], Temp_Elevation[i], Snowstorage[i], Meltfactor, Mm, Temp_Thresh)
+        #interception component
+        Effective_Precipitation, Interception_Evaporation, Interceptionstorage[i] = interception(Potential_Evaporation, Precipitation[i], Temp_Elevation[i], Interceptionstorage[i], Interceptionstoragecapacity, Temp_Thresh)
+        # the melt, effective precipitation and evaporation can be summed up over all elevations according to the areal extent
+        global Total_Effective_Precipitation += (Effective_Precipitation + Melt) * Area_Elevations[i]
+        #global Total_Melt += (Melt * Area_Elevations[i])
+        global Total_Interception_Evaporation += (Interception_Evaporation * Area_Elevations[i])
+        # the storage components have to be saved for each  elevation seperately
+    end
+
+    #soil storage component
+    Overlandflow, Soil_Evaporation, Soilstorage = ripariansoilstorage(Total_Effective_Precipitation, Total_Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity)
+    #GWflow = Percolationflow + Preferentialflow
+    #fast storage
+    Fast_Discharge, Faststorage = faststorage(Overlandflow, Faststorage, Kf)
+    # retungs water flows, evaporation, and states of the storage components
+    return Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
 end
