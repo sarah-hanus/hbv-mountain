@@ -120,12 +120,12 @@ function soilstorage(Effective_Precipitation, Interception_Evaporation, Potentia
     return Overlandflow, Percolationflow, Preferentialflow, Soil_Evaporation, Soilstorage
 end
 
-function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soil_Evaporation, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity)
+function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity)
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
     @assert Riparian_Discharge >= 0
-    @assert Soil_Evaporation >= 0 #or should it be zero?
+    #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
     @assert Soilstoragecapacity > 0 #within the parameter range
     @assert beta > 0 #within the parameter range
