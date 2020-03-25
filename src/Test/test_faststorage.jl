@@ -1,7 +1,7 @@
 using Test
 
 @testset "faststorage" begin
-    for i in 1:100
+    for i in 1:200
         Kf = rand(1)[1]
         Storage = rand(0.1:0.1:20)[1]
         Overland = rand(0:0.1:10)[1]
