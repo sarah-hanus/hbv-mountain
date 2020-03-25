@@ -1,20 +1,3 @@
-mutable struct Interception
-    Potential_Evaporation:: Float64
-    Precipitation:: Float64
-    Temp:: Float64
-    Interceptionstorage:: Float64
-    Interceptionstoragecapacity:: Float64
-    Temp_Thresh:: Float64
-end
-
-bare = Interception(5,4,3,1,2,0)
-
-function testInterception(v::Interception)
-    print(v.Potential_Evaporation)
-end
-
-testInterception(bare)
-
 mutable struct HRU_Input
     #inputs (alphabetic order)
     Area_Elevations::Array{Float64,1}
@@ -26,13 +9,11 @@ mutable struct HRU_Input
     Precipitation::Array{Float64,1}
     Riparian_Discharge:: Float64 #only necessary for riparian HRU
     Temp_Elevation::Array{Float64,1}
-    Total_Effective_Precipitation::Array{Float64,1}
-    Total_Interception_Evaporation::Array{Float64,1}
-    #storages (alphabetic order)
-    Faststorage:: Float64
-    Interceptionstorage::Array{Float64,1}
-    Snowstorage::Array{Float64,1}
-    Soilstorage:: Float64
+    Total_Effective_Precipitation::Float64
+    Total_Interception_Evaporation::Float64
+end
+
+mutable struct Parameters
     # parameters (alphabetic order)
     beta:: Float64
     Ce:: Float64
@@ -47,16 +28,30 @@ mutable struct HRU_Input
     Temp_Thresh:: Float64
 end
 
+mutable struct Storages
+    Fast:: Float64
+    Interception::Array{Float64,1}
+    Snow::Array{Float64,1}
+    Soil:: Float64
+end
 
-
-mutable struct HRU_Output
+mutable struct Outflows
     Fast_Discharge:: Float64
     GWflow:: Float64 #only necessary for hillslope HRU
     Soil_Evaporation:: Float64
-    Total_Interception_Evaporation:: Float64
-    #storages
-    Faststorage:: Float64
-    Interceptionstorage::Array{Float64,1}
-    Snowstorage::Array{Float64,1}
-    Soilstorage:: Float64
+    Interception_Evaporation:: Float64
 end
+
+
+#
+# mutable struct HRU_Output
+#     Fast_Discharge:: Float64
+#     GWflow:: Float64 #only necessary for hillslope HRU
+#     Soil_Evaporation:: Float64
+#     Total_Interception_Evaporation:: Float64
+#     #storages
+#     Faststorage:: Float64
+#     Interceptionstorage::Array{Float64,1}
+#     Snowstorage::Array{Float64,1}
+#     Soilstorage:: Float64
+# end
