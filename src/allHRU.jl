@@ -1,7 +1,7 @@
 function allHRU(bare_input::HRU_Input, forest_inpt::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
                 bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages,
                 bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters,
-                Slowstorage, Ks, Ratio_Riparian)
+                Slowstorage::Float64, Ks::Float64, Ratio_Riparian::Float64)
     #bare rock HRU
     bare_outflow::Outflows, bare_storage::Storages = hillslopeHRU(bare_input, bare_storage, bare_parameters)
     # forest HRU
@@ -10,21 +10,29 @@ function allHRU(bare_input::HRU_Input, forest_inpt::HRU_Input, grass_input::HRU_
     grass_outflow::Outflows, grass_storage::Storages = hillslopeHRU(grass_input, grass_storage, grass_parameters)
     # riparian HRU
     rip_outflow::Outflows, rip_storage::Storages = riparianHRU(rip_input, rip_storage, rip_parameters)
-    # total flow into groundwater is the weighted sum of the HRUs
-    Total_GWflow = bare_outflow.GWflow + forest_outflow.GWflow + grass_outflow.GWflow
+    # total flow into groundwater is the weighted sum of the HRUs according to areal extent
+    Total_GWflow = bare_outflow.GWflow * bare_input.Area_HRU + forest_outflow.GWflow * forest_input.Area_HRU + grass_outflow.GWflow * grass_input.Area_HRU
     # Groundwater storage
     Riparian_Discharge, Slow_Discharge, Slowstorage = slowstorage(Total_GWflow, Slowstorage, Ks, Ratio_Riparian)
     #return all storage values, all evaporation values, Fast_Discharge and Slow_Discharge
     # calculate total discharge of the timestep using weighted sum of each HRU
-    Total_Discharge = bare_outflow.Fast_Discharge + forest_outflow.Fast_Discharge + grass_outflow.Fast_Discharge + rip_outflow.Fast_Discharge + Slow_Discharge
-    Total_Soil_Evaporation = bare_outflow.Soil_Evaporation + forest_outflow.Soil_Evaporation + grass_outflow.Soil_Evaporation + rip_outflow.Soil_Evaporation
-    Total_Interception_Evaporation = bare_outflow.Interception_Evaporation + forest_outflow.Interception_Evaporation + grass_outflow.Interception_Evaporation + rip_outflow.Interception_Evaporation
+    Total_Discharge = bare_outflow.Fast_Discharge  + forest_outflow.Fast_Discharge + grass_outflow.Fast_Discharge  + rip_outflow.Fast_Discharge  + Slow_Discharge
+    Total_Soil_Evaporation = bare_outflow.Soil_Evaporation + forest_outflow.Soil_Evaporation + grass_outflow.Soil_Evaporation  + rip_outflow.Soil_Evaporation 
+    Total_Interception_Evaporation = bare_outflow.Interception_Evaporation  + forest_outflow.Interception_Evaporation + grass_outflow.Interception_Evaporation + rip_outflow.Interception_Evaporation
 
+    @assert Riparian_Discharge >= 0
+    @assert Total_Discharge >= 0
+    @assert Total_Interception_Evaporation >= 0
+    @assert Total_Soil_Evaporation >= 0
+    @assert Slowstorage >= 0
     return Riparian_Discharge, Total_Discharge, Total_Interception_Evaporation, Total_Soil_Evaporation, bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage
 end
 
 
-function runmodel(Evaporation, Evaporation_Mean, Precipitation, Temp, bare_input, forest_input, grass_input, rip_input, bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage, bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian)
+function runmodel(Evaporation::Array{Float64}, Evaporation_Mean::Array{Float64,1}, Precipitation::Array{Float64}, Temp::Array{Float64},
+                bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
+                bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64,
+                bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters, Ks::Float64, Ratio_Riparian::Float64)
     # the function takes as input the parameters of each HRU, the inital storage values of each HRU, the inital value of the slow storage
     # KS, ratio riparian, all inputs
 
@@ -54,21 +62,22 @@ function runmodel(Evaporation, Evaporation_Mean, Precipitation, Temp, bare_input
         # at each timestep new temp, precipitation and Epot values have to be delivered
         # areas don't change
         # riparian discharge from former timestep has to be used
+        # Evaporaiton, Temperature and Precipitation data of timestep t for bare HRU
         bare_input.Potential_Evaporation = Evaporation[t, :]
         bare_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
         bare_input.Temp_Elevation = Temp[t, :]
         bare_input.Precipitation = Precipitation[t, :]
-
+        # Evaporaiton, Temperature and Precipitation data of timestep t for forest HRU
         forest_input.Potential_Evaporation = Evaporation[t, :]
         forest_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
         forest_input.Precipitation = Precipitation[t, :]
         forest_input.Temp_Elevation = Temp[t, :]
-
+        # Evaporaiton, Temperature and Precipitation data of timestep t for grass HRU
         grass_input.Potential_Evaporation = Evaporation[t, :]
         grass_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
         grass_input.Precipitation = Precipitation[t, :]
         grass_input.Temp_Elevation = Temp[t, :]
-
+        # Evaporaiton, Temperature and Precipitation data of timestep t for riparian HRU
         rip_input.Potential_Evaporation = Evaporation[t, :]
         rip_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
         rip_input.Precipitation = Precipitation[t, :]
@@ -77,11 +86,14 @@ function runmodel(Evaporation, Evaporation_Mean, Precipitation, Temp, bare_input
 
         # parameters stay the same in each timestep
         # values of storages of timestep before have to be given
+        #print("t", t, "\n")
+        #print("Bare_Soil", bare_storage.Soil, "forest soil", forest_storage.Soil, "grasssoil", grass_storage.Soil, "ripsoil", rip_storage.Soil)
         Riparian_Discharge, Total_Discharge, Total_Interception_Evaporation, Total_Soil_Evaporation, bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage = allHRU(bare_input, forest_input, grass_input, rip_input,
                                                                                                             bare_storage, forest_storage, grass_storage, rip_storage,
                                                                                                             bare_parameters, forest_parameters, grass_parameters, rip_parameters,
                                                                                                             Slowstorage, Ks, Ratio_Riparian)
         # give new riparian discharge as input for next timestep
+
         rip_input.Riparian_Discharge = Riparian_Discharge
         # storage output of one timestep is the storage input of the next timestep, output is stored in the same struct, so it overwrites old storage values
         #do I need the storage values of each timestep???!!
