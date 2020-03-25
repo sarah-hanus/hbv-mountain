@@ -1,4 +1,4 @@
-function interception(Potential_Evaporation, Precipitation, Temp, Interceptionstorage, Interceptionstoragecapacity, Temp_Thresh)
+function interception(Potential_Evaporation::Float64, Precipitation::Float64, Temp::Float64, Interceptionstorage::Float64, Interceptionstoragecapacity::Float64, Temp_Thresh::Float64)
     @assert Potential_Evaporation >= 0
     @assert Precipitation >= 0
     @assert Interceptionstorage >= 0
@@ -13,16 +13,16 @@ function interception(Potential_Evaporation, Precipitation, Temp, Interceptionst
             #if it rains
             Interceptionstorage = Interceptionstorage + Precipitation
             # the amount stored in Interception Reservoir will increase by amount of precipitation
-            Effective_Precipitation = max(0, Interceptionstorage - Interceptionstoragecapacity)
+            Effective_Precipitation = max(0.0, Interceptionstorage - Interceptionstoragecapacity)
             # the excess precipitation will leave the reservoir directly
             Interceptionstorage = Interceptionstorage - Effective_Precipitation
             #change in storage
-            Interception_Evaporation = 0
+            Interception_Evaporation = 0.0
             # no water will evaporate on rainy days
         else
             # if it does not rain
             # Evaporation only when there is no rainfall
-            Effective_Precipitation = 0
+            Effective_Precipitation = 0.0
             # no excess water leaves storage
             Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation)
             # the Interception Evporation will be either the amount stored or the potential evaporation
@@ -33,17 +33,23 @@ function interception(Potential_Evaporation, Precipitation, Temp, Interceptionst
     else
         # snow accumulates
         # evporation is 0 and no effective precipitation is released
-        Interception_Evaporation = 0
-        Effective_Precipitation = 0
+        Interception_Evaporation = 0.0
+        Effective_Precipitation = 0.0
         Interceptionstorage = Interceptionstorage #amount stored does not change??!
     end
-    return Effective_Precipitation, Interception_Evaporation, Interceptionstorage
+
+    @assert Interception_Evaporation <= Potential_Evaporation
+    @assert Effective_Precipitation >= 0
+    @assert Interception_Evaporation >= 0
+    @assert Interceptionstorage >= 0
+    @assert Interceptionstorage <= Interceptionstoragecapacity
+    return Effective_Precipitation::Float64, Interception_Evaporation::Float64, Interceptionstorage::Float64
 end
 
 
-function snow(Area_Glacier, Precipitation, Temp, Snowstorage, Meltfactor, Mm, Temp_Thresh)
+function snow(Area_Glacier::Float64, Precipitation::Float64, Temp::Float64, Snowstorage::Float64, Meltfactor::Float64, Mm::Float64, Temp_Thresh::Float64)
 
-    @assert Area_Glacier >= 0
+    @assert Area_Glacier >= 0 and <= 1
     @assert Precipitation >= 0
     @assert Snowstorage >= 0
     @assert Meltfactor >= 0 #within the parameter range
@@ -64,17 +70,21 @@ function snow(Area_Glacier, Precipitation, Temp, Snowstorage, Meltfactor, Mm, Te
         # the amount of snow stored increases by Precipitation
         Snowstorage = Snowstorage + Precipitation
         # no snow melts
-        Melt_Total = 0
+        Melt_Total = 0.0
     end
 
-    return Melt_Total, Snowstorage
+    @assert Melt_Total >= 0
+    @assert Snowstorage >= 0
+
+    return Melt_Total::Float64, Snowstorage::Float64
 end
 
 
-function soilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Soilstorage, beta, Ce, Percolationcapacity, Ratio_Pref, Soilstoragecapacity)
+function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation::Float64, Potential_Evaporation::Float64, Soilstorage::Float64, beta::Float64, Ce::Float64, Percolationcapacity::Float64, Ratio_Pref::Float64, Soilstoragecapacity::Float64)
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
+    @assert Interception_Evaporation <= Potential_Evaporation
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
     @assert Soilstorage <= Soilstoragecapacity
@@ -84,11 +94,11 @@ function soilstorage(Effective_Precipitation, Interception_Evaporation, Potentia
     @assert Percolationcapacity >= 0
     @assert Ratio_Pref >= 0
 
-
     if Effective_Precipitation > 0
         # rho represents the non linear process that only part of precipitation enters soil
         # different rho??
         Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
+        @assert Ratio_Soil <= 1 and >= 0
         # # part of precipitation doesn't enters soil, but flows directly to fast reservoir
         # Overlandflow = Ratio_Soil * Effective_Precipitation * Ratio_pref
         # # or flows into the groundwater reservoir
@@ -106,20 +116,27 @@ function soilstorage(Effective_Precipitation, Interception_Evaporation, Potentia
 
     else
         # if it does not rain no overland flow occurs
-        Overlandflow = 0
-        Preferentialflow = 0
+        Overlandflow = 0.0
+        Preferentialflow = 0.0
     end
     # Transpiration in soil, only the part that not evaporated in interception reservoir can evaporate
     Potential_Soilevaporation = Potential_Evaporation - Interception_Evaporation
     # transpiration can maximum be the amount stored in soil, or a percentage of potential evaporation
-    Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1)
+    Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1.0)
     Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
     Soilstorage = Soilstorage - Soil_Evaporation
     # Part of the water stored in soil will percolate into groundwater depending on the percolation capacity
     Percolationflow = (Soilstorage / Soilstoragecapacity) * Percolationcapacity
     Soilstorage = Soilstorage - Percolationflow
 
-    return Overlandflow, Percolationflow, Preferentialflow, Soil_Evaporation, Soilstorage
+    @assert Overlandflow >= 0
+    @assert Percolationflow >= 0
+    @assert Preferentialflow >= 0
+    @assert Soil_Evaporation <= Potential_Evaporation - Interception_Evaporation
+    @assert Soil_Evaporation >= 0
+    @assert Soilstorage >= 0
+    @assert Soilstorage <= Soilstoragecapacity
+    return Overlandflow::Float64, Percolationflow::Float64, Preferentialflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64
 end
 
 function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity)
@@ -151,6 +168,11 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     Soilstorage = Soilstorage - Fastdrainage
     Overlandflow = Overlandflow + Fastdrainage
 
+    @assert Overlandflow >= 0
+    @assert Soil_Evaporation <= Potential_Evaporation - Interception_Evaporation
+    @assert Soil_Evaporation >= 0
+    @assert Soilstorage >= 0
+    @assert Soilstorage <= Soilstoragecapacity
     return Overlandflow, Soil_Evaporation, Soilstorage
 end
 
@@ -164,7 +186,8 @@ function faststorage(Overlandflow, Faststorage, Kf)
     # a part of the fast storage gets redirected into discharge depending on the reservoir constant (linear response)
     Fast_Discharge = Kf * Faststorage
     Faststorage = Faststorage - Fast_Discharge
-
+    @assert Fast_Discharge >= 0
+    @assert Faststorage >= 0
     return Fast_Discharge, Faststorage
 end
 
@@ -179,6 +202,9 @@ function slowstorage(GWflow, Slowstorage, Ks, Ratio_Riparian)
     Riparian_Discharge = Ks * Slowstorage * Ratio_Riparian
     Slowstorage = Slowstorage - Slow_Discharge - Riparian_Discharge
 
+    @assert Riparian_Discharge >= 0
+    @assert Slow_Discharge >= 0
+    @assert Slowstorage >= 0
     return Riparian_Discharge, Slow_Discharge, Slowstorage
 end
 
