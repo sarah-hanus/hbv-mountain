@@ -1,7 +1,3 @@
-eva = [2,3]
-print(eva[1])
+using Test
 
-for t in 2
-    x = eva[t]
-    print(x)
-end
+@test bare_storage >= 0

@@ -20,7 +20,7 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
     @assert hill.Total_Interception_Evaporation == 0
     @assert hill.Total_Effective_Precipitation == 0
-    @assert sum(hill.Area_Elevations) == 1
+    @assert 1 - eps(Float64) <= sum(hill.Area_Elevations) <= 1 + eps(Float64)
     @assert hill.Area_HRU >= 0 and <= 1
     @assert hill.Nr_Elevationbands >= 1
     @assert sum(hill.Potential_Evaporation)/length(hill.Potential_Evaporation) == hill.Potential_Evaporation_Mean
@@ -118,7 +118,7 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     @assert rip_out.GWflow >= 0
     @assert rip_out.Soil_Evaporation >= 0
     @assert rip_out.Interception_Evaporation >= 0
-    @assert rip_out.Soil_Evaporation + rip_out.Interception_Evaporation <= hill.Potential_Evaporation_Mean
+    @assert rip_out.Soil_Evaporation + rip_out.Interception_Evaporation <= rip.Potential_Evaporation_Mean
 
     #assertions for the storages
     @assert rip_storages.Fast >= 0
