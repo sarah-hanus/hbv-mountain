@@ -18,8 +18,18 @@ end
 function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameters)
     # Are_Elevations gives the areal percentage of each elevation band. The sum has to be 1
     # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
+    @assert hill.Total_Interception_Evaporation == 0
+    @assert hill.Total_Effective_Precipitation == 0
+    @assert sum(hill.Area_Elevations) == 1
+    @assert hill.Area_HRU >= 0 and <= 1
+    @assert hill.Nr_Elevationbands >= 1
+    @assert sum(hill.Potential_Evaporation)/length(hill.Potential_Evaporation) == hill.Potential_Evaporation_Mean
 
     for i in 1 : hill.Nr_Elevationbands
+        # the precipitation and potential evaporation have to be adjusted to the areal extent of the elevation band
+        #Precipitation = hill.Precipitation[i] * hill.Area_Elevations[i]
+        #Potential_Evaporation = hill.Potential_Evaporation[i] * hill.Area_Elevations[i]
+
         # snow component
         Melt, storages.Snow[i] = snow(hill.Area_Glacier, hill.Precipitation[i], hill.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
         #interception component
@@ -46,8 +56,26 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     hill_out = Outflows(Fast_Discharge, GWflow, Soil_Evaporation, Total_Interception_Evaporation)
     #returning all storages
     hill_storages = Storages(Faststorage, storages.Interception, storages.Snow, Soilstorage)
+    # total interception should be zero again for next run
+    hill.Total_Interception_Evaporation = 0
+    hill.Total_Effective_Precipitation = 0
 
-    return hill_out, hill_storages
+    #assertions for the outflows
+    @assert hill_out.Fast_Discharge >= 0
+    @assert hill_out.GWflow >= 0
+    @assert hill_out.Soil_Evaporation >= 0
+    @assert hill_out.Interception_Evaporation >= 0
+    @assert hill_out.Soil_Evaporation + hill_out.Interception_Evaporation <= hill.Potential_Evaporation_Mean
+
+    #assertions for the storages
+    @assert hill_storages.Fast >= 0
+    @assert hill_storages.Interception >= zeros(hill.Nr_Elevationbands)
+    @assert hill_storages.Snow >= zeros(hill.Nr_Elevationbands)
+    @assert hill_storages.Soil >= 0
+    @assert hill_storages.Interception <= ones(hill.Nr_Elevationbands) * parameters.Interceptionstoragecapacity
+    @assert hill_storages.Soil <= parameters.Soilstoragecapacity
+
+    return hill_out::Outflows, hill_storages::Storages
     #return GWflow, Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
 end
@@ -64,7 +92,7 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
         # the melt, effective precipitation and evaporation can be summed up over all elevations according to the areal extent
         global rip.Total_Effective_Precipitation += (Effective_Precipitation + Melt) * rip.Area_Elevations[i]
         #global Total_Melt += (Melt * Area_Elevations[i])
-        global rip.Total_Interception_Evaporation += (Interception_Evaporation * rip.Area_Elevations[i])
+        global rip.Total_Interception_Evaporation += Interception_Evaporation * rip.Area_Elevations[i]
         # the storage components have to be saved for each  elevation seperately
     end
 
@@ -81,6 +109,25 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     # retungs water flows, evaporation, and states of the storage components
     rip_out = Outflows(Fast_Discharge, GWflow, Soil_Evaporation, Total_Interception_Evaporation)
     rip_storages = Storages(Faststorage, storages.Interception, storages.Snow, Soilstorage)
+
+    rip.Total_Interception_Evaporation = 0
+    rip.Total_Effective_Precipitation = 0
+
+    #assertions for the outflows
+    @assert rip_out.Fast_Discharge >= 0
+    @assert rip_out.GWflow >= 0
+    @assert rip_out.Soil_Evaporation >= 0
+    @assert rip_out.Interception_Evaporation >= 0
+    @assert rip_out.Soil_Evaporation + rip_out.Interception_Evaporation <= hill.Potential_Evaporation_Mean
+
+    #assertions for the storages
+    @assert rip_storages.Fast >= 0
+    @assert rip_storages.Interception >= zeros(rip.Nr_Elevationbands)
+    @assert rip_storages.Snow >= zeros(rip.Nr_Elevationbands)
+    @assert rip_storages.Soil >= 0
+    @assert rip_storages.Interception <= ones(rip.Nr_Elevationbands) * parameters.Interceptionstoragecapacity
+    @assert rip_storages.Soil <= parameters.Soilstoragecapacity
+
     return rip_out, rip_storages
     #return Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
