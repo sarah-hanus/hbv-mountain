@@ -1,6 +1,6 @@
 # function to get the elevation data of each elevation
 function getelevationdata(Thickness_Band, Lowest_Elevation, Mean_Elevation, Highest_Elevation, Prec_Gradient, Temperature, Precipitation_Mean)
-    Nr_Elevationbands = Int(ceil((Highest_Elevation - Lowest_Elevation) / 250))
+    Nr_Elevationbands = Int(ceil((Highest_Elevation - Lowest_Elevation) / Thickness_Band))
     # make an array with number of rows equal to number of days, and columns equal to number of elevations
     Temp_Elevation = zeros(length(Temperature), Nr_Elevationbands)
     Precipitation = zeros(length(Temperature),Nr_Elevationbands)
