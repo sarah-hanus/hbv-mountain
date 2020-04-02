@@ -17,7 +17,7 @@ function allHRU(bare_input::HRU_Input, forest_inpt::HRU_Input, grass_input::HRU_
     #return all storage values, all evaporation values, Fast_Discharge and Slow_Discharge
     # calculate total discharge of the timestep using weighted sum of each HRU
     Total_Discharge = bare_outflow.Fast_Discharge  + forest_outflow.Fast_Discharge + grass_outflow.Fast_Discharge  + rip_outflow.Fast_Discharge  + Slow_Discharge
-    Total_Soil_Evaporation = bare_outflow.Soil_Evaporation + forest_outflow.Soil_Evaporation + grass_outflow.Soil_Evaporation  + rip_outflow.Soil_Evaporation 
+    Total_Soil_Evaporation = bare_outflow.Soil_Evaporation + forest_outflow.Soil_Evaporation + grass_outflow.Soil_Evaporation  + rip_outflow.Soil_Evaporation
     Total_Interception_Evaporation = bare_outflow.Interception_Evaporation  + forest_outflow.Interception_Evaporation + grass_outflow.Interception_Evaporation + rip_outflow.Interception_Evaporation
 
     @assert Riparian_Discharge >= 0
@@ -29,7 +29,7 @@ function allHRU(bare_input::HRU_Input, forest_inpt::HRU_Input, grass_input::HRU_
 end
 
 
-function runmodel(Evaporation::Array{Float64}, Evaporation_Mean::Array{Float64,1}, Precipitation::Array{Float64}, Temp::Array{Float64},
+function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Float64,1}, Precipitation::Array{Float64}, Temp::Array{Float64},
                 bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
                 bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64,
                 bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters, Ks::Float64, Ratio_Riparian::Float64)
@@ -97,7 +97,7 @@ function runmodel(Evaporation::Array{Float64}, Evaporation_Mean::Array{Float64,1
         rip_input.Riparian_Discharge = Riparian_Discharge
         # storage output of one timestep is the storage input of the next timestep, output is stored in the same struct, so it overwrites old storage values
         #do I need the storage values of each timestep???!!
-        Discharge[t] = Total_Discharge
+        Discharge[t] = Total_Discharge * Area / (3600 * 24)
         Int_Evaporation[t] = Total_Interception_Evaporation
         Soil_Evaporation[t] = Total_Soil_Evaporation
         #OPTIONAL: store all storage states at each timestep
