@@ -25,6 +25,7 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
             Effective_Precipitation = 0.0
             # no excess water leaves storage
             Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation)
+            print()
             # the Interception Evporation will be either the amount stored or the potential evaporation
             Interceptionstorage = Interceptionstorage - Interception_Evaporation
             # the amount stored in the Interception Reservoir will decrease because of evaporation
@@ -37,7 +38,7 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
         Effective_Precipitation = 0.0
         Interceptionstorage = Interceptionstorage #amount stored does not change??!
     end
-
+    #print(Interception_Evaporation, "potential", Potential_Evaporation, "\n")
     @assert Interception_Evaporation <= Potential_Evaporation
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
@@ -84,7 +85,9 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
-    @assert Interception_Evaporation <= Potential_Evaporation
+    #print(Interception_Evaporation, "pot", Potential_Evaporation,"\n")
+    #asserz rounded value because there can be a difference because of rounding
+    @assert round(Interception_Evaporation, digits=15) <= round(Potential_Evaporation, digits=15)
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
     @assert Soilstorage <= Soilstoragecapacity
@@ -120,7 +123,7 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
         Preferentialflow = 0.0
     end
     # Transpiration in soil, only the part that not evaporated in interception reservoir can evaporate
-    Potential_Soilevaporation = Potential_Evaporation - Interception_Evaporation
+    Potential_Soilevaporation = max(Potential_Evaporation - Interception_Evaporation, 0)
     # transpiration can maximum be the amount stored in soil, or a percentage of potential evaporation
     Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1.0)
     Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
@@ -132,7 +135,7 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     @assert Overlandflow >= 0
     @assert Percolationflow >= 0
     @assert Preferentialflow >= 0
-    @assert Soil_Evaporation <= Potential_Evaporation - Interception_Evaporation
+    @assert Soil_Evaporation <= max(Potential_Evaporation - Interception_Evaporation,0)
     @assert Soil_Evaporation >= 0
     @assert Soilstorage >= 0
     @assert Soilstorage <= Soilstoragecapacity
@@ -158,7 +161,7 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     # the other part does not enter the soil but flows into the fast reservoir
     Overlandflow = (Effective_Precipitation + Riparian_Discharge - Q_Soil)
     # Transpiration in soil, only the part that not evaporated in interception reservoir can evaporate
-    Potential_Soilevaporation = Potential_Evaporation - Interception_Evaporation
+    Potential_Soilevaporation = max(Potential_Evaporation - Interception_Evaporation,0)
     # transpiration can maximum be the amount stored in soil, or a percentage of potential evaporation
     Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1)
     Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
@@ -169,7 +172,7 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     Overlandflow = Overlandflow + Fastdrainage
 
     @assert Overlandflow >= 0
-    @assert Soil_Evaporation <= Potential_Evaporation - Interception_Evaporation
+    @assert Soil_Evaporation <= max(Potential_Evaporation - Interception_Evaporation,0)
     @assert Soil_Evaporation >= 0
     @assert Soilstorage >= 0
     @assert Soilstorage <= Soilstoragecapacity
