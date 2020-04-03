@@ -1,31 +1,40 @@
-function allHRU(bare_input::HRU_Input, forest_inpt::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
+function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
                 bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages,
                 bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters,
                 Slowstorage::Float64, Ks::Float64, Ratio_Riparian::Float64)
+    #this function runs thy model for different HRUs
     #bare rock HRU
-    bare_outflow::Outflows, bare_storage::Storages = hillslopeHRU(bare_input, bare_storage, bare_parameters)
+    bare_outflow::Outflows, bare_storage::Storages, Bare_precipitation::Float64, Bare_Storages::Float64 = hillslopeHRU(bare_input, bare_storage, bare_parameters)
     # forest HRU
-    forest_outflow::Outflows, forest_storage::Storages = hillslopeHRU(forest_input, forest_storage, forest_parameters)
+    forest_outflow::Outflows, forest_storage::Storages, Forest_precipitation::Float64, Forest_Storages::Float64= hillslopeHRU(forest_input, forest_storage, forest_parameters)
     # Grassland HRU
-    grass_outflow::Outflows, grass_storage::Storages = hillslopeHRU(grass_input, grass_storage, grass_parameters)
+    grass_outflow::Outflows, grass_storage::Storages, Grass_precipitation::Float64, Grass_Storages::Float64= hillslopeHRU(grass_input, grass_storage, grass_parameters)
     # riparian HRU
-    rip_outflow::Outflows, rip_storage::Storages = riparianHRU(rip_input, rip_storage, rip_parameters)
-    # total flow into groundwater is the weighted sum of the HRUs according to areal extent
-    Total_GWflow = bare_outflow.GWflow * bare_input.Area_HRU + forest_outflow.GWflow * forest_input.Area_HRU + grass_outflow.GWflow * grass_input.Area_HRU
+    rip_outflow::Outflows, rip_storage::Storages, Rip_precipitation::Float64, Rip_Storages::Float64= riparianHRU(rip_input, rip_storage, rip_parameters)
+    # total flow into groundwater is the weighted sum of the HRUs according to areal extent (this was already done in hillslopeHRU)
+    Total_GWflow = bare_outflow.GWflow + forest_outflow.GWflow  + grass_outflow.GWflow
     # Groundwater storage
-    Riparian_Discharge, Slow_Discharge, Slowstorage = slowstorage(Total_GWflow, Slowstorage, Ks, Ratio_Riparian)
+    Riparian_Discharge::Float64, Slow_Discharge::Float64, Slowstorage::Float64 = slowstorage(Total_GWflow, Slowstorage, Ks, Ratio_Riparian)
     #return all storage values, all evaporation values, Fast_Discharge and Slow_Discharge
     # calculate total discharge of the timestep using weighted sum of each HRU
-    Total_Discharge = bare_outflow.Fast_Discharge  + forest_outflow.Fast_Discharge + grass_outflow.Fast_Discharge  + rip_outflow.Fast_Discharge  + Slow_Discharge
-    Total_Soil_Evaporation = bare_outflow.Soil_Evaporation + forest_outflow.Soil_Evaporation + grass_outflow.Soil_Evaporation  + rip_outflow.Soil_Evaporation
-    Total_Interception_Evaporation = bare_outflow.Interception_Evaporation  + forest_outflow.Interception_Evaporation + grass_outflow.Interception_Evaporation + rip_outflow.Interception_Evaporation
+    Total_Discharge::Float64 = bare_outflow.Fast_Discharge  + forest_outflow.Fast_Discharge + grass_outflow.Fast_Discharge  + rip_outflow.Fast_Discharge  + Slow_Discharge
+    Total_Soil_Evaporation::Float64 = bare_outflow.Soil_Evaporation + forest_outflow.Soil_Evaporation + grass_outflow.Soil_Evaporation  + rip_outflow.Soil_Evaporation
+    Total_Interception_Evaporation::Float64 = bare_outflow.Interception_Evaporation  + forest_outflow.Interception_Evaporation + grass_outflow.Interception_Evaporation + rip_outflow.Interception_Evaporation
 
     @assert Riparian_Discharge >= 0
     @assert Total_Discharge >= 0
     @assert Total_Interception_Evaporation >= 0
     @assert Total_Soil_Evaporation >= 0
     @assert Slowstorage >= 0
-    return Riparian_Discharge, Total_Discharge, Total_Interception_Evaporation, Total_Soil_Evaporation, bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage
+
+    Total_Flows = Total_Discharge + Total_Soil_Evaporation + Total_Interception_Evaporation + Riparian_Discharge
+    Total_Storages = Bare_Storages * bare_input.Area_HRU + Forest_Storages * forest_input.Area_HRU + Grass_Storages * grass_input.Area_HRU + Rip_Storages * rip_input.Area_HRU
+    print("Flows", Total_Flows)
+    print("storage", Total_Storages)
+    print("Flows_store", round(Total_Flows + Total_Storages, digits=12))
+    print("prec", Bare_precipitation + rip_input.Riparian_Discharge, "\n")
+    @assert round(Bare_precipitation + rip_input.Riparian_Discharge) == round(Total_Flows + Total_Storages)
+    return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64
 end
 
 
@@ -37,58 +46,71 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
     # KS, ratio riparian, all inputs
 
     # define the maximum time
-    tmax = length(Precipitation[:,1])
+    tmax::Int128 = length(Precipitation[:,1])
 
     # make arrays for each Model Component
-    Int_Evaporation = zeros(tmax) #interception evaporation
-    Soil_Evaporation = zeros(tmax) #soil evaporation
-    Discharge = zeros(tmax)
+    Int_Evaporation::Array{Float64,1} = zeros(tmax) #interception evaporation
+    Soil_Evaporation::Array{Float64,1} = zeros(tmax) #soil evaporation
+    Discharge::Array{Float64,1} = zeros(tmax)
 
-    # store the initial storage values
-    Initial_Storage_bare = bare_storage.Fast + sum(bare_storage.Interception) + sum(bare_storage.Snow) + bare_storage.Soil
-    Initial_Storage_forest = forest_storage.Fast + sum(forest_storage.Interception) + sum(forest_storage.Snow) + forest_storage.Soil
-    Initial_Storage_grass = grass_storage.Fast + sum(grass_storage.Interception) + sum(grass_storage.Snow) + grass_storage.Soil
-    Initial_Storage_rip = rip_storage.Fast + sum(rip_storage.Interception) + sum(rip_storage.Snow) + rip_storage.Soil
-    Initial_Storage = Initial_Storage_bare + Initial_Storage_forest + Initial_Storage_grass + Initial_Storage_rip
+    # store the initial storage values, Does not take into account GW storage!!
+    # Assumption_ GW storage is 0 at start
+    #TO DO: average values over area
+    Initial_Storage_bare::Float64 = bare_storage.Fast + sum(bare_storage.Interception) + sum(bare_storage.Snow) + bare_storage.Soil
+    Initial_Storage_forest::Float64 = forest_storage.Fast + sum(forest_storage.Interception) + sum(forest_storage.Snow) + forest_storage.Soil
+    Initial_Storage_grass::Float64 = grass_storage.Fast + sum(grass_storage.Interception) + sum(grass_storage.Snow) + grass_storage.Soil
+    Initial_Storage_rip::Float64 = rip_storage.Fast + sum(rip_storage.Interception) + sum(rip_storage.Snow) + rip_storage.Soil
+    Initial_Storage::Float64 = Initial_Storage_bare + Initial_Storage_forest + Initial_Storage_grass + Initial_Storage_rip
 
     #OPTIONAL: store all storage states
-    Interceptionstorage = zeros(tmax, 4) #storage interception
-    Snowstorage = zeros(tmax, 4)
-    Soilstorage = zeros(tmax, 4) #stroage unsaturated zone
-    Faststorage = zeros(tmax, 4) #storage fast
-    GWstorage = zeros(tmax) #storage GW
+    Interceptionstorage::Array{Float64,2} = zeros(tmax, 4) #storage interception
+    Snowstorage::Array{Float64,2} = zeros(tmax, 4)
+    Soilstorage::Array{Float64,2} = zeros(tmax, 4) #stroage unsaturated zone
+    Faststorage::Array{Float64,2} = zeros(tmax, 4) #storage fast
+    GWstorage::Array{Float64,1} = zeros(tmax) #storage GW
 
     for t in 1:tmax
+        print("t", t,"\n")
         # at each timestep new temp, precipitation and Epot values have to be delivered
         # areas don't change
         # riparian discharge from former timestep has to be used
-        # Evaporaiton, Temperature and Precipitation data of timestep t for bare HRU
-        bare_input.Potential_Evaporation = Evaporation[t, :]
-        bare_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
-        bare_input.Temp_Elevation = Temp[t, :]
-        bare_input.Precipitation = Precipitation[t, :]
-        # Evaporaiton, Temperature and Precipitation data of timestep t for forest HRU
-        forest_input.Potential_Evaporation = Evaporation[t, :]
-        forest_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
-        forest_input.Precipitation = Precipitation[t, :]
-        forest_input.Temp_Elevation = Temp[t, :]
-        # Evaporaiton, Temperature and Precipitation data of timestep t for grass HRU
-        grass_input.Potential_Evaporation = Evaporation[t, :]
-        grass_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
-        grass_input.Precipitation = Precipitation[t, :]
-        grass_input.Temp_Elevation = Temp[t, :]
-        # Evaporaiton, Temperature and Precipitation data of timestep t for riparian HRU
-        rip_input.Potential_Evaporation = Evaporation[t, :]
-        rip_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
-        rip_input.Precipitation = Precipitation[t, :]
-        rip_input.Temp_Elevation = Temp[t, :]
+        # gives the current precipitation, evaporation and temperature
+        Evaporation_Current = Evaporation[t, :]
+        Evaporation_Mean_Current = Evaporation_Mean[t]
+        Precipitation_Current = Precipitation[t, :]
+        Temperature_Current = Temp[t, :]
+
+        bare_input::HRU_Input = input_timestep(bare_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+        forest_input::HRU_Input = input_timestep(forest_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+        grass_input::HRU_Input = input_timestep(grass_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+        rip_input::HRU_Input = input_timestep(rip_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+
+        # bare_input.Potential_Evaporation::Array{Float64,1} = Evaporation[t, :]
+        # bare_input.Potential_Evaporation_Mean::Float64 =
+        # bare_input.Temp_Elevation::Array{Float64,2} = Temp[t, :]
+        # bare_input.Precipitation::Array{Float64,2} = Precipitation[t, :]
+        # # Evaporaiton, Temperature and Precipitation data of timestep t for forest HRU
+        # forest_input.Potential_Evaporation = Evaporation[t, :]
+        # forest_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
+        # forest_input.Precipitation = Precipitation[t, :]
+        # forest_input.Temp_Elevation = Temp[t, :]
+        # # Evaporaiton, Temperature and Precipitation data of timestep t for grass HRU
+        # grass_input.Potential_Evaporation = Evaporation[t, :]
+        # grass_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
+        # grass_input.Precipitation = Precipitation[t, :]
+        # grass_input.Temp_Elevation = Temp[t, :]
+        # # Evaporaiton, Temperature and Precipitation data of timestep t for riparian HRU
+        # rip_input.Potential_Evaporation = Evaporation[t, :]
+        # rip_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
+        # rip_input.Precipitation = Precipitation[t, :]
+        # rip_input.Temp_Elevation = Temp[t, :]
 
 
         # parameters stay the same in each timestep
         # values of storages of timestep before have to be given
         #print("t", t, "\n")
         #print("Bare_Soil", bare_storage.Soil, "forest soil", forest_storage.Soil, "grasssoil", grass_storage.Soil, "ripsoil", rip_storage.Soil)
-        Riparian_Discharge, Total_Discharge, Total_Interception_Evaporation, Total_Soil_Evaporation, bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage = allHRU(bare_input, forest_input, grass_input, rip_input,
+        Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64 = allHRU(bare_input, forest_input, grass_input, rip_input,
                                                                                                             bare_storage, forest_storage, grass_storage, rip_storage,
                                                                                                             bare_parameters, forest_parameters, grass_parameters, rip_parameters,
                                                                                                             Slowstorage, Ks, Ratio_Riparian)
@@ -97,33 +119,84 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
         rip_input.Riparian_Discharge = Riparian_Discharge
         # storage output of one timestep is the storage input of the next timestep, output is stored in the same struct, so it overwrites old storage values
         #do I need the storage values of each timestep???!!
-        Discharge[t] = Total_Discharge * Area / (3600 * 24)
-        Int_Evaporation[t] = Total_Interception_Evaporation
-        Soil_Evaporation[t] = Total_Soil_Evaporation
+        Discharge[t]::Float64 = Total_Discharge * Area / (3600 * 24)
+        Int_Evaporation[t]::Float64 = Total_Interception_Evaporation
+        Soil_Evaporation[t]::Float64 = Total_Soil_Evaporation
         #OPTIONAL: store all storage states at each timestep
-        Interceptionstorage[t, :] = [sum(bare_storage.Interception), sum(forest_storage.Interception), sum(grass_storage.Interception), sum(rip_storage.Interception)]
-        Snowstorage[t, :] = [sum(bare_storage.Snow), sum(forest_storage.Snow), sum(grass_storage.Snow), sum(rip_storage.Snow)]
-        Soilstorage[t, :] = [bare_storage.Soil, forest_storage.Soil, grass_storage.Soil, rip_storage.Soil]
-        Faststorage[t, :] = [bare_storage.Fast, forest_storage.Fast, grass_storage.Fast, rip_storage.Fast]
-        GWstorage[t] = Slowstorage
+        #get the total value stored as mean value of elevations and areal extent of HRU
+        Bare_Interceptionstorage::Float64, Bare_Snowstorage::Float64 = Storage_Total(bare_storage, bare_input)
+        Forest_Interceptionstorage::Float64, Forest_Snowstorage::Float64 = Storage_Total(forest_storage, forest_input)
+        Grass_Interceptionstorage::Float64, Grass_Snowstorage::Float64 = Storage_Total(grass_storage, grass_input)
+        Rip_Interceptionstorage::Float64, Rip_Snowstorage::Float64 = Storage_Total(rip_storage, rip_input)
+
+
+        #Interceptionstorage[t, :] = [sum(bare_storage.Interception), sum(forest_storage.Interception), sum(grass_storage.Interception), sum(rip_storage.Interception)]
+        #Snowstorage[t, :] = [sum(bare_storage.Snow), sum(forest_storage.Snow), sum(grass_storage.Snow), sum(rip_storage.Snow)]
+        Interceptionstorage[t, :]::Array{Float64,1} = [Bare_Interceptionstorage, Forest_Interceptionstorage, Grass_Interceptionstorage, Rip_Interceptionstorage]
+        Snowstorage[t,:]::Array{Float64,1} = [Bare_Snowstorage, Forest_Snowstorage, Grass_Snowstorage, Rip_Snowstorage]
+        #Soilstorage[t, :]::Array{Float64,1} = [bare_storage.Soil * bare_input.Area_HRU, forest_storage.Soil * forest_input.Area_HRU, grass_storage.Soil * grass_input.Area_HRU, rip_storage.Soil * rip_input.Area_HRU]
+        #Faststorage[t, :]::Array{Float64,1} = [bare_storage.Fast * bare_input.Area_HRU, forest_storage.Fast * forest_input.Area_HRU, grass_storage.Fast * grass_input.Area_HRU, rip_storage.Fast * rip_input.Area_HRU]
+        Soilstorage[t, :]::Array{Float64,1} = [bare_storage.Soil, forest_storage.Soil, grass_storage.Soil, rip_storage.Soil]
+        Faststorage[t, :]::Array{Float64,1} = [bare_storage.Fast, forest_storage.Fast, grass_storage.Fast, rip_storage.Fast]
+        GWstorage[t]::Float64 = Slowstorage
     end
 
     # Check Water Balance
-    End_Storage_bare = bare_storage.Fast + sum(bare_storage.Interception) + sum(bare_storage.Snow) + bare_storage.Soil
-    End_Storage_forest = forest_storage.Fast + sum(forest_storage.Interception) + sum(forest_storage.Snow) + forest_storage.Soil
-    End_Storage_grass = grass_storage.Fast + sum(grass_storage.Interception) + sum(grass_storage.Snow) + grass_storage.Soil
-    End_Storage_rip = rip_storage.Fast + sum(rip_storage.Interception) + sum(rip_storage.Snow) + rip_storage.Soil
-    End_Storage = End_Storage_bare + End_Storage_forest + End_Storage_grass + End_Storage_rip
+
+
+    # End_Storage_Interception =
+    # End_Storage_Snow = sum(Snowstorage[end,:], dims=1)
+    # End_Storage_Soil = sum(Soilstorage[end,:], dims=1)
+    # End_Storage_Fast = sum(Faststorage[end,:], dims=1)
+    End_Storage_GW::Float64 = GWstorage[end]
+    End_Storage_bare::Float64 = (bare_storage.Fast + Interceptionstorage[end, 1] + Snowstorage[end, 1] + bare_storage.Soil) * bare_input.Area_HRU
+    End_Storage_forest::Float64 = (forest_storage.Fast + Interceptionstorage[end, 2] + Snowstorage[end, 2] + forest_storage.Soil) * forest_input.Area_HRU
+    End_Storage_grass::Float64 = (grass_storage.Fast + Interceptionstorage[end, 3] + Snowstorage[end, 3] + grass_storage.Soil) * grass_input.Area_HRU
+    End_Storage_rip::Float64 = (rip_storage.Fast + Interceptionstorage[end, 4] + Snowstorage[end, 4] + rip_storage.Soil) * rip_input.Area_HRU
+    End_Storage::Float64 = End_Storage_bare + End_Storage_forest + End_Storage_grass + End_Storage_rip + End_Storage_GW
       #print("Si",Interceptionstorage[1:3],"Ss",Soilstorage[1:3],"Sf",Faststorage[1:3],"Su",Slowstorage[1:3])
       #print("sin",Sin,"send", Send)
-    Total_Storage = End_Storage - Initial_Storage
+    # inital storage in mm , end storage also in mm
+    Total_Storage::Float64 = End_Storage - Initial_Storage
       #print("Sin", Sin,"Ei", sum(Eidt),"Ea", sum(Eadt),"Qtot", sum(Qtotdt))
-    Waterbalance = sum(Precipitation) - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) - Total_Storage
+      #precipitation in mm/day, so sum precipitation in mm, Discharge in mm/d, Int_Evaporation in mm/d, Soil_Evaporation in mm/d
+    Waterbalance::Float64 = sum(Precipitation)/ bare_input.Nr_Elevationbands - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24) - Total_Storage
+    print(sum(Precipitation)/ bare_input.Nr_Elevationbands)
     #offset the discharge
     # Weigths=Weigfun(Tlag)
     # Modelled_Discharge = conv(Total_Discharge, Weigths)
     # Modelled_Discharge = Modelled_Discharge[1:tmax]
     # NashSutcliffe = NSE(Observed_Discharge, Modelled_Discharge)
 
-    return Discharge, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage
+    return Discharge::Array{Float64,1}, Waterbalance::Float64, Faststorage::Array{Float64,2}, GWstorage::Array{Float64,1}, Interceptionstorage::Array{Float64,2}, Snowstorage::Array{Float64,2}, Soilstorage::Array{Float64,2}
+end
+
+function Storage_Total(Storage::Storages, Input::HRU_Input)
+    #print([bare_storage.Interception[1] * bare_input.Area_Elevations[1], forest_storage.Interception[1] * forest_input.Area_Elevations[1] , grass_storage.Interception[1] * grass_input.Area_Elevations[1], rip_storage.Interception[1] * rip_input.Area_Elevations[1]])
+    # this function gives the total storage stored in reservoirs that are elevation distributed
+    Total_Interception_Storage = 0
+    Total_Snow_Storage = 0
+    for i in 1 : Input.Nr_Elevationbands
+        Interception_Storage = Storage.Interception[i] * Input.Area_Elevations[i]
+        Snow_Storage = Storage.Snow[i] * Input.Area_Elevations[i]
+        Former_Total_Interception_Storage = Total_Interception_Storage
+        Former_Total_Snow_Storage = Total_Snow_Storage
+
+        Total_Interception_Storage += Interception_Storage
+        Total_Snow_Storage += Snow_Storage
+
+        @assert Total_Interception_Storage >= Interception_Storage
+        @assert Total_Snow_Storage >= Snow_Storage
+        @assert Total_Interception_Storage >= Former_Total_Interception_Storage
+        @assert Total_Snow_Storage >= Former_Total_Snow_Storage
+    end
+    return Total_Interception_Storage::Float64, Total_Snow_Storage::Float64
+end
+
+function input_timestep(Input::HRU_Input, Evaporation::Array{Float64,1}, Evaporation_Mean::Float64, Precipitation::Array{Float64,1}, Temperature::Array{Float64,1})
+    Input.Potential_Evaporation::Array{Float64,1} = Evaporation
+    Input.Potential_Evaporation_Mean::Float64 = Evaporation_Mean
+    Input.Precipitation::Array{Float64,1} = Precipitation
+    Input.Temp_Elevation::Array{Float64,1} = Temperature
+    return Input::HRU_Input
 end
