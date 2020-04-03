@@ -23,29 +23,33 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     @assert 1 - eps(Float64) <= sum(hill.Area_Elevations) <= 1 + eps(Float64)
     @assert hill.Area_HRU >= 0 and <= 1
     @assert hill.Nr_Elevationbands >= 1
-    @assert sum(hill.Potential_Evaporation)/length(hill.Potential_Evaporation) == hill.Potential_Evaporation_Mean
+    @assert round(sum(hill.Potential_Evaporation)/length(hill.Potential_Evaporation), digits=14) == round(hill.Potential_Evaporation_Mean, digits=14)
 
+    # define Arrays for Snow and Interception
+    Snow = zeros(Nr_Elevationbands)
+    Interception = zeros(Nr_Elevationbands)
     for i in 1 : hill.Nr_Elevationbands
-        # the precipitation and potential evaporation have to be adjusted to the areal extent of the elevation band
-        #Precipitation = hill.Precipitation[i] * hill.Area_Elevations[i]
-        #Potential_Evaporation = hill.Potential_Evaporation[i] * hill.Area_Elevations[i]
-
         # snow component
-        Melt, storages.Snow[i] = snow(hill.Area_Glacier, hill.Precipitation[i], hill.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
+        Melt::Float64, Snow[i]::Float64 = snow(hill.Area_Glacier, hill.Precipitation[i], hill.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
         #interception component
-        Effective_Precipitation, Interception_Evaporation, storages.Interception[i] = interception(hill.Potential_Evaporation[i], hill.Precipitation[i], hill.Temp_Elevation[i], storages.Interception[i], parameters.Interceptionstoragecapacity, parameters.Temp_Thresh)
+        Effective_Precipitation::Float64, Interception_Evaporation::Float64, Interception[i]::Float64 = interception(hill.Potential_Evaporation[i], hill.Precipitation[i], hill.Temp_Elevation[i], storages.Interception[i], parameters.Interceptionstoragecapacity, parameters.Temp_Thresh)
         # the melt, effective precipitation and evaporation can be summed up over all elevations according to the areal extent
-        global hill.Total_Effective_Precipitation += (Effective_Precipitation + Melt) * hill.Area_Elevations[i]
+        hill.Total_Effective_Precipitation::Float64 += (Effective_Precipitation + Melt) * hill.Area_Elevations[i]
         #global Total_Melt += (Melt * Area_Elevations[i])
-        global hill.Total_Interception_Evaporation += (Interception_Evaporation * hill.Area_Elevations[i])
+        hill.Total_Interception_Evaporation::Float64 += (Interception_Evaporation * hill.Area_Elevations[i])
         # the storage components have to be saved for each  elevation seperately
     end
 
+    # problem: interception storage of every elevation band must be divided by areal fraction of the elevation band
+
     #soil storage component
-    Overlandflow, Percolationflow, Preferentialflow, Soil_Evaporation, Soilstorage = soilstorage(hill.Total_Effective_Precipitation, hill.Total_Interception_Evaporation, hill.Potential_Evaporation_Mean, storages.Soil, parameters.beta, parameters.Ce, parameters.Percolationcapacity, parameters.Ratio_Pref, parameters.Soilstoragecapacity)
-    GWflow = Percolationflow + Preferentialflow
+    Overlandflow::Float64, Percolationflow::Float64, Preferentialflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64 = soilstorage(hill.Total_Effective_Precipitation, hill.Total_Interception_Evaporation, hill.Potential_Evaporation_Mean, storages.Soil, parameters.beta, parameters.Ce, parameters.Percolationcapacity, parameters.Ratio_Pref, parameters.Soilstoragecapacity)
+    GWflow::Float64 = Percolationflow + Preferentialflow
     #fast storage
-    Fast_Discharge, Faststorage = faststorage(Overlandflow, storages.Fast, parameters.Kf)
+    Fast_Discharge::Float64, Faststorage::Float64 = faststorage(Overlandflow, storages.Fast, parameters.Kf)
+
+    #calculate total outflow
+    Flows = Fast_Discharge + GWflow + hill.Total_Interception_Evaporation + Soil_Evaporation
 
     # change discharges and evaporation fluxed according to areal fraction
     Fast_Discharge = Fast_Discharge * hill.Area_HRU
@@ -55,10 +59,11 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     # returning all fluxes (evporative, discharge)
     hill_out = Outflows(Fast_Discharge, GWflow, Soil_Evaporation, Total_Interception_Evaporation)
     #returning all storages
-    hill_storages = Storages(Faststorage, storages.Interception, storages.Snow, Soilstorage)
+    hill_storages = Storages(Faststorage, Interception, Snow, Soilstorage)
     # total interception should be zero again for next run
     hill.Total_Interception_Evaporation = 0
     hill.Total_Effective_Precipitation = 0
+
 
     #assertions for the outflows
     @assert hill_out.Fast_Discharge >= 0
@@ -75,7 +80,30 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     @assert hill_storages.Interception <= ones(hill.Nr_Elevationbands) * parameters.Interceptionstoragecapacity
     @assert hill_storages.Soil <= parameters.Soilstoragecapacity
 
-    return hill_out::Outflows, hill_storages::Storages
+    #assertion water balance
+    Precipitation = 0
+    Interception_Storage_New = 0
+    Snow_Storage_New = 0
+    Interception_Storage_Old = 0
+    Snow_Storage_Old = 0
+    for i in 1: hill.Nr_Elevationbands
+        Precipitation += hill.Precipitation[i] * hill.Area_Elevations[i]
+        Interception_Storage_New += hill_storages.Interception[i] * hill.Area_Elevations[i]
+        Snow_Storage_New += hill_storages.Snow[i] * hill.Area_Elevations[i]
+        Interception_Storage_Old += storages.Interception[i] * hill.Area_Elevations[i]
+        Snow_Storage_Old += storages.Snow[i] * hill.Area_Elevations[i]
+    end
+    #print("Prec", Precipitation)
+    # print("Flows", Flows, "\n")
+    # print("Fast", (hill_storages.Fast - storages.Fast), "\n")
+    # print("soil", (hill_storages.Soil -storages.Soil), "\n")
+    # print("snow", (Snow_Storage_New -Snow_Storage_Old), "\n")
+    # print("inter", (Interception_Storage_New - Interception_Storage_Old), "\n")
+    FlowsandStorages = Flows + (hill_storages.Fast - storages.Fast) + (hill_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    All_Storages = (hill_storages.Fast - storages.Fast) + (hill_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    #print("flows", FlowsandStorages,"\n")
+    @assert round(Precipitation, digits=7) == round(FlowsandStorages, digits = 7)
+    return hill_out::Outflows, hill_storages::Storages, Precipitation, All_Storages
     #return GWflow, Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
 end
@@ -84,31 +112,37 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     # Are_Elevations gives the areal percentage of each elevation band. The sum has to be 1
     # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
     # riparian HRU has no preferential and percolation flow
+    Snow = zeros(Nr_Elevationbands)
+    Interception = zeros(Nr_Elevationbands)
     for i in 1 : rip.Nr_Elevationbands
         # snow component
-        Melt, storages.Snow[i] = snow(rip.Area_Glacier, rip.Precipitation[i], rip.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
+        Melt::Float64, Snow[i]::Float64 = snow(rip.Area_Glacier, rip.Precipitation[i], rip.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
         #interception component
-        Effective_Precipitation, Interception_Evaporation, storages.Interception[i] = interception(rip.Potential_Evaporation[i], rip.Precipitation[i], rip.Temp_Elevation[i], storages.Interception[i], parameters.Interceptionstoragecapacity, parameters.Temp_Thresh)
+        Effective_Precipitation::Float64, Interception_Evaporation::Float64, Interception[i]::Float64 = interception(rip.Potential_Evaporation[i], rip.Precipitation[i], rip.Temp_Elevation[i], storages.Interception[i], parameters.Interceptionstoragecapacity, parameters.Temp_Thresh)
         # the melt, effective precipitation and evaporation can be summed up over all elevations according to the areal extent
-        global rip.Total_Effective_Precipitation += (Effective_Precipitation + Melt) * rip.Area_Elevations[i]
+        rip.Total_Effective_Precipitation::Float64 += (Effective_Precipitation + Melt) * rip.Area_Elevations[i]
         #global Total_Melt += (Melt * Area_Elevations[i])
-        global rip.Total_Interception_Evaporation += Interception_Evaporation * rip.Area_Elevations[i]
+        rip.Total_Interception_Evaporation::Float64 += Interception_Evaporation * rip.Area_Elevations[i]
         # the storage components have to be saved for each  elevation seperately
     end
 
     #soil storage component
-    Overlandflow, Soil_Evaporation, Soilstorage = ripariansoilstorage(rip.Total_Effective_Precipitation, rip.Total_Interception_Evaporation, rip.Potential_Evaporation_Mean, rip.Riparian_Discharge, storages.Soil, parameters.beta, parameters.Ce, parameters.Drainagecapacity, parameters.Soilstoragecapacity)
+    Overlandflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64 = ripariansoilstorage(rip.Total_Effective_Precipitation, rip.Total_Interception_Evaporation, rip.Potential_Evaporation_Mean, rip.Riparian_Discharge, storages.Soil, parameters.beta, parameters.Ce, parameters.Drainagecapacity, parameters.Soilstoragecapacity)
     #GWflow = Percolationflow + Preferentialflow
     #fast storage
-    Fast_Discharge, Faststorage = faststorage(Overlandflow, storages.Fast, parameters.Kf)
+    Fast_Discharge::Float64, Faststorage::Float64 = faststorage(Overlandflow, storages.Fast, parameters.Kf)
+    GWflow = 0
+
+    #calculate total outflow
+    Flows = Fast_Discharge + GWflow + rip.Total_Interception_Evaporation + Soil_Evaporation
     # change discharges according to areal fraction
     Fast_Discharge = Fast_Discharge * rip.Area_HRU
-    GWflow = 0
+
     Total_Interception_Evaporation = rip.Total_Interception_Evaporation * rip.Area_HRU
     Soil_Evaporation = Soil_Evaporation * rip.Area_HRU
-    # retungs water flows, evaporation, and states of the storage components
+    # retunrn water flows, evaporation, and states of the storage components
     rip_out = Outflows(Fast_Discharge, GWflow, Soil_Evaporation, Total_Interception_Evaporation)
-    rip_storages = Storages(Faststorage, storages.Interception, storages.Snow, Soilstorage)
+    rip_storages = Storages(Faststorage, Interception, Snow, Soilstorage)
 
     rip.Total_Interception_Evaporation = 0
     rip.Total_Effective_Precipitation = 0
@@ -128,7 +162,25 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     @assert rip_storages.Interception <= ones(rip.Nr_Elevationbands) * parameters.Interceptionstoragecapacity
     @assert rip_storages.Soil <= parameters.Soilstoragecapacity
 
-    return rip_out, rip_storages
+    Precipitation = 0
+    Interception_Storage_New = 0
+    Snow_Storage_New = 0
+    Interception_Storage_Old = 0
+    Snow_Storage_Old = 0
+    for i in 1: rip.Nr_Elevationbands
+        Precipitation += rip.Precipitation[i] * rip.Area_Elevations[i]
+        Interception_Storage_New += rip_storages.Interception[i] * rip.Area_Elevations[i]
+        Snow_Storage_New += rip_storages.Snow[i] * rip.Area_Elevations[i]
+        Interception_Storage_Old += storages.Interception[i] * rip.Area_Elevations[i]
+        Snow_Storage_Old += storages.Snow[i] * rip.Area_Elevations[i]
+    end
+    #print("Precrip", round(Precipitation + rip.Riparian_Discharge, digits=14))
+    FlowsandStorages = Flows + (rip_storages.Fast - storages.Fast) + (rip_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    All_Storages = (rip_storages.Fast - storages.Fast) + (rip_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    #print("flows", round(FlowsandStorages, digits = 14), FlowsandStorages, "\n")
+    @assert round(Precipitation + rip.Riparian_Discharge, digits=7) == round(FlowsandStorages, digits = 7)
+
+    return rip_out, rip_storages, Precipitation, All_Storages
     #return Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
 end
