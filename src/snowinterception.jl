@@ -11,24 +11,25 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
         #if the temperature is higher than freezing temp, precipitation falls as rain
         if Precipitation > 0
             #if it rains
-            Interceptionstorage = Interceptionstorage + Precipitation
             # the amount stored in Interception Reservoir will increase by amount of precipitation
-            Effective_Precipitation = max(0.0, Interceptionstorage - Interceptionstoragecapacity)
+            Interceptionstorage = Interceptionstorage + Precipitation
             # the excess precipitation will leave the reservoir directly
-            Interceptionstorage = Interceptionstorage - Effective_Precipitation
+            Effective_Precipitation = max(0.0, Interceptionstorage - Interceptionstoragecapacity)
             #change in storage
-            Interception_Evaporation = 0.0
-            # no water will evaporate on rainy days
+            Interceptionstorage = Interceptionstorage - Effective_Precipitation
+            # after excess water has left interceptiion storage evaporation occurs
+            Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation * 0.5)
+            #change in storage
+            Interceptionstorage = Interceptionstorage - Interception_Evaporation
         else
             # if it does not rain
-            # Evaporation only when there is no rainfall
-            Effective_Precipitation = 0.0
             # no excess water leaves storage
-            Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation)
-            print()
-            # the Interception Evporation will be either the amount stored or the potential evaporation
-            Interceptionstorage = Interceptionstorage - Interception_Evaporation
+            Effective_Precipitation = 0.0
+            # the Interception Evporation will be either the amount stored or 50% the potential evaporation
+            Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation * 0.5)
             # the amount stored in the Interception Reservoir will decrease because of evaporation
+            Interceptionstorage = Interceptionstorage - Interception_Evaporation
+
         end
         # snow melt
     else
@@ -39,7 +40,7 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
         Interceptionstorage = Interceptionstorage #amount stored does not change??!
     end
     #print(Interception_Evaporation, "potential", Potential_Evaporation, "\n")
-    @assert Interception_Evaporation <= Potential_Evaporation
+    @assert Interception_Evaporation <= Potential_Evaporation * 0.5
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Interceptionstorage >= 0

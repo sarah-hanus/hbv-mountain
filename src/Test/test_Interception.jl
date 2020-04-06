@@ -1,8 +1,8 @@
 using Test
 
 @testset "intercpetion" begin
-    for i in 1:1000
-        Potential_Evaporation = rand(0.1:0.1:10)[1]
+    for i in 1:10000
+        Potential_Evaporation = rand(0.1:0.1:5)[1]
         Precipitation = rand(0.1:1:20)[1]
         Interceptioncapacity = rand(0.1:0.1:3)[1]
         Storage = rand(0:0.1:Interceptioncapacity)[1]
@@ -10,55 +10,57 @@ using Test
         Temp = rand(Temp_Thresh + 0.1:1:25)[1]
 
         #if precipitation is zero, no effective precipitation
-        Precipitation = 0
+        Precipitation = 0.
         Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
         @test Effective_Precipitation == 0
-        @test Interception_Evaporation == min(Potential_Evaporation, Storage)
-        @test Interceptionstorage == Storage - min(Potential_Evaporation, Storage)
+        @test Interception_Evaporation == min(Potential_Evaporation * 0.5, Storage)
+        @test Interceptionstorage == Storage - min(Potential_Evaporation * 0.5, Storage)
 
         # if precipitation and storage is zero, all outputs are zero
-        Precipitation = 0
-        Storage = 0
+        Precipitation = 0.
+        Storage = 0.
         Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
         @test Effective_Precipitation == 0
         @test Interception_Evaporation == 0
         @test Interceptionstorage == 0
 
-        # if storage is zero and rain is present, no evaporation, but outflow
+        # if storage is zero and rain is present, evaporation, and outflow
         Precipitation = rand(0.1:1:20)[1]
-        Storage = 0
+        Storage = 0.
         Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
-        @test Effective_Precipitation == Precipitation - Interceptionstorage
-        @test Interception_Evaporation == 0
-        @test round(Interceptionstorage, digits=12) == round(min(Interceptioncapacity, Precipitation), digits=12)
+        @test round(Effective_Precipitation, digits = 14) == round(Precipitation - (Interceptionstorage + Interception_Evaporation), digits = 14)
+        # evaporation also occurs on rainy days
+        New_Storage = min(Precipitation, Interceptioncapacity)
+        @test round(Interception_Evaporation, digits = 12) == round(min(New_Storage, Potential_Evaporation * 0.5), digits = 12)
+        @test round(Interceptionstorage, digits=12) == round(min(Interceptioncapacity, Precipitation) - Interception_Evaporation, digits=12)
         if Effective_Precipitation > 0
-            @test round(Interceptionstorage, digits = 9) == round(Interceptioncapacity, digits = 9)
+            @test round(Interceptionstorage, digits = 9) == round(Interceptioncapacity - Interception_Evaporation, digits = 9)
         end
 
-        Precipitation = rand(0.1:1:20)[1]
+        Precipitation = rand(0:1.:20)[1]
         Storage = rand(0:0.1:Interceptioncapacity)[1]
         Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
-        @test round(Effective_Precipitation, digits= 12) == round(Precipitation - (Interceptionstorage - Storage), digits=12)
-        #no evaporation on rainy days
-        @test Interception_Evaporation == 0
-        @test round(Interceptionstorage, digits=12) == round(min(Interceptioncapacity, Precipitation + Storage), digits=12)
+        @test round(Effective_Precipitation, digits= 12) == round(Precipitation - (Interceptionstorage + Interception_Evaporation - Storage), digits=12)
+        New_Storage = min(Precipitation + Storage, Interceptioncapacity)
+        @test round(Interception_Evaporation, digits = 12) == round(min(New_Storage, Potential_Evaporation * 0.5), digits = 12)
+        @test round(Interceptionstorage, digits=12) == round(min(Interceptioncapacity, Precipitation + Storage) - Interception_Evaporation, digits=12)
         if Effective_Precipitation > 0
-            @test round(Interceptionstorage, digits = 9) == round(Interceptioncapacity, digits = 9)
+            @test round(Interceptionstorage, digits = 9) == round(Interceptioncapacity - Interception_Evaporation, digits = 9)
         end
         # if potential evaporation is 0, evaporation will always be zero
-        Potential_Evaporation = 0
-        Precipitation = 0
+        Potential_Evaporation = 0.
+        Precipitation = 0.
         Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
         @test Interception_Evaporation == 0
 
-        Interceptioncapacity = 0
-        Storage = rand(0:0.1:Interceptioncapacity)[1]
-        Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
-        @test Effective_Precipitation == Precipitation
-        @test Interceptionstorage == 0
-        @test Interception_Evaporation == 0
-
-        Interceptioncapacity = 0
+        # Interceptioncapacity = 0
+        # Storage = rand(0:0.1:Interceptioncapacity)[1]
+        # Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
+        # @test Effective_Precipitation == Precipitation
+        # @test Interceptionstorage == 0
+        # @test Interception_Evaporation == 0
+        Potential_Evaporation = rand(0.1:0.1:5)[1]
+        Interceptioncapacity = 0.
         Storage = rand(0:0.1:Interceptioncapacity)[1]
         Precipitation = rand(0.1:1:20)[1]
         Effective_Precipitation, Interception_Evaporation, Interceptionstorage = interception(Potential_Evaporation, Precipitation, Temp, Storage, Interceptioncapacity, Temp_Thresh)
