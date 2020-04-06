@@ -11,7 +11,7 @@ grid_point = 49
 
 Precipitation_Sample = Precipitation[:,grid_point]/10
 Temp_Sample = Temperature[:,grid_point]/10 #makes a vector
-Days = 3652
+Days = 10957
 Precipitation_Sample = Precipitation_Sample[1:Days]
 Temp_Sample = Temp_Sample[1:Days]
 Dates_Sample = Timeseries[1:Days]
@@ -47,10 +47,10 @@ forest_storage = Storages(0, zeros(Nr_Elevationbands), zeros(Nr_Elevationbands),
 grass_storage = Storages(0, zeros(Nr_Elevationbands), zeros(Nr_Elevationbands), 0)
 rip_storage = Storages(0, zeros(Nr_Elevationbands), zeros(Nr_Elevationbands), 0)
 Slowstorage = 0.0
-bare_parameters = Parameters(1, 0.4, 0, 2, 0.8, 1, 0.5, 0.1, 0.1, 50, 0)
-forest_parameters = Parameters(1, 0.4, 0, 3, 0.8, 1, 0.5, 0.1, 0.1, 100, 0)
-grass_parameters = Parameters(1, 0.4, 0, 2, 0.8, 1, 0.5, 0.1, 0.1, 50, 0)
-rip_parameters = Parameters(1, 0.4, 0.1, 2, 0.8, 1, 0.5, 0.1, 0.1, 50, 0)
+bare_parameters = Parameters(1, 0.4, 0, 2, 0.8, 1, 0.5, 0.1, 50, 0)
+forest_parameters = Parameters(1, 0.4, 0, 3, 0.8, 1, 0.5, 0.1, 100, 0)
+grass_parameters = Parameters(1, 0.4, 0, 2, 0.8, 1, 0.5, 0.1, 50, 0)
+rip_parameters = Parameters(1, 0.4, 0.1, 2, 0.8, 1, 0.5, 0.1, 50, 0)
 Ks = 0.001
 Ratio_Riparian = 0.1
 

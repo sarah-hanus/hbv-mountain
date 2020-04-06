@@ -23,7 +23,7 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     @assert 1 - eps(Float64) <= sum(hill.Area_Elevations) <= 1 + eps(Float64)
     @assert hill.Area_HRU >= 0 and <= 1
     @assert hill.Nr_Elevationbands >= 1
-    @assert round(sum(hill.Potential_Evaporation)/length(hill.Potential_Evaporation), digits=14) == round(hill.Potential_Evaporation_Mean, digits=14)
+    #@assert round(sum(hill.Potential_Evaporation)/length(hill.Potential_Evaporation), digits=14) == round(hill.Potential_Evaporation_Mean, digits=14)
 
     # define Arrays for Snow and Interception
     Snow = zeros(Nr_Elevationbands)
@@ -43,8 +43,8 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     # problem: interception storage of every elevation band must be divided by areal fraction of the elevation band
 
     #soil storage component
-    Overlandflow::Float64, Percolationflow::Float64, Preferentialflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64 = soilstorage(hill.Total_Effective_Precipitation, hill.Total_Interception_Evaporation, hill.Potential_Evaporation_Mean, storages.Soil, parameters.beta, parameters.Ce, parameters.Percolationcapacity, parameters.Ratio_Pref, parameters.Soilstoragecapacity)
-    GWflow::Float64 = Percolationflow + Preferentialflow
+    Overlandflow::Float64, Preferentialflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64 = soilstorage(hill.Total_Effective_Precipitation, hill.Total_Interception_Evaporation, hill.Potential_Evaporation_Mean, storages.Soil, parameters.beta, parameters.Ce, parameters.Ratio_Pref, parameters.Soilstoragecapacity)
+    GWflow::Float64 = Preferentialflow
     #fast storage
     Fast_Discharge::Float64, Faststorage::Float64 = faststorage(Overlandflow, storages.Fast, parameters.Kf)
 
@@ -99,10 +99,14 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     # print("soil", (hill_storages.Soil -storages.Soil), "\n")
     # print("snow", (Snow_Storage_New -Snow_Storage_Old), "\n")
     # print("inter", (Interception_Storage_New - Interception_Storage_Old), "\n")
-    FlowsandStorages = Flows + (hill_storages.Fast - storages.Fast) + (hill_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
-    All_Storages = (hill_storages.Fast - storages.Fast) + (hill_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    Flows_Area = Fast_Discharge + GWflow + Total_Interception_Evaporation + Soil_Evaporation
+    All_Storages = (hill_storages.Fast - storages.Fast) + (hill_storages.Soil - storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    #FlowsandStorages = Flows + (hill_storages.Fast - storages.Fast) + (hill_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    #All_Storages = (hill_storages.Fast - storages.Fast) + (hill_storages.Soil - storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
     #print("flows", FlowsandStorages,"\n")
-    @assert round(Precipitation, digits=7) == round(FlowsandStorages, digits = 7)
+    #FlowsandStorage = (Flows_Area + All_Storages * hill.Area_HRU)
+    @assert -0.00000000001 <= Precipitation - (Flows + All_Storages) <= 0.00000000001
+    @assert -0.00000000001 <= Precipitation * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU) <= 0.00000000001
     return hill_out::Outflows, hill_storages::Storages, Precipitation, All_Storages
     #return GWflow, Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
@@ -127,7 +131,7 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     end
 
     #soil storage component
-    Overlandflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64 = ripariansoilstorage(rip.Total_Effective_Precipitation, rip.Total_Interception_Evaporation, rip.Potential_Evaporation_Mean, rip.Riparian_Discharge, storages.Soil, parameters.beta, parameters.Ce, parameters.Drainagecapacity, parameters.Soilstoragecapacity)
+    Overlandflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64 = ripariansoilstorage(rip.Total_Effective_Precipitation, rip.Total_Interception_Evaporation, rip.Potential_Evaporation_Mean, rip.Riparian_Discharge / rip.Area_HRU, storages.Soil, parameters.beta, parameters.Ce, parameters.Drainagecapacity, parameters.Soilstoragecapacity)
     #GWflow = Percolationflow + Preferentialflow
     #fast storage
     Fast_Discharge::Float64, Faststorage::Float64 = faststorage(Overlandflow, storages.Fast, parameters.Kf)
@@ -175,10 +179,12 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
         Snow_Storage_Old += storages.Snow[i] * rip.Area_Elevations[i]
     end
     #print("Precrip", round(Precipitation + rip.Riparian_Discharge, digits=14))
-    FlowsandStorages = Flows + (rip_storages.Fast - storages.Fast) + (rip_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+    Flows_Area = Fast_Discharge + GWflow + Total_Interception_Evaporation + Soil_Evaporation
     All_Storages = (rip_storages.Fast - storages.Fast) + (rip_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
     #print("flows", round(FlowsandStorages, digits = 14), FlowsandStorages, "\n")
-    @assert round(Precipitation + rip.Riparian_Discharge, digits=7) == round(FlowsandStorages, digits = 7)
+    #@assert -0.00000000001 <= Precipitation + rip.Riparian_Discharge - FlowsandStorages <= 0.00000000001
+    @assert -0.00000000001 <= Precipitation + rip.Riparian_Discharge / rip.Area_HRU - (Flows + All_Storages) <= 0.00000000001
+    @assert -0.000000000001 <= (Precipitation * rip.Area_HRU + rip.Riparian_Discharge) - (Flows_Area + All_Storages * rip.Area_HRU) <= 0.000000000001
 
     return rip_out, rip_storages, Precipitation, All_Storages
     #return Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage

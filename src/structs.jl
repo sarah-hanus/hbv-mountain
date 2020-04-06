@@ -22,7 +22,7 @@ mutable struct Parameters
     Kf:: Float64
     Meltfactor:: Float64
     Mm:: Float64
-    Percolationcapacity:: Float64 #only necessary for hillslope HRU
+    #Percolationcapacity:: Float64 #only necessary for hillslope HRU
     Ratio_Pref:: Float64 #only necessary for hillslope HRU
     Soilstoragecapacity:: Float64
     Temp_Thresh:: Float64

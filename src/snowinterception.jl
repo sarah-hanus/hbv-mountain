@@ -18,7 +18,7 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
             #change in storage
             Interceptionstorage = Interceptionstorage - Effective_Precipitation
             # after excess water has left interceptiion storage evaporation occurs
-            Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation * 0.5)
+            Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation /2.0)
             #change in storage
             Interceptionstorage = Interceptionstorage - Interception_Evaporation
         else
@@ -26,7 +26,7 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
             # no excess water leaves storage
             Effective_Precipitation = 0.0
             # the Interception Evporation will be either the amount stored or 50% the potential evaporation
-            Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation * 0.5)
+            Interception_Evaporation = min(Interceptionstorage, Potential_Evaporation /2.0)
             # the amount stored in the Interception Reservoir will decrease because of evaporation
             Interceptionstorage = Interceptionstorage - Interception_Evaporation
 
@@ -40,7 +40,7 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
         Interceptionstorage = Interceptionstorage #amount stored does not change??!
     end
     #print(Interception_Evaporation, "potential", Potential_Evaporation, "\n")
-    @assert Interception_Evaporation <= Potential_Evaporation * 0.5
+    @assert Interception_Evaporation <= Potential_Evaporation / 2.0
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Interceptionstorage >= 0
@@ -88,7 +88,8 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     @assert Potential_Evaporation >= 0
     #print(Interception_Evaporation, "pot", Potential_Evaporation,"\n")
     #asserz rounded value because there can be a difference because of rounding
-    @assert round(Interception_Evaporation, digits=15) <= round(Potential_Evaporation * 0.5, digits=15)
+    #print("int", round(Interception_Evaporation, digits=12), "potint", round(Potential_Evaporation * 0.5, digits = 12))
+    @assert round(Interception_Evaporation, digits=12) <= round(Potential_Evaporation * 0.5, digits=12)
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
     @assert Soilstorage <= Soilstoragecapacity
@@ -131,7 +132,7 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     Soilstorage = Soilstorage - Soil_Evaporation
     # Part of the water stored in soil will percolate into groundwater depending on the percolation capacity
     #Percolationflow = (Soilstorage / Soilstoragecapacity) * Percolationcapacity
-    Soilstorage = Soilstorage
+    #Soilstorage = Soilstorage
 
     @assert Overlandflow >= 0
     #@assert Percolationflow >= 0
@@ -147,7 +148,7 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
-    @assert round(Interception_Evaporation, digits=15) <= round(Potential_Evaporation * 0.5, digits=15)
+    @assert round(Interception_Evaporation, digits=12) <= round(Potential_Evaporation * 0.5, digits=12)
     @assert Riparian_Discharge >= 0
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
@@ -196,7 +197,7 @@ function faststorage(Overlandflow, Faststorage, Kf)
     return Fast_Discharge, Faststorage
 end
 
-function slowstorage(GWflow, Slowstorage, Ks, Ratio_Riparian)
+function slowstorage(GWflow, Slowstorage, Area_Riparian::Float64, Ks::Float64, Ratio_Riparian::Float64)
     @assert GWflow >= 0
     @assert Slowstorage >= 0
     @assert Ks >=0 and <= 1
@@ -204,7 +205,8 @@ function slowstorage(GWflow, Slowstorage, Ks, Ratio_Riparian)
 
     Slowstorage = Slowstorage + GWflow
     Slow_Discharge = Ks * Slowstorage * (1 - Ratio_Riparian)
-    Riparian_Discharge = Ks * Slowstorage * Ratio_Riparian
+    # the riparian discharge is the areal percentage of the total possible riparian discharge
+    Riparian_Discharge = Ks * Slowstorage * Ratio_Riparian * Area_Riparian
     Slowstorage = Slowstorage - Slow_Discharge - Riparian_Discharge
 
     @assert Riparian_Discharge >= 0
