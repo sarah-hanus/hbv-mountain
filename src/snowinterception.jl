@@ -82,20 +82,20 @@ function snow(Area_Glacier::Float64, Precipitation::Float64, Temp::Float64, Snow
 end
 
 
-function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation::Float64, Potential_Evaporation::Float64, Soilstorage::Float64, beta::Float64, Ce::Float64, Percolationcapacity::Float64, Ratio_Pref::Float64, Soilstoragecapacity::Float64)
+function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation::Float64, Potential_Evaporation::Float64, Soilstorage::Float64, beta::Float64, Ce::Float64, Ratio_Pref::Float64, Soilstoragecapacity::Float64)
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
     #print(Interception_Evaporation, "pot", Potential_Evaporation,"\n")
     #asserz rounded value because there can be a difference because of rounding
-    @assert round(Interception_Evaporation, digits=15) <= round(Potential_Evaporation, digits=15)
+    @assert round(Interception_Evaporation, digits=15) <= round(Potential_Evaporation * 0.5, digits=15)
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
     @assert Soilstorage <= Soilstoragecapacity
     @assert Soilstoragecapacity > 0 #within the parameter range
     @assert beta > 0 #within the parameter range
     @assert Ce > 0 #within the parameter range
-    @assert Percolationcapacity >= 0
+    #@assert Percolationcapacity >= 0
     @assert Ratio_Pref >= 0
 
     if Effective_Precipitation > 0
@@ -130,23 +130,24 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
     Soilstorage = Soilstorage - Soil_Evaporation
     # Part of the water stored in soil will percolate into groundwater depending on the percolation capacity
-    Percolationflow = (Soilstorage / Soilstoragecapacity) * Percolationcapacity
-    Soilstorage = Soilstorage - Percolationflow
+    #Percolationflow = (Soilstorage / Soilstoragecapacity) * Percolationcapacity
+    Soilstorage = Soilstorage
 
     @assert Overlandflow >= 0
-    @assert Percolationflow >= 0
+    #@assert Percolationflow >= 0
     @assert Preferentialflow >= 0
     @assert Soil_Evaporation <= max(Potential_Evaporation - Interception_Evaporation,0)
     @assert Soil_Evaporation >= 0
     @assert Soilstorage >= 0
     @assert Soilstorage <= Soilstoragecapacity
-    return Overlandflow::Float64, Percolationflow::Float64, Preferentialflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64
+    return Overlandflow::Float64, Preferentialflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64
 end
 
 function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, Potential_Evaporation, Riparian_Discharge, Soilstorage, beta, Ce, Drainagecapacity, Soilstoragecapacity)
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
+    @assert round(Interception_Evaporation, digits=15) <= round(Potential_Evaporation * 0.5, digits=15)
     @assert Riparian_Discharge >= 0
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
