@@ -120,7 +120,8 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
         rip_input.Riparian_Discharge = Riparian_Discharge
         # storage output of one timestep is the storage input of the next timestep, output is stored in the same struct, so it overwrites old storage values
         #do I need the storage values of each timestep???!!
-        Discharge[t]::Float64 = Total_Discharge * Area / (3600 * 24)
+        # mm convert it to meter and than * area / seconds in one day
+        Discharge[t]::Float64 = Total_Discharge/1000 * Area / (3600 * 24)
         Int_Evaporation[t]::Float64 = Total_Interception_Evaporation
         Soil_Evaporation[t]::Float64 = Total_Soil_Evaporation
         #OPTIONAL: store all storage states at each timestep
