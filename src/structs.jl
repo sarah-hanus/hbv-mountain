@@ -33,6 +33,7 @@ mutable struct Storages
     Fast:: Float64
     Interception::Array{Float64,1}
     Snow::Array{Float64,1}
+    Snow_Cover::Float64
     Soil:: Float64
 end
 

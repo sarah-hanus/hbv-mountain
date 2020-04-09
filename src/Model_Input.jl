@@ -63,10 +63,10 @@ forest_input = HRU_Input(Area_Forest_Elevations, Areas[2], 0, Forest_Elevation_C
 grass_input = HRU_Input(Area_Grass_Elevations, Areas[3], 0, Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
 rip_input = HRU_Input(Area_Rip_Elevations, Areas[4], 0, Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
 
-bare_storage = Storages(0, zeros(length(Bare_Elevation_Count)), zeros(length(Bare_Elevation_Count)), 0)
-forest_storage = Storages(0, zeros(length(Forest_Elevation_Count)), zeros(length(Forest_Elevation_Count)), 0)
-grass_storage = Storages(0, zeros(length(Grass_Elevation_Count)), zeros(length(Grass_Elevation_Count)), 0)
-rip_storage = Storages(0, zeros(length(Rip_Elevation_Count)), zeros(length(Rip_Elevation_Count)), 0)
+bare_storage = Storages(0, zeros(length(Bare_Elevation_Count)), zeros(length(Bare_Elevation_Count)), 0, 0)
+forest_storage = Storages(0, zeros(length(Forest_Elevation_Count)), zeros(length(Forest_Elevation_Count)),0, 0)
+grass_storage = Storages(0, zeros(length(Grass_Elevation_Count)), zeros(length(Grass_Elevation_Count)),0, 0)
+rip_storage = Storages(0, zeros(length(Rip_Elevation_Count)), zeros(length(Rip_Elevation_Count)),0, 0)
 Slowstorage = 0.0
 bare_parameters = Parameters(1, 0.4, 0, 2, 0.8, 1, 0.5, 0.1, 50, 0)
 forest_parameters = Parameters(1, 0.4, 0, 3, 0.8, 1, 0.5, 0.1, 100, 0)
@@ -76,7 +76,7 @@ Ks = 0.001
 Ratio_Riparian = 0.1
 
 @time begin
-Discharge, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2 = runmodel(Area, Potential_Evaporation, Prec_Elevation, Temp_Elevation,
+Discharge, Snow_Extend, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2 = runmodel(Area, Potential_Evaporation, Prec_Elevation, Temp_Elevation,
         bare_input, forest_input, grass_input, rip_input,
         bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage,
         bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian)
