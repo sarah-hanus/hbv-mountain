@@ -34,7 +34,7 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     # print("storage", Total_Storages)
     # print("Flows_store", round(Total_Flows + Total_Storages, digits=15))
     # print("prec", round(Bare_precipitation + rip_input.Riparian_Discharge, digits = 15), "\n")
-    #@assert -0.00000000001 <= Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000000001
+    @assert -0.00000001 <= Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000001
     Waterbalance = Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
     return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Bare_precipitation::Float64
 end
@@ -71,6 +71,7 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
     Faststorage::Array{Float64,2} = zeros(tmax, 4) #storage fast
     GWstorage::Array{Float64,1} = zeros(tmax) #storage GW
     WBtotal::Array{Float64,1} = zeros(tmax)
+    Snow_Extend::Array{Float64,1} = zeros(tmax)
     Precipitation_Total::Array{Float64,1} = zeros(tmax)
 
     for t in 1:tmax
@@ -134,6 +135,9 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
         Grass_Interceptionstorage::Float64, Grass_Snowstorage::Float64 = Storage_Total(grass_storage, grass_input)
         Rip_Interceptionstorage::Float64, Rip_Snowstorage::Float64 = Storage_Total(rip_storage, rip_input)
 
+        Snow_Extend[t]::Float64 = bare_storage.Snow_Cover * bare_input.Area_HRU + forest_storage.Snow_Cover * forest_input.Area_HRU + grass_storage.Snow_Cover * grass_input.Area_HRU + rip_storage.Snow_Cover * rip_input.Area_HRU
+
+
 
         #Interceptionstorage[t, :] = [sum(bare_storage.Interception), sum(forest_storage.Interception), sum(grass_storage.Interception), sum(rip_storage.Interception)]
         #Snowstorage[t, :] = [sum(bare_storage.Snow), sum(forest_storage.Snow), sum(grass_storage.Snow), sum(rip_storage.Snow)]
@@ -178,7 +182,7 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
     # Modelled_Discharge = Modelled_Discharge[1:tmax]
     # NashSutcliffe = NSE(Observed_Discharge, Modelled_Discharge)
 
-    return Discharge::Array{Float64,1}, Waterbalance::Float64, Faststorage::Array{Float64,2}, GWstorage::Array{Float64,1}, Interceptionstorage::Array{Float64,2}, Snowstorage::Array{Float64,2}, Soilstorage::Array{Float64,2}, Waterbalance2::Float64
+    return Discharge::Array{Float64,1}, Snow_Extend::Array{Float64,1}, Waterbalance::Float64, Faststorage::Array{Float64,2}, GWstorage::Array{Float64,1}, Interceptionstorage::Array{Float64,2}, Snowstorage::Array{Float64,2}, Soilstorage::Array{Float64,2}, Waterbalance2::Float64
 end
 
 function Storage_Total(Storage::Storages, Input::HRU_Input)
