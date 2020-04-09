@@ -4,15 +4,38 @@ function getelevationdata(Thickness_Band, Lowest_Elevation, Mean_Elevation, High
     # make an array with number of rows equal to number of days, and columns equal to number of elevations
     Temp_Elevation = zeros(length(Temperature), Nr_Elevationbands)
     Precipitation = zeros(length(Temperature),Nr_Elevationbands)
+    Elevation = Float64[]
 
     for i in 1 : Nr_Elevationbands
-        Elevation = (Lowest_Elevation + Thickness_Band/2) + Thickness_Band * (i - 1)
+        Current_Elevation = (Lowest_Elevation + Thickness_Band/2) + Thickness_Band * (i - 1)
         for j in 1: length(Temperature)
-            global Temp_Elevation[j,i] = Temperature[j] - 0.0065 * (Elevation - Mean_Elevation)
-            global Precipitation[j,i] = max((Precipitation_Mean[j] + Prec_Gradient * (Elevation - Mean_Elevation)),0)
+            global Temp_Elevation[j,i] = Temperature[j] - 0.006 * (Current_Elevation - Mean_Elevation)
+            global Precipitation[j,i] = max((Precipitation_Mean[j] + Prec_Gradient * (Current_Elevation - Mean_Elevation)),0)
         end
+        push!(Elevation, Current_Elevation)
     end
-    return Nr_Elevationbands, Precipitation, Temp_Elevation
+    return Elevation, Precipitation, Temp_Elevation
+end
+
+function getelevationbands(Thickness_Band, Lowest_Elevation, Highest_Elevation, Elevation_Catchment)
+    Nr_Elevationbands = Int(ceil((Highest_Elevation - Lowest_Elevation) / Thickness_Band))
+    Elevation = Float64[]
+    Elevation_Count = Float64[]
+    for i in 1 : Nr_Elevationbands
+        Current_Elevation = (Lowest_Elevation + Thickness_Band/2) + Thickness_Band * (i - 1)
+        push!(Elevation, Current_Elevation)
+    end
+    j = 1
+    for (i,elevation) in enumerate(Elevation_Catchment)
+            if j <= length(Elevation) && elevation == Elevation[j]
+                    Count = i
+                    print(i,"\n")
+                    j += 1
+                    push!(Elevation_Count, Count)
+            end
+    end
+    #Area_Elevations = ones(length(Elevation_Count))/ length(Elevation_Count)
+    return Elevation_Count
 end
 
 function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameters)
@@ -26,8 +49,8 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     #@assert round(sum(hill.Potential_Evaporation)/length(hill.Potential_Evaporation), digits=14) == round(hill.Potential_Evaporation_Mean, digits=14)
 
     # define Arrays for Snow and Interception
-    Snow = zeros(Nr_Elevationbands)
-    Interception = zeros(Nr_Elevationbands)
+    Snow = zeros(hill.Nr_Elevationbands)
+    Interception = zeros(hill.Nr_Elevationbands)
     for i in 1 : hill.Nr_Elevationbands
         # snow component
         Melt::Float64, Snow[i]::Float64 = snow(hill.Area_Glacier, hill.Precipitation[i], hill.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
@@ -105,8 +128,8 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     #All_Storages = (hill_storages.Fast - storages.Fast) + (hill_storages.Soil - storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
     #print("flows", FlowsandStorages,"\n")
     #FlowsandStorage = (Flows_Area + All_Storages * hill.Area_HRU)
-    @assert -0.00000000001 <= Precipitation - (Flows + All_Storages) <= 0.00000000001
-    @assert -0.00000000001 <= Precipitation * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU) <= 0.00000000001
+    #@assert -0.00000000001 <= Precipitation - (Flows + All_Storages) <= 0.00000000001
+    #@assert -0.00000000001 <= Precipitation * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU) <= 0.00000000001
     return hill_out::Outflows, hill_storages::Storages, Precipitation, All_Storages
     #return GWflow, Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
@@ -116,8 +139,8 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     # Are_Elevations gives the areal percentage of each elevation band. The sum has to be 1
     # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
     # riparian HRU has no preferential and percolation flow
-    Snow = zeros(Nr_Elevationbands)
-    Interception = zeros(Nr_Elevationbands)
+    Snow = zeros(rip.Nr_Elevationbands)
+    Interception = zeros(rip.Nr_Elevationbands)
     for i in 1 : rip.Nr_Elevationbands
         # snow component
         Melt::Float64, Snow[i]::Float64 = snow(rip.Area_Glacier, rip.Precipitation[i], rip.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
@@ -183,8 +206,8 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     All_Storages = (rip_storages.Fast - storages.Fast) + (rip_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
     #print("flows", round(FlowsandStorages, digits = 14), FlowsandStorages, "\n")
     #@assert -0.00000000001 <= Precipitation + rip.Riparian_Discharge - FlowsandStorages <= 0.00000000001
-    @assert -0.00000000001 <= Precipitation + rip.Riparian_Discharge / rip.Area_HRU - (Flows + All_Storages) <= 0.00000000001
-    @assert -0.000000000001 <= (Precipitation * rip.Area_HRU + rip.Riparian_Discharge) - (Flows_Area + All_Storages * rip.Area_HRU) <= 0.000000000001
+    #@assert -0.00000000001 <= Precipitation + rip.Riparian_Discharge / rip.Area_HRU - (Flows + All_Storages) <= 0.00000000001
+    #@assert -0.000000000001 <= (Precipitation * rip.Area_HRU + rip.Riparian_Discharge) - (Flows_Area + All_Storages * rip.Area_HRU) <= 0.000000000001
 
     return rip_out, rip_storages, Precipitation, All_Storages
     #return Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage

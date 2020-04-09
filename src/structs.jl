@@ -3,6 +3,7 @@ mutable struct HRU_Input
     Area_Elevations::Array{Float64,1}
     Area_HRU:: Float64
     Area_Glacier:: Float64 # smaller than 1
+    Elevation_Count::Array{Int64}
     Nr_Elevationbands:: Int8
     #Potential_Evaporation::Array{Float64,1} #muss später auch Array werden!!! average Epot for soiL!!!
     Potential_Evaporation_Mean:: Float64

@@ -34,7 +34,7 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     # print("storage", Total_Storages)
     # print("Flows_store", round(Total_Flows + Total_Storages, digits=15))
     # print("prec", round(Bare_precipitation + rip_input.Riparian_Discharge, digits = 15), "\n")
-    @assert -0.00000000001 <= Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000000001
+    #@assert -0.00000000001 <= Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000000001
     Waterbalance = Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
     return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Bare_precipitation::Float64
 end
@@ -206,7 +206,14 @@ end
 function input_timestep(Input::HRU_Input, Evaporation_Mean::Float64, Precipitation::Array{Float64,1}, Temperature::Array{Float64,1})
     #Input.Potential_Evaporation::Array{Float64,1} = Evaporation
     Input.Potential_Evaporation_Mean::Float64 = Evaporation_Mean
-    Input.Precipitation::Array{Float64,1} = Precipitation
-    Input.Temp_Elevation::Array{Float64,1} = Temperature
+    # get the precipitation data of the necessary elevations
+    Precipitation_HRU = Float64[]
+    Temperature_HRU = Float64[]
+    for i in Input.Elevation_Count
+        push!(Precipitation_HRU, Precipitation[i])
+        push!(Temperature_HRU, Temperature[i])
+    end
+    Input.Precipitation::Array{Float64,1} = Precipitation_HRU
+    Input.Temp_Elevation::Array{Float64,1} = Temperature_HRU
     return Input::HRU_Input
 end
