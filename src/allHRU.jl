@@ -162,7 +162,7 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
     Total_Storage::Float64 = End_Storage - Initial_Storage
       #print("Sin", Sin,"Ei", sum(Eidt),"Ea", sum(Eadt),"Qtot", sum(Qtotdt))
       #precipitation in mm/day, so sum precipitation in mm, Discharge in mm/d, Int_Evaporation in mm/d, Soil_Evaporation in mm/d
-    Waterbalance::Float64 = sum(Precipitation)/ bare_input.Nr_Elevationbands - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24) - Total_Storage
+    Waterbalance::Float64 = sum(Precipitation)/ bare_input.Nr_Elevationbands - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24 * 1000) - Total_Storage
     print(sum(Precipitation)/ bare_input.Nr_Elevationbands)
     #offset the discharge
     # Weigths=Weigfun(Tlag)
