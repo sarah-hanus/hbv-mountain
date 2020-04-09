@@ -4,7 +4,7 @@ mutable struct HRU_Input
     Area_HRU:: Float64
     Area_Glacier:: Float64 # smaller than 1
     Nr_Elevationbands:: Int8
-    Potential_Evaporation::Array{Float64,1} #muss später auch Array werden!!! average Epot for soiL!!!
+    #Potential_Evaporation::Array{Float64,1} #muss später auch Array werden!!! average Epot for soiL!!!
     Potential_Evaporation_Mean:: Float64
     Precipitation::Array{Float64,1}
     Riparian_Discharge:: Float64 #only necessary for riparian HRU
