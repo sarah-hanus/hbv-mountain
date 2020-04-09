@@ -11,6 +11,7 @@ grid_point = 49
 
 Precipitation_Sample = Precipitation[:,grid_point]/10
 Temp_Sample = Temperature[:,grid_point]/10 #makes a vector
+# 30 years: 10957 days
 Days = 10957
 Precipitation_Sample = Precipitation_Sample[1:Days]
 Temp_Sample = Temp_Sample[1:Days]
@@ -55,7 +56,7 @@ Ks = 0.001
 Ratio_Riparian = 0.1
 
 @time begin
-Discharge, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage = runmodel(Area, Potential_Evaporation, Potential_Evaporation_Mean, Prec_Elevation, Temp_Elevation,
+Discharge, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2 = runmodel(Area, Potential_Evaporation, Potential_Evaporation_Mean, Prec_Elevation, Temp_Elevation,
         bare_input, forest_input, grass_input, rip_input,
         bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage,
         bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian)

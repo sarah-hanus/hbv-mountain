@@ -35,7 +35,8 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     # print("Flows_store", round(Total_Flows + Total_Storages, digits=15))
     # print("prec", round(Bare_precipitation + rip_input.Riparian_Discharge, digits = 15), "\n")
     @assert -0.00000000001 <= Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000000001
-    return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64
+    Waterbalance = Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
+    return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Bare_precipitation::Float64
 end
 
 
@@ -69,6 +70,8 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
     Soilstorage::Array{Float64,2} = zeros(tmax, 4) #stroage unsaturated zone
     Faststorage::Array{Float64,2} = zeros(tmax, 4) #storage fast
     GWstorage::Array{Float64,1} = zeros(tmax) #storage GW
+    WBtotal::Array{Float64,1} = zeros(tmax)
+    Precipitation_Total::Array{Float64,1} = zeros(tmax)
 
     for t in 1:tmax
         #print("t", t,"\n")
@@ -111,7 +114,7 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
         # values of storages of timestep before have to be given
         #print("t", t, "\n")
         #print("Bare_Soil", bare_storage.Soil, "forest soil", forest_storage.Soil, "grasssoil", grass_storage.Soil, "ripsoil", rip_storage.Soil)
-        Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64 = allHRU(bare_input, forest_input, grass_input, rip_input,
+        Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64, WB::Float64, Total_Prec::Float64 = allHRU(bare_input, forest_input, grass_input, rip_input,
                                                                                                             bare_storage, forest_storage, grass_storage, rip_storage,
                                                                                                             bare_parameters, forest_parameters, grass_parameters, rip_parameters,
                                                                                                             Slowstorage, Ks, Ratio_Riparian)
@@ -141,6 +144,9 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
         Soilstorage[t, :]::Array{Float64,1} = [bare_storage.Soil, forest_storage.Soil, grass_storage.Soil, rip_storage.Soil]
         Faststorage[t, :]::Array{Float64,1} = [bare_storage.Fast, forest_storage.Fast, grass_storage.Fast, rip_storage.Fast]
         GWstorage[t]::Float64 = Slowstorage
+        WBtotal[t]::Float64 = WB
+        Precipitation_Total[t]::Float64 = Total_Prec
+
     end
 
     # Check Water Balance
@@ -162,15 +168,17 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
     Total_Storage::Float64 = End_Storage - Initial_Storage
       #print("Sin", Sin,"Ei", sum(Eidt),"Ea", sum(Eadt),"Qtot", sum(Qtotdt))
       #precipitation in mm/day, so sum precipitation in mm, Discharge in mm/d, Int_Evaporation in mm/d, Soil_Evaporation in mm/d
-    Waterbalance::Float64 = sum(Precipitation)/ bare_input.Nr_Elevationbands - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24 * 1000) - Total_Storage
+    Waterbalance::Float64 = sum(Precipitation)/ bare_input.Nr_Elevationbands - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24 * 1000) - rip_input.Riparian_Discharge - Total_Storage
+    #Waterbalance::Float64 = sum(Precipitation_Total) - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24 * 1000) - rip_input.Riparian_Discharge - Total_Storage
     print(sum(Precipitation)/ bare_input.Nr_Elevationbands)
+    Waterbalance2 = sum(WBtotal)::Float64
     #offset the discharge
     # Weigths=Weigfun(Tlag)
     # Modelled_Discharge = conv(Total_Discharge, Weigths)
     # Modelled_Discharge = Modelled_Discharge[1:tmax]
     # NashSutcliffe = NSE(Observed_Discharge, Modelled_Discharge)
 
-    return Discharge::Array{Float64,1}, Waterbalance::Float64, Faststorage::Array{Float64,2}, GWstorage::Array{Float64,1}, Interceptionstorage::Array{Float64,2}, Snowstorage::Array{Float64,2}, Soilstorage::Array{Float64,2}
+    return Discharge::Array{Float64,1}, Waterbalance::Float64, Faststorage::Array{Float64,2}, GWstorage::Array{Float64,1}, Interceptionstorage::Array{Float64,2}, Snowstorage::Array{Float64,2}, Soilstorage::Array{Float64,2}, Waterbalance2::Float64
 end
 
 function Storage_Total(Storage::Storages, Input::HRU_Input)
