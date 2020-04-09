@@ -38,10 +38,10 @@ Potential_Evaporation_Mean = vec(sum( Potential_Evaporation, dims=2)) / Nr_Eleva
 Area = 267.46 * 10^6 #m2
 Areas = [0.43, 0.24, 0.31, 0.02]
 Area_elevation = ones(Nr_Elevationbands)/ Nr_Elevationbands
-bare_input = HRU_Input(Area_elevation, Areas[1], 0.0, Nr_Elevationbands, [0], 0, [0], 0, [0], 0, 0)
-forest_input = HRU_Input(Area_elevation, Areas[2], 0, Nr_Elevationbands,[0], 0, [0], 0, [0],  0, 0)
-grass_input = HRU_Input(Area_elevation, Areas[3], 0, Nr_Elevationbands, [0], 0, [0], 0, [0],  0, 0)
-rip_input = HRU_Input(Area_elevation, Areas[4], 0, Nr_Elevationbands, [0], 0, [0], 0, [0],  0, 0)
+bare_input = HRU_Input(Area_elevation, Areas[1], 0.0, Nr_Elevationbands, 0, [0], 0, [0], 0, 0)
+forest_input = HRU_Input(Area_elevation, Areas[2], 0, Nr_Elevationbands, 0, [0], 0, [0],  0, 0)
+grass_input = HRU_Input(Area_elevation, Areas[3], 0, Nr_Elevationbands, 0, [0], 0, [0],  0, 0)
+rip_input = HRU_Input(Area_elevation, Areas[4], 0, Nr_Elevationbands, 0, [0], 0, [0],  0, 0)
 
 bare_storage = Storages(0, zeros(Nr_Elevationbands), zeros(Nr_Elevationbands), 0)
 forest_storage = Storages(0, zeros(Nr_Elevationbands), zeros(Nr_Elevationbands), 0)
@@ -56,7 +56,7 @@ Ks = 0.001
 Ratio_Riparian = 0.1
 
 @time begin
-Discharge, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2 = runmodel(Area, Potential_Evaporation, Potential_Evaporation_Mean, Prec_Elevation, Temp_Elevation,
+Discharge, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2 = runmodel(Area, Potential_Evaporation_Mean, Prec_Elevation, Temp_Elevation,
         bare_input, forest_input, grass_input, rip_input,
         bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage,
         bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian)

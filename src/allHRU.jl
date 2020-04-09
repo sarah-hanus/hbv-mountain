@@ -40,7 +40,7 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
 end
 
 
-function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Float64,1}, Precipitation::Array{Float64}, Temp::Array{Float64},
+function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array{Float64}, Temp::Array{Float64},
                 bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
                 bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64,
                 bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters, Ks::Float64, Ratio_Riparian::Float64)
@@ -79,15 +79,15 @@ function runmodel(Area, Evaporation::Array{Float64}, Evaporation_Mean::Array{Flo
         # areas don't change
         # riparian discharge from former timestep has to be used
         # gives the current precipitation, evaporation and temperature
-        Evaporation_Current = Evaporation[t, :]
+        #Evaporation_Current = Evaporation[t, :]
         Evaporation_Mean_Current = Evaporation_Mean[t]
         Precipitation_Current = Precipitation[t, :]
         Temperature_Current = Temp[t, :]
 
-        bare_input::HRU_Input = input_timestep(bare_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
-        forest_input::HRU_Input = input_timestep(forest_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
-        grass_input::HRU_Input = input_timestep(grass_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
-        rip_input::HRU_Input = input_timestep(rip_input, Evaporation_Current, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+        bare_input::HRU_Input = input_timestep(bare_input, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+        forest_input::HRU_Input = input_timestep(forest_input, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+        grass_input::HRU_Input = input_timestep(grass_input, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
+        rip_input::HRU_Input = input_timestep(rip_input, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
 
         # bare_input.Potential_Evaporation::Array{Float64,1} = Evaporation[t, :]
         # bare_input.Potential_Evaporation_Mean::Float64 =
@@ -203,8 +203,8 @@ function Storage_Total(Storage::Storages, Input::HRU_Input)
     return Total_Interception_Storage::Float64, Total_Snow_Storage::Float64
 end
 
-function input_timestep(Input::HRU_Input, Evaporation::Array{Float64,1}, Evaporation_Mean::Float64, Precipitation::Array{Float64,1}, Temperature::Array{Float64,1})
-    Input.Potential_Evaporation::Array{Float64,1} = Evaporation
+function input_timestep(Input::HRU_Input, Evaporation_Mean::Float64, Precipitation::Array{Float64,1}, Temperature::Array{Float64,1})
+    #Input.Potential_Evaporation::Array{Float64,1} = Evaporation
     Input.Potential_Evaporation_Mean::Float64 = Evaporation_Mean
     Input.Precipitation::Array{Float64,1} = Precipitation
     Input.Temp_Elevation::Array{Float64,1} = Temperature
