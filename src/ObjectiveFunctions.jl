@@ -2,7 +2,7 @@ function nse(Qobserved::Array{Float64, 1}, Qmodelled::Array{Float64, 1})
     # input is array of modelled and observed data
     #QobservedAverage = sum(Qobserved) / length(Qobserved) #float
     QobservedAverage = ones(length(Qobserved)) * mean(Qobserved)
-    Nominator = sum((Qobserved-Qmodelled).^2)
+    Nominator = sum((Qmodelled - Qobserved).^2)
     Denominator = sum((Qobserved - QobservedAverage).^2)
     NashSutcliffe = 1 - (Nominator / Denominator)
     return NashSutcliffe::Float64
@@ -61,31 +61,31 @@ function autocorrelation2(Q::Array{Float64, 1}, Timelag::Int64)
     return AC::Float64
 end
 
-function autocorrelationcurve(Q::Array{Float64, 1}, Timelag::Int64)
+function autocorrelationcurve(Q::Array{Float64, 1}, Timeshift::Int64)
     # this function calculates an autocorrelation curve by shifting the discharge by a day until reaching the timelag
     # than the autocorrelation value of each time lag is calculated and is plotted against days of the lag
     # the first entry to evaluate is the entry after the timelag, so for example 31 if timelage=30
-    Q_normal = Q[Timelag + 1: end]
+    Q_normal = Q[Timeshift + 1: end]
     AC = Float64[]
-    for i in 0 : Timelag
-        Qshifted = Q[Timelag + 1 - i : end - i]
+    for i in 0 : Timeshift
+        Qshifted = Q[Timeshift + 1 - i : end - i]
         @assert length(Qshifted) == length(Q_normal)
         Correlation = cor(Q_normal, Qshifted)
         push!(AC, Correlation)
     end
-    @assert length(AC) == Timelag + 1
-    Lags = collect(0: Timelag)
+    @assert length(AC) == Timeshift + 1
+    Lags = collect(0: Timeshift)
     return AC::Array{Float64, 1}, Lags::Array{Int64, 1}
 
 
 end
 
 function autocorrelationcurve2(Q::Array{Float64, 1}, Timelag::Int64)
-    Q_normal = Q[Timelag + 1: end]
+    Q_normal = Q[1: end - Timelag]
     Q_average = ones(length(Q_normal)) * mean(Q_normal)
     AC = Float64[]
     for i in 0 : Timelag
-        Qshifted = Q[Timelag + 1 - i : end - i]
+        Qshifted = Q[1 + i : end - Timelag + i]
         @assert length(Qshifted) == length(Q_normal)
         Nominator = sum((Q_normal -  Q_average) .* (Qshifted - Q_average))
         Denominator = sum((Q_normal - Q_average).^2)
