@@ -27,13 +27,7 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     @assert Slowstorage_New >= 0
     # riparian input has to be corrected for areal extent of riparian HRU
     Total_Flows = Total_Discharge + Total_Soil_Evaporation + Total_Interception_Evaporation + Riparian_Discharge
-    #print("barestorage",Bare_Storages)
     Total_Storages = Bare_Storages * bare_input.Area_HRU + Forest_Storages * forest_input.Area_HRU + Grass_Storages * grass_input.Area_HRU + Rip_Storages * rip_input.Area_HRU + Slowstorage_New - Slowstorage
-#    print("Dischareg", Total_Discharge, "slow", Slow_Discharge_Area)
-    # print("Flows", Total_Flows)
-    # print("storage", Total_Storages)
-    # print("Flows_store", round(Total_Flows + Total_Storages, digits=15))
-    # print("prec", round(Bare_precipitation + rip_input.Riparian_Discharge, digits = 15), "\n")
     Precipitation = Bare_precipitation * bare_input.Area_HRU + Forest_precipitation * forest_input.Area_HRU + Grass_precipitation * grass_input.Area_HRU + Rip_precipitation * rip_input.Area_HRU
     @assert -0.00000001 <= Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000001
     Waterbalance = Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
@@ -44,7 +38,7 @@ end
 function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array{Float64}, Temp::Array{Float64},
                 bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
                 bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64,
-                bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters, Ks::Float64, Ratio_Riparian::Float64)
+                bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters, Ks::Float64, Ratio_Riparian::Float64, Total_Elevationbands)
     # the function takes as input the parameters of each HRU, the inital storage values of each HRU, the inital value of the slow storage
     # KS, ratio riparian, all inputs
 
@@ -74,6 +68,8 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
     WBtotal::Array{Float64,1} = zeros(tmax)
     Snow_Extend::Array{Float64,1} = zeros(tmax)
     Precipitation_Total::Array{Float64,1} = zeros(tmax)
+    Snow_Elevations::Array{Float64,2} = zeros(tmax, Total_Elevationbands)
+    Bare_Snow::Array{Float64,2} = zeros(tmax, bare_input.Nr_Elevationbands)
 
     for t in 1:tmax
         #print("t", t,"\n")
@@ -90,27 +86,6 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
         forest_input::HRU_Input = input_timestep(forest_input, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
         grass_input::HRU_Input = input_timestep(grass_input, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
         rip_input::HRU_Input = input_timestep(rip_input, Evaporation_Mean_Current, Precipitation_Current, Temperature_Current)
-
-        # bare_input.Potential_Evaporation::Array{Float64,1} = Evaporation[t, :]
-        # bare_input.Potential_Evaporation_Mean::Float64 =
-        # bare_input.Temp_Elevation::Array{Float64,2} = Temp[t, :]
-        # bare_input.Precipitation::Array{Float64,2} = Precipitation[t, :]
-        # # Evaporaiton, Temperature and Precipitation data of timestep t for forest HRU
-        # forest_input.Potential_Evaporation = Evaporation[t, :]
-        # forest_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
-        # forest_input.Precipitation = Precipitation[t, :]
-        # forest_input.Temp_Elevation = Temp[t, :]
-        # # Evaporaiton, Temperature and Precipitation data of timestep t for grass HRU
-        # grass_input.Potential_Evaporation = Evaporation[t, :]
-        # grass_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
-        # grass_input.Precipitation = Precipitation[t, :]
-        # grass_input.Temp_Elevation = Temp[t, :]
-        # # Evaporaiton, Temperature and Precipitation data of timestep t for riparian HRU
-        # rip_input.Potential_Evaporation = Evaporation[t, :]
-        # rip_input.Potential_Evaporation_Mean = Evaporation_Mean[t]
-        # rip_input.Precipitation = Precipitation[t, :]
-        # rip_input.Temp_Elevation = Temp[t, :]
-
 
         # parameters stay the same in each timestep
         # values of storages of timestep before have to be given
@@ -136,6 +111,9 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
         Grass_Interceptionstorage::Float64, Grass_Snowstorage::Float64 = Storage_Total(grass_storage, grass_input)
         Rip_Interceptionstorage::Float64, Rip_Snowstorage::Float64 = Storage_Total(rip_storage, rip_input)
 
+        # OPTIONAL: store the total amount of snow in each elevation (considering whole catchment)
+        Snow_Elevations[t, :]::Array{Float64,1} = snowperelevation(bare_input, forest_input, grass_input, rip_input, bare_storage.Snow, forest_storage.Snow, grass_storage.Snow, rip_storage.Snow, Total_Elevationbands)
+        Bare_Snow[t,:]::Array{Float64,1} = bare_storage.Snow
         Snow_Extend[t]::Float64 = bare_storage.Snow_Cover * bare_input.Area_HRU + forest_storage.Snow_Cover * forest_input.Area_HRU + grass_storage.Snow_Cover * grass_input.Area_HRU + rip_storage.Snow_Cover * rip_input.Area_HRU
 
 
@@ -182,7 +160,7 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
     # Modelled_Discharge = Modelled_Discharge[1:tmax]
     # NashSutcliffe = NSE(Observed_Discharge, Modelled_Discharge)
 
-    return Discharge::Array{Float64,1}, Snow_Extend::Array{Float64,1}, Waterbalance::Float64, Faststorage::Array{Float64,2}, GWstorage::Array{Float64,1}, Interceptionstorage::Array{Float64,2}, Snowstorage::Array{Float64,2}, Soilstorage::Array{Float64,2}, Waterbalance2::Float64
+    return Discharge::Array{Float64,1}, Snow_Extend::Array{Float64,1}, Waterbalance::Float64, Faststorage::Array{Float64,2}, GWstorage::Array{Float64,1}, Interceptionstorage::Array{Float64,2}, Snowstorage::Array{Float64,2}, Soilstorage::Array{Float64,2}, Waterbalance2::Float64, Snow_Elevations::Array{Float64,2}, Bare_Snow::Array{Float64,2}
 end
 
 function Storage_Total(Storage::Storages, Input::HRU_Input)
@@ -205,6 +183,33 @@ function Storage_Total(Storage::Storages, Input::HRU_Input)
         @assert Total_Snow_Storage >= Former_Total_Snow_Storage
     end
     return Total_Interception_Storage::Float64, Total_Snow_Storage::Float64
+end
+
+function snowperelevation(Bare::HRU_Input, Forest::HRU_Input, Grass::HRU_Input, Rip::HRU_Input, Bare_Snow, Forest_Snow, Grass_Snow, Rip_Snow, Total_Elevationbands)
+    Snowstorage = zeros(Total_Elevationbands)
+    bare_count = 1
+    forest_count = 1
+    grass_count = 1
+    rip_count = 1
+    for i in 1: Total_Elevationbands
+        if bare_count <= length(Bare.Elevation_Count) && Bare.Elevation_Count[bare_count] == i
+            Snowstorage[i]+= Bare_Snow[bare_count] * Bare.Area_Elevations[bare_count] * Bare.Area_HRU
+            bare_count+= 1
+        end
+        if forest_count <= length(Forest.Elevation_Count) && Forest.Elevation_Count[forest_count] == i
+            Snowstorage[i]+= Forest_Snow[forest_count] * Forest.Area_Elevations[forest_count] * Forest.Area_HRU
+            forest_count+= 1
+        end
+        if grass_count <= length(Grass.Elevation_Count) && Grass.Elevation_Count[grass_count] == i
+            Snowstorage[i]+= Grass_Snow[grass_count] * Grass.Area_Elevations[grass_count] * Grass.Area_HRU
+            grass_count += 1
+        end
+        if rip_count <= length(Rip.Elevation_Count) && Rip.Elevation_Count[rip_count] == i
+            Snowstorage[i]+= Rip_Snow[rip_count] * Rip.Area_Elevations[rip_count] * Grass.Area_HRU
+            rip_count +=   1
+        end
+    end
+    return Snowstorage::Array{Float64,1}
 end
 
 function input_timestep(Input::HRU_Input, Evaporation_Mean::Float64, Precipitation::Array{Float64,1}, Temperature::Array{Float64,1})
