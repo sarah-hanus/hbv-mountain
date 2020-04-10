@@ -18,7 +18,7 @@ Einheit:                   ;[m³/s]
 Exportzeitraum:            ;[01.01.1985 00:15,01.01.2017 00:00]
 Der Intervallwert gilt bis zum nächsten Zeitpunkt mit einem Wert oder Lücke
 Werte:
-01.01.1985 00:15:00;  17,6
+01.01.1985 00:00:00;  17,6
 02.01.1985 00:00:00;  17,0
 03.01.1985 00:00:00;  5,24
 04.01.1985 00:00:00;  23,4
