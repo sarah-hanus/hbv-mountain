@@ -34,10 +34,10 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     # print("storage", Total_Storages)
     # print("Flows_store", round(Total_Flows + Total_Storages, digits=15))
     # print("prec", round(Bare_precipitation + rip_input.Riparian_Discharge, digits = 15), "\n")
-    #@assert -0.00000001 <= Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000001
-    Waterbalance = Bare_precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
-    print(Waterbalance,"\n")
-    return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Bare_precipitation::Float64
+    Precipitation = Bare_precipitation * bare_input.Area_HRU + Forest_precipitation * forest_input.Area_HRU + Grass_precipitation * grass_input.Area_HRU + Rip_precipitation * rip_input.Area_HRU
+    @assert -0.00000001 <= Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000001
+    Waterbalance = Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
+    return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Precipitation::Float64
 end
 
 
@@ -173,8 +173,7 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
     Total_Storage::Float64 = End_Storage - Initial_Storage
       #print("Sin", Sin,"Ei", sum(Eidt),"Ea", sum(Eadt),"Qtot", sum(Qtotdt))
       #precipitation in mm/day, so sum precipitation in mm, Discharge in mm/d, Int_Evaporation in mm/d, Soil_Evaporation in mm/d
-    Waterbalance::Float64 = sum(Precipitation)/ bare_input.Nr_Elevationbands - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24 * 1000) - rip_input.Riparian_Discharge - Total_Storage
-    #Waterbalance::Float64 = sum(Precipitation_Total) - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24 * 1000) - rip_input.Riparian_Discharge - Total_Storage
+    Waterbalance::Float64 = sum(Precipitation_Total) - sum(Int_Evaporation) - sum(Soil_Evaporation) - sum(Discharge) / Area * (3600 * 24 * 1000) - rip_input.Riparian_Discharge - Total_Storage
     #print(sum(Precipitation)/ bare_input.Nr_Elevationbands)
     Waterbalance2 = sum(WBtotal)::Float64
     #offset the discharge
