@@ -15,8 +15,9 @@ Areas_HRUs = convert(Matrix, Areas_HRUs)
 grid_point = 49
 
 # Temperature and Precipiation Data at Measured Elevation
-Precipitation_Sample = Precipitation[:,grid_point]/10
-Temp_Sample = Temperature[:,grid_point]/10 #makes a vector
+#start in 1951
+Precipitation_Sample = Precipitation[366:end,grid_point]/10
+Temp_Sample = Temperature[366:end,grid_point]/10 #makes a vector
 
 
 # 30 years: 10957 days
@@ -101,3 +102,11 @@ xlabel!("Days")
 ylabel!("Snow Cover [mm]")
 title!("Snow Cover at Different Elevations")
 #savefig("Snow_Cover_Elevations.png")
+
+Discharge_Defreggen_Measured = CSV.read("Defreggental/Q-Tagesmittel-212100.csv", header= false, skipto=26, decimal=',', delim = ';', types=[String, Float64])
+Discharge_Defreggen_Measured = convert(Matrix, Discharge_Defreggen_Measured)
+startindex = findfirst(isequal("01.01.1979 00:00:00"), Discharge_Defreggen_Measured)
+endindex = findfirst(isequal("31.12.1979 00:00:00"), Discharge_Defreggen_Measured)
+#Plot Measure Discharge against modeled discharge
+plot(Discharge_Defreggen_Measured[startindex[1]:endindex[1],2])
+plot!(Discharge[end-365: end])
