@@ -134,6 +134,7 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     #FlowsandStorage = (Flows_Area + All_Storages * hill.Area_HRU)
     @assert -0.00000001 <= Precipitation - (Flows + All_Storages) <= 0.00000001
     @assert -0.00000001 <= Precipitation * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU) <= 0.00000001
+    #print(Precipitation * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU),"TEST\n")
     return hill_out::Outflows, hill_storages::Storages, Precipitation, All_Storages
     #return GWflow, Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
 
@@ -217,6 +218,7 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     #@assert -0.00000000001 <= Precipitation + rip.Riparian_Discharge - FlowsandStorages <= 0.00000000001
     @assert -0.00000001 <= Precipitation + rip.Riparian_Discharge / rip.Area_HRU - (Flows + All_Storages) <= 0.00000001
     @assert -0.00000001 <= (Precipitation * rip.Area_HRU + rip.Riparian_Discharge) - (Flows_Area + All_Storages * rip.Area_HRU) <= 0.00000001
+    #print((Precipitation * rip.Area_HRU + rip.Riparian_Discharge) - (Flows_Area + All_Storages * rip.Area_HRU),"TEST\n")
 
     return rip_out, rip_storages, Precipitation, All_Storages
     #return Fast_Discharge, Soil_Evaporation, Total_Interception_Evaporation, Interceptionstorage, Snowstorage, Soilstorage, Faststorage
