@@ -44,7 +44,13 @@ mutable struct Outflows
     Interception_Evaporation:: Float64
 end
 
-
+mutable struct Elevations
+    Thickness_Band:: Float64
+    Min_elevation:: Float64
+    Max_elevation:: Float64
+    Measured_Prec_Elevation:: Float64
+    Measured_Temp_Elevation:: Float64
+end
 #
 # mutable struct HRU_Output
 #     Fast_Discharge:: Float64
