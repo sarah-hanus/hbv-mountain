@@ -89,7 +89,7 @@ function monthlytemp(Timeseries, Temp::Array{Float64, 1})
     monthly_Temp = Float64[]
     for (i, current_date) in enumerate(Timeseries)
         sum_Temp += Temp[i]
-        current_date = Date(current_date, dateformat"y,m,d")
+        #current_date = Date(current_date, dateformat"y,m,d")
         day = Dates.day(current_date)
         if day == Dates.daysinmonth(current_date)
             monthly_Temp_current = sum_Temp / Dates.daysinmonth(current_date)
@@ -97,6 +97,7 @@ function monthlytemp(Timeseries, Temp::Array{Float64, 1})
             sum_Temp = 0
         end
     end
+    #print(length(monthly_Temp))
     return monthly_Temp::Array{Float64, 1}
 end
 
@@ -140,16 +141,17 @@ function epot_thornthwaite(Temp_daily::Float64, Heatindex::Float64, daysinmonth:
 end
 
 
-function getEpot_thornthwaite(Temp::Array{Float64, 1}, Timeseries, sunhours::Array{Float64, 1})
+function getEpot_thornthwaite(Temp::Array{Float64, 1}, Timeseries::Array{Date, 1}, sunhours::Array{Float64, 1})
     # assertion for that the timeseries contain whole years
-    @assert length(Timeseries[:,1]) == length(Temp)
+    @assert length(Timeseries) == length(Temp)
     Evaporation = Float64[]
     # calculate the mean monthly temperatures of the timeseries
     Temp_month = monthlytemp(Timeseries, Temp)
     #calculate the annual heat indices of the timeseries
     annual_heatindex = heatindex(Temp_month)
+    first_year = Dates.year(Timeseries[1])
     for (i, current_date) in enumerate(Timeseries)
-        current_date = Date(current_date, dateformat"y,m,d")
+        #current_date = Date(current_date, dateformat"y,m,d")
         #get the number of days of the current month
         daysinmonth = Dates.daysinmonth(current_date)
         #print(daysinmonth)
@@ -158,10 +160,10 @@ function getEpot_thornthwaite(Temp::Array{Float64, 1}, Timeseries, sunhours::Arr
         #get the sunhours of the current month
         sunhours_current = sunhours[datetuple[2]]
         # get the monthly evaporation for current month in the timeseries
-        j = 12 * abs(datetuple[1]-1950) + datetuple[2]
+        j = 12 * abs(datetuple[1]- first_year) + datetuple[2]
         Temp_monthly_current = Temp_month[j]
         # get the annual heat index of the current year
-        current_annual_heatindex = annual_heatindex[abs(datetuple[1]-1950) + 1]
+        current_annual_heatindex = annual_heatindex[abs(datetuple[1]-first_year) + 1]
         Epot = epot_thornthwaite(Temp_monthly_current, current_annual_heatindex, daysinmonth, sunhours_current)
         #Epot = Epot/daysinmonth
         push!(Evaporation, Epot)
