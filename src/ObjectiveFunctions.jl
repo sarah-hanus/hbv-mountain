@@ -50,7 +50,7 @@ function autocorrelation(Q::Array{Float64, 1}, Timelag::Int64)
     AC = Sum_Nominator / Sum_Denominator
     return AC::Float64
 end
-
+#autocorrelation and autocorrelation2 give the same results, but using cor() gives slightly different results
 function autocorrelation2(Q::Array{Float64, 1}, Timelag::Int64)
     Qshifted = Q[1 + Timelag: end]
     Q = Q[1 : end - Timelag]
@@ -58,7 +58,8 @@ function autocorrelation2(Q::Array{Float64, 1}, Timelag::Int64)
     Nominator = sum((Q -  Q_average) .* (Qshifted - Q_average))
     Denominator = sum((Q - Q_average).^2)
     AC = Nominator / Denominator
-    return AC::Float64
+    AC_Cor = cor(Q, Qshifted)
+    return AC::Float64, AC_Cor::Float64
 end
 
 function autocorrelationcurve(Q::Array{Float64, 1}, Timeshift::Int64)

@@ -28,7 +28,7 @@ function radiation(Latitude::Float64, Day::Int)
     Solar_Declination = 0.409 * sin((2 * pi/ 365) * Day -1.39) # in rad
     Sunsethour_angle = acos(-tan(Latitude) * tan(Solar_Declination)) # in rad
     Radiation = 24 * 60 / pi * Solar_Constant * Distance_Earth_Sun * (Sunsethour_angle * sin(Latitude) * sin(Solar_Declination) + cos(Latitude) * cos(Solar_Declination) * sin(Sunsethour_angle))
-    Radiation = 0.0408 * Radiation #to convert it from MJ/m2/day to mm/day
+    Radiation = 0.408 * Radiation #to convert it from MJ/m2/day to mm/day
     return Radiation::Float64
 end
 
@@ -62,19 +62,19 @@ function getEpot(Temp_min::Array{Float64, 1}, Temp::Array{Float64, 1}, Temp_max:
     return Evaporation::Array{Float64,1}, Radiation::Array{Float64,1}, Rs
 end
 
-# Timeseries = readdlm("Pitztal/tas_model_timeseries.txt")
-# Temp = CSV.read("Pitztal//tas_sim1.txt", header=false)
-# Temp_Min = CSV.read("Pitztal/tasmin_sim1.txt", header=false)
-# Temp_Max = CSV.read("Pitztal/tasmax_sim1.txt", header=false)
-# Temp = Temp[:,25]/10
-# Temp_Min = Temp_Min[:,25]/10
-# Temp_Max = Temp_Max[:,25]/10
-# Latitude = CSV.read("Pitztal/tas_model_lonlat.txt")[25,2]
+Timeseries = readdlm("Pitztal/tas_model_timeseries.txt")
+Temp = CSV.read("Pitztal/tas_sim1.txt", header=false)
+Temp_Min = CSV.read("Pitztal/tasmin_sim1.txt", header=false)
+Temp_Max = CSV.read("Pitztal/tasmax_sim1.txt", header=false)
+Temp = Temp[:,10]/10
+Temp_Min = Temp_Min[:,10]/10
+Temp_Max = Temp_Max[:,10]/10
+Latitude = CSV.read("Pitztal/tas_model_lonlat.txt")[10,2]
 
-# Potential_Evaporation, Radiation, Rs = getEpot(Temp_Min, Temp, Temp_Max, 0.19, Timeseries, Latitude)
-# # remaining negative values and values larger than 15 mm day−1 were considered erroneous
-# # total Epot per year around 400-600mm
-# print(maximum(Potential_Evaporation), "min", minimum(Potential_Evaporation))
+Potential_Evaporation, Radiation, Rs = getEpot(Temp_Min, Temp, Temp_Max, 0.19, Timeseries, Latitude)
+# remaining negative values and values larger than 15 mm day−1 were considered erroneous
+# total Epot per year around 400-600mm
+print(maximum(Potential_Evaporation), "min", minimum(Potential_Evaporation))
 
 
 
@@ -169,22 +169,30 @@ function getEpot_thornthwaite(Temp::Array{Float64, 1}, Timeseries, sunhours::Arr
     return Evaporation::Array{Float64,1}
 end
 
-# Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
-# Potential_Evaporation_Thornthwhaite = getEpot_thornthwaite(Temp, Timeseries, Sunhours_Vienna)
-#
-# plot([Potential_Evaporation[365:365*2], Potential_Evaporation_Thornthwhaite[365:365*2]])
-#
-# #calculate the annual potential evpaporation of each year
-# Annual_Epot = Float64[]
-# for i in 2:151
-#     Epot = sum(Potential_Evaporation_Thornthwhaite[365*(i-1):365*i])
-#     push!(Annual_Epot, Epot)
-# end
-# #plot(Annual_Epot)
-# RatioRadiation = Float64[]
-# for i in 1:365
-#     Ratio = Rs[i] / Radiation[i]
-#     push!(RatioRadiation, Ratio)
-# end
+Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
+Potential_Evaporation_Thornthwhaite = getEpot_thornthwaite(Temp, Timeseries, Sunhours_Vienna)
+
+plot([Potential_Evaporation[365:365*2], Potential_Evaporation_Thornthwhaite[365:365*2]])
+
+#calculate the annual potential evpaporation of each year
+Annual_Epot = Float64[]
+for i in 2:151
+    Epot = sum(Potential_Evaporation_Thornthwhaite[365*(i-1):365*i])
+    push!(Annual_Epot, Epot)
+end
+#plot(Annual_Epot)
+RatioRadiation = Float64[]
+for i in 1:365
+    Ratio = Rs[i] / Radiation[i]
+    push!(RatioRadiation, Ratio)
+end
 
 #plot(Temp_Max[1:365] - Temp_Min[1:365], RatioRadiation)
+sumthornth = zeros(50)
+sumhargreaves = zeros(50)
+
+for i in 1:50
+    sumhargreaves[i] = sum(Potential_Evaporation[1+(i-1)*365: i*365])
+    sumthornth[i] = sum(Potential_Evaporation_Thornthwhaite[1+(i-1)*365: i*365])
+end
+plot([sumthornth, sumhargreaves])
