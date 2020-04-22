@@ -174,6 +174,29 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     Soilstorage = Soilstorage - Fastdrainage
     Overlandflow = Overlandflow + Fastdrainage
 
+    # # amount stored in soil increases by riparian discharge
+    # Soilstorage = Soilstorage + Riparian_Discharge
+    #
+    # if Effective_Precipitation> 0
+    #     Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
+    #     Q_Soil = min((1 - Ratio_Soil) * Effective_Precipitation, Soilstoragecapacity - Soilstorage)
+    #     Soilstorage = Soilstorage + Q_Soil
+    #     # the other part does not enter the soil but flows into the fast reservoir
+    #     Overlandflow = (Effective_Precipitation + Riparian_Discharge - Q_Soil)
+    # else
+    #     Overlandflow = 0
+    # end
+    # Excess = max(0, Soilstorage - Soilstoragecapacity)
+    # Fastdrainage = ((Soilstorage - Excess) / Soilstoragecapacity) * Drainagecapacity + Excess
+    # # Transpiration in soil, only the part that not evaporated in interception reservoir can evaporate
+    # Potential_Soilevaporation = max(Potential_Evaporation - Interception_Evaporation,0)
+    # # transpiration can maximum be the amount stored in soil, or a percentage of potential evaporation
+    # Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1)
+    # Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
+    # Soilstorage = Soilstorage - Soil_Evaporation
+
+
+
     @assert Overlandflow >= 0
     @assert Soil_Evaporation <= max(Potential_Evaporation - Interception_Evaporation,0)
     @assert Soil_Evaporation >= 0
