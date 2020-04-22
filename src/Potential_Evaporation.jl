@@ -66,10 +66,10 @@ Timeseries = readdlm("Pitztal/tas_model_timeseries.txt")
 Temp = CSV.read("Pitztal/tas_sim1.txt", header=false)
 Temp_Min = CSV.read("Pitztal/tasmin_sim1.txt", header=false)
 Temp_Max = CSV.read("Pitztal/tasmax_sim1.txt", header=false)
-Temp = Temp[:,10]/10
-Temp_Min = Temp_Min[:,10]/10
-Temp_Max = Temp_Max[:,10]/10
-Latitude = CSV.read("Pitztal/tas_model_lonlat.txt")[10,2]
+Temp = Temp[:,60]/10
+Temp_Min = Temp_Min[:,60]/10
+Temp_Max = Temp_Max[:,60]/10
+Latitude = CSV.read("Pitztal/tas_model_lonlat.txt")[60,2]
 
 Potential_Evaporation, Radiation, Rs = getEpot(Temp_Min, Temp, Temp_Max, 0.19, Timeseries, Latitude)
 # remaining negative values and values larger than 15 mm day−1 were considered erroneous
