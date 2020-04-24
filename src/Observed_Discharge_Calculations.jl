@@ -25,25 +25,39 @@ plot()
 Catchment_Names = ["Montafon", "Pitztal", "Defreggental", "Gailtal", "Paltental", "Pittental", "Feistritz"]
 Linestyle = [:solid, :solid, :solid, :solid, :solid, :solid, :dash]
 Farben = [:black, :orange, :red, :green, :blue, :purple, :purple]
-for i in 1:7
-    Sorted_Discharge, Exceedance = flowdurationcurve(Discharge_Catchments[i,1])
-    plot(Exceedance, Sorted_Discharge, title= "FDC 30 years \n"* Catchment_Names[i], label = Catchment_Names[i], line=(1, Linestyle[i]), color=[Farben[i]])
-    xlabel!("Exceedance Probability")
-    ylabel!("Discharge [m3/s]")
-    savefig("FDC_"* Catchment_Names[i] *".png")
-end
+# for i in 1:7
+#     Sorted_Discharge, Exceedance = flowdurationcurve(Discharge_Catchments[i,1])
+#     plot(Exceedance, Sorted_Discharge, title= "FDC 30 years \n"* Catchment_Names[i], label = Catchment_Names[i], line=(1, Linestyle[i]), color=[Farben[i]])
+#     xlabel!("Exceedance Probability")
+#     ylabel!("Discharge [m3/s]")
+#     savefig("FDC_"* Catchment_Names[i] *".png")
+# end
+#
+# plot()
+# Catchment_Names = ["Montafon", "Pitztal", "Defreggental", "Gailtal", "Paltental", "Pittental", "Feistritz"]
+# Linestyle = [:solid, :solid, :solid, :solid, :solid, :solid, :dash]
+# Farben = [:black, :orange, :red, :green, :blue, :purple, :purple]
+# for i in 1:7
+#     Sorted_Discharge, Exceedance = flowdurationcurve(Discharge_Catchments[i,1])
+#     plot!(Exceedance, Sorted_Discharge, title= "FDC 30 years", label = Catchment_Names[i], line=(1, Linestyle[i]), color=[Farben[i]])
+#     xlabel!("Exceedance Probability")
+#     ylabel!("Discharge [m3/s]")
+#     #savefig("FDC_"* Catchment_Names[i] *".png")
+# end
+# xlabel!("Exceedance Probability")
+# ylabel!("Discharge [m3/s]")
+# savefig("FDC_All_Catchments.png")
 
-plot()
-Catchment_Names = ["Montafon", "Pitztal", "Defreggental", "Gailtal", "Paltental", "Pittental", "Feistritz"]
-Linestyle = [:solid, :solid, :solid, :solid, :solid, :solid, :dash]
-Farben = [:black, :orange, :red, :green, :blue, :purple, :purple]
 for i in 1:7
-    Sorted_Discharge, Exceedance = flowdurationcurve(Discharge_Catchments[i,1])
-    plot!(Exceedance, Sorted_Discharge, title= "FDC 30 years", label = Catchment_Names[i], line=(1, Linestyle[i]), color=[Farben[i]])
-    xlabel!("Exceedance Probability")
-    ylabel!("Discharge [m3/s]")
-    #savefig("FDC_"* Catchment_Names[i] *".png")
+    AC,Lags = autocorrelationcurve2(Discharge_Catchments[i,1], 100)
+    plot!(Lags, AC, title= "Autocorrelation Function 100 days", label = Catchment_Names[i], line=(1, Linestyle[i]), color=[Farben[i]])
+
 end
-xlabel!("Exceedance Probability")
-ylabel!("Discharge [m3/s]")
-savefig("FDC_All_Catchments.png")
+xlabel!("Lag [d]")
+ylabel!("Correlation Coefficient")
+savefig("AC_All_Catchments2.png")
+
+AC, Lags = autocorrelationcurve(Discharge_Catchments[1,1],10)
+print(AC)
+AC, Lags = autocorrelationcurve2(Discharge_Catchments[1,1],10)
+print(AC)

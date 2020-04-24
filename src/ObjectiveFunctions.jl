@@ -60,7 +60,8 @@ function autocorrelation(Q::Array{Float64, 1}, Timelag::Int64)
     Nominator = sum((Q -  Q_average) .* (Qshifted - Q_average))
     Denominator = sum((Q - Q_average).^2)
     AC = Nominator / Denominator
-    return AC::Float64
+    AC_Cor = cor(Q, Qshifted)
+    return AC::Float64, AC_Cor::Float64
 end
 
 # function autocorrelationcurve(Q::Array{Float64, 1}, Timeshift::Int64)

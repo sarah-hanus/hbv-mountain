@@ -190,3 +190,11 @@ end
 # end
 
 #plot(Temp_Max[1:365] - Temp_Min[1:365], RatioRadiation)
+sumthornth = zeros(50)
+sumhargreaves = zeros(50)
+
+for i in 1:50
+    sumhargreaves[i] = sum(Potential_Evaporation[1+(i-1)*365: i*365])
+    sumthornth[i] = sum(Potential_Evaporation_Thornthwhaite[1+(i-1)*365: i*365])
+end
+plot([sumthornth, sumhargreaves])
