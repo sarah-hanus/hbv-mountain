@@ -171,22 +171,22 @@ function getEpot_thornthwaite(Temp::Array{Float64, 1}, Timeseries::Array{Date, 1
     return Evaporation::Array{Float64,1}
 end
 
-Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
-Potential_Evaporation_Thornthwhaite = getEpot_thornthwaite(Temp, Timeseries, Sunhours_Vienna)
+# Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
+# Potential_Evaporation_Thornthwhaite = getEpot_thornthwaite(Temp, Timeseries, Sunhours_Vienna)
 
 #lot([Potential_Evaporation[365:365*2], Potential_Evaporation_Thornthwhaite[365:365*2]])
 
 #calculate the annual potential evpaporation of each year
-Annual_Epot = Float64[]
-for i in 2:151
-    Epot = sum(Potential_Evaporation_Thornthwhaite[365*(i-1):365*i])
-    push!(Annual_Epot, Epot)
-end
-#plot(Annual_Epot)
-RatioRadiation = Float64[]
-for i in 1:365
-    Ratio = Rs[i] / Radiation[i]
-    push!(RatioRadiation, Ratio)
-end
+# Annual_Epot = Float64[]
+# for i in 2:151
+#     Epot = sum(Potential_Evaporation_Thornthwhaite[365*(i-1):365*i])
+#     push!(Annual_Epot, Epot)
+# end
+# #plot(Annual_Epot)
+# RatioRadiation = Float64[]
+# for i in 1:365
+#     Ratio = Rs[i] / Radiation[i]
+#     push!(RatioRadiation, Ratio)
+# end
 
 #plot(Temp_Max[1:365] - Temp_Min[1:365], RatioRadiation)

@@ -64,8 +64,8 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     @assert hill_storages.Interception >= zeros(hill.Nr_Elevationbands)
     @assert hill_storages.Snow >= zeros(hill.Nr_Elevationbands)
     @assert hill_storages.Soil >= 0
-    @assert hill_storages.Interception <= ones(hill.Nr_Elevationbands) * parameters.Interceptionstoragecapacity
-    @assert hill_storages.Soil <= parameters.Soilstoragecapacity
+    @assert ones(hill.Nr_Elevationbands) * parameters.Interceptionstoragecapacity - hill_storages.Interception >= -10^(-10) * ones(hill.Nr_Elevationbands)
+    @assert parameters.Soilstoragecapacity - hill_storages.Soil >= -10^(-10)
 
     #assertion water balance
     Precipitation = 0
@@ -156,8 +156,10 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     @assert rip_storages.Interception >= zeros(rip.Nr_Elevationbands)
     @assert rip_storages.Snow >= zeros(rip.Nr_Elevationbands)
     @assert rip_storages.Soil >= 0
-    @assert rip_storages.Interception <= ones(rip.Nr_Elevationbands) * parameters.Interceptionstoragecapacity
-    @assert rip_storages.Soil <= parameters.Soilstoragecapacity
+    #@assert rip_storages.Interception <= ones(rip.Nr_Elevationbands) * parameters.Interceptionstoragecapacity
+    @assert ones(rip.Nr_Elevationbands) * parameters.Interceptionstoragecapacity - rip_storages.Interception >= -10^(-10) * ones(rip.Nr_Elevationbands)
+    #@assert rip_storages.Soil <= parameters.Soilstoragecapacity
+    @assert parameters.Soilstoragecapacity - rip_storages.Soil >= -10^(-10)
 
     Precipitation = 0
     Interception_Storage_New = 0
