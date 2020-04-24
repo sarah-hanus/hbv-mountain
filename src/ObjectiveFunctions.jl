@@ -1,3 +1,5 @@
+using Dates
+
 function nse(Qobserved::Array{Float64, 1}, Qmodelled::Array{Float64, 1})
     # input is array of modelled and observed data
     #QobservedAverage = sum(Qobserved) / length(Qobserved) #float
@@ -35,23 +37,23 @@ function flowdurationcurve(Q::Array{Float64, 1})
     return SortedQ::Array{Float64, 1}, Exceedanceprobability::Array{Float64, 1}
 end
 
-function autocorrelation(Q::Array{Float64, 1}, Timelag::Int64)
-    # the function shifts the normal discharge by a timelag of x days
-    # function from Euser et al 2013
-    Qshort = Q[1 : end - Timelag]
-    Sum_Nominator = 0
-    Sum_Denominator = 0
-    for (i, Current_Discharge) in enumerate(Qshort)
-        Nominator = (Current_Discharge - mean(Qshort)) * (Q[i + Timelag] - mean(Qshort))
-        Denominator = (Current_Discharge - mean(Qshort))^2
-        Sum_Nominator += Nominator
-        Sum_Denominator += Denominator
-    end
-    AC = Sum_Nominator / Sum_Denominator
-    return AC::Float64
-end
+# function autocorrelation(Q::Array{Float64, 1}, Timelag::Int64)
+#     # the function shifts the normal discharge by a timelag of x days
+#     # function from Euser et al 2013
+#     Qshort = Q[1 : end - Timelag]
+#     Sum_Nominator = 0
+#     Sum_Denominator = 0
+#     for (i, Current_Discharge) in enumerate(Qshort)
+#         Nominator = (Current_Discharge - mean(Qshort)) * (Q[i + Timelag] - mean(Qshort))
+#         Denominator = (Current_Discharge - mean(Qshort))^2
+#         Sum_Nominator += Nominator
+#         Sum_Denominator += Denominator
+#     end
+#     AC = Sum_Nominator / Sum_Denominator
+#     return AC::Float64
+# end
 
-function autocorrelation2(Q::Array{Float64, 1}, Timelag::Int64)
+function autocorrelation(Q::Array{Float64, 1}, Timelag::Int64)
     Qshifted = Q[1 + Timelag: end]
     Q = Q[1 : end - Timelag]
     Q_average = ones(length(Q)) * mean(Q)
@@ -61,26 +63,26 @@ function autocorrelation2(Q::Array{Float64, 1}, Timelag::Int64)
     return AC::Float64
 end
 
-function autocorrelationcurve(Q::Array{Float64, 1}, Timeshift::Int64)
-    # this function calculates an autocorrelation curve by shifting the discharge by a day until reaching the timelag
-    # than the autocorrelation value of each time lag is calculated and is plotted against days of the lag
-    # the first entry to evaluate is the entry after the timelag, so for example 31 if timelage=30
-    Q_normal = Q[Timeshift + 1: end]
-    AC = Float64[]
-    for i in 0 : Timeshift
-        Qshifted = Q[Timeshift + 1 - i : end - i]
-        @assert length(Qshifted) == length(Q_normal)
-        Correlation = cor(Q_normal, Qshifted)
-        push!(AC, Correlation)
-    end
-    @assert length(AC) == Timeshift + 1
-    Lags = collect(0: Timeshift)
-    return AC::Array{Float64, 1}, Lags::Array{Int64, 1}
+# function autocorrelationcurve(Q::Array{Float64, 1}, Timeshift::Int64)
+#     # this function calculates an autocorrelation curve by shifting the discharge by a day until reaching the timelag
+#     # than the autocorrelation value of each time lag is calculated and is plotted against days of the lag
+#     # the first entry to evaluate is the entry after the timelag, so for example 31 if timelage=30
+#     Q_normal = Q[Timeshift + 1: end]
+#     AC = Float64[]
+#     for i in 0 : Timeshift
+#         Qshifted = Q[Timeshift + 1 - i : end - i]
+#         @assert length(Qshifted) == length(Q_normal)
+#         Correlation = cor(Q_normal, Qshifted)
+#         push!(AC, Correlation)
+#     end
+#     @assert length(AC) == Timeshift + 1
+#     Lags = collect(0: Timeshift)
+#     return AC::Array{Float64, 1}, Lags::Array{Int64, 1}
+#
+#
+# end
 
-
-end
-
-function autocorrelationcurve2(Q::Array{Float64, 1}, Timelag::Int64)
+function autocorrelationcurve(Q::Array{Float64, 1}, Timelag::Int64)
     Q_normal = Q[1: end - Timelag]
     Q_average = ones(length(Q_normal)) * mean(Q_normal)
     AC = Float64[]
@@ -125,10 +127,12 @@ function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{
     return monthly_Runoff, Month
 end
 
-function averagemonthlyrunoff(monthly_Runoff::Vector{Float64}, Month::Vector{String})
+function averagemonthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Timeseries::Vector{Any})
     # calculates the average runoff coefficient of a certain month over the timeperiod
     # all runoff coefficients of a certain months are summed up
     # assert that
+    monthly_runoff, Month = monthly_runoff(Area, Precipitation, Discharge, Timeseries)
+
     @assert length(monthly_Runoff) == length(Month)
     sum_January = 0
     sum_February = 0
@@ -192,3 +196,27 @@ export nse
 export lognse
 export volumetricefficiency
 export flowdurationcurve
+
+function objectivefunctions(Modelled_Discharge, Observed_Discharge, observed_FDC, obsered_AC_1day, observed_AC_90day)
+    # calculate the nse, lognse, ve
+    NSE = nse(Observed_Discharge, Modelled_Discharge)
+    NSElog = lognse(Observed_Discharge, Modelled_Discharge)
+    VE = volumetricefficiency(Observed_Discharge, Modelled_Discharge)
+    # calculate the flow duration durves
+    modelled_FDC = flowdurationcurve(Modelled_Discharge)
+    NSE_FDC = nse(observed_FDC, modelled_FDC[1])
+    #calculate the autocorrelation curves
+    modelled_AC_1day = autocorrelation(Modelled_Discharge, 1)
+    modelled_AC_90day = autocorrelationcurve(Modelled_Discharge, 90)
+    Reative_Error_AC_1day = abs(observed_AC_1day - modelled_AC_1day)/ observed_AC_1day
+    NSE_AC_90day = nse(observed_AC_90day, modelled_AC_90day[1])
+    #calculate the avreage monthyl runoff
+
+    #calculate snow cover
+
+
+    Euclidean_Distance = ((1-NSE)^2 + (1 - NSElog)^2 + (1 - VE)^2 + (1 - NSE_FDC)^2 + (1 - Reative_Error_AC_1day)^2 + (1 - NSE_AC_90day)^2)
+    Euclidean_Distance = Euclidean_Distance / 6
+
+    return Euclidean_Distance
+end
