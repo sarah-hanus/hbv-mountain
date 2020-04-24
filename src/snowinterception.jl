@@ -1,8 +1,10 @@
 function interception(Potential_Evaporation::Float64, Precipitation::Float64, Temp::Float64, Interceptionstorage::Float64, Interceptionstoragecapacity::Float64, Temp_Thresh::Float64)
+    #print(Interceptionstoragecapacity - Interceptionstorage, "\n")
+    #print(Interceptionstorage <= Interceptionstoragecapacity, "\n")
     @assert Potential_Evaporation >= 0
     @assert Precipitation >= 0
     @assert Interceptionstorage >= 0
-    @assert Interceptionstorage <= Interceptionstoragecapacity
+    @assert Interceptionstoragecapacity - Interceptionstorage >= -10^(-10)
     @assert Interceptionstoragecapacity >= 0
     @assert Temp_Thresh >= -5 and <= 5 # it should be within the parameter range
 
@@ -40,23 +42,26 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
         Interceptionstorage = Interceptionstorage #amount stored does not change??!
     end
     #print(Interception_Evaporation, "potential", Potential_Evaporation, "\n")
+    #print(Interceptionstoragecapacity - Interceptionstorage, "\n unten")
+    #print(Interceptionstorage <= Interceptionstoragecapacity, "\n")
     @assert Interception_Evaporation <= Potential_Evaporation / 2.0
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Interceptionstorage >= 0
-    @assert Interceptionstorage <= Interceptionstoragecapacity
+    @assert Interceptionstoragecapacity - Interceptionstorage >= -10^(-10)
     return Effective_Precipitation::Float64, Interception_Evaporation::Float64, Interceptionstorage::Float64
 end
 
 
 function snow(Area_Glacier::Float64, Precipitation::Float64, Temp::Float64, Snowstorage::Float64, Meltfactor::Float64, Mm::Float64, Temp_Thresh::Float64)
 
-    @assert Area_Glacier >= 0 and <= 1
+    @assert Area_Glacier >= 0.0 and <= 1.0
     @assert Precipitation >= 0
     @assert Snowstorage >= 0
     @assert Meltfactor >= 0 #within the parameter range
-    @assert Mm >= 0 #within the parameter range
+    @assert Mm > 0 #within the parameter range
     @assert Temp_Thresh >= -5 and <= 5 # it should be within the parameter range
+    @assert -60 <= Temp <= 60
 
     if Temp > Temp_Thresh
         # if temperature higher than freezing temperature, melting takes place
@@ -65,9 +70,9 @@ function snow(Area_Glacier::Float64, Precipitation::Float64, Temp::Float64, Snow
         Melt_Snow = min(Melt, Snowstorage)
         Melt_Glacier = Melt
         # the total melt is the combination of snow and glacier melt and the areal extent
-        Melt_Total = Melt_Snow * (1 - Area_Glacier) + Melt_Glacier * Area_Glacier
+        Melt_Total = Melt_Snow * (1.0 - Area_Glacier) + Melt_Glacier * Area_Glacier
         # the amount of snow stored decreases by amount melted
-        Snowstorage = Snowstorage - Melt_Snow
+        Snowstorage = max(Snowstorage - Melt_Snow, 0.0)
     else
         # the amount of snow stored increases by Precipitation
         Snowstorage = Snowstorage + Precipitation
@@ -75,7 +80,15 @@ function snow(Area_Glacier::Float64, Precipitation::Float64, Temp::Float64, Snow
         Melt_Total = 0.0
     end
 
-    @assert Melt_Total >= 0
+    if !(Melt_Total >= -eps(Float64))
+        print(Melt_Total, '\n')
+        print(Temp_Thresh, '\n')
+        print(Snowstorage, '\n')
+        print(Melt, '\n')
+        print(Mm, '\n')
+        print(Temp, '\n')
+    end
+    @assert Melt_Total >= -eps(Float64)
     @assert Snowstorage >= 0
 
     return Melt_Total::Float64, Snowstorage::Float64
@@ -92,7 +105,7 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     @assert round(Interception_Evaporation, digits=12) <= round(Potential_Evaporation * 0.5, digits=12)
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
-    @assert Soilstorage <= Soilstoragecapacity
+    @assert Soilstoragecapacity - Soilstorage >= -10^(-10)
     @assert Soilstoragecapacity > 0 #within the parameter range
     @assert beta > 0 #within the parameter range
     @assert Ce > 0 #within the parameter range
@@ -102,8 +115,16 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     if Effective_Precipitation > 0
         # rho represents the non linear process that only part of precipitation enters soil
         # different rho??
-        Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
-        @assert Ratio_Soil <= 1 and >= 0
+        #print(1 - (1 - (Soilstorage/Soilstoragecapacity)), " beta ", beta, " ")
+        Ratio_Soil = try
+            1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
+        catch e
+            real(Complex(1 - (1 - (Soilstorage/Soilstoragecapacity)))^beta)
+        end
+
+        #Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
+        Ratio_Soil = min(Ratio_Soil, 1)
+        @assert 0 <= Ratio_Soil <= 1
         # # part of precipitation doesn't enters soil, but flows directly to fast reservoir
         # Overlandflow = Ratio_Soil * Effective_Precipitation * Ratio_pref
         # # or flows into the groundwater reservoir
@@ -140,7 +161,7 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     @assert Soil_Evaporation <= max(Potential_Evaporation - Interception_Evaporation,0)
     @assert Soil_Evaporation >= 0
     @assert Soilstorage >= 0
-    @assert Soilstorage <= Soilstoragecapacity
+    @assert Soilstoragecapacity - Soilstorage >= -10^(-10)
     return Overlandflow::Float64, Preferentialflow::Float64, Soil_Evaporation::Float64, Soilstorage::Float64
 end
 
@@ -152,7 +173,7 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     @assert Riparian_Discharge >= 0
     #@assert Soil_Evaporation >= 0 #or should it be zero?
     @assert Soilstorage >= 0
-    @assert Soilstorage <= Soilstoragecapacity
+    @assert Soilstoragecapacity - Soilstorage >= -10^(-10)
     @assert Soilstoragecapacity > 0 #within the parameter range
     @assert beta > 0 #within the parameter range
     @assert Ce > 0 #within the parameter range
@@ -174,11 +195,34 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     Soilstorage = Soilstorage - Fastdrainage
     Overlandflow = Overlandflow + Fastdrainage
 
+    # # amount stored in soil increases by riparian discharge
+    # Soilstorage = Soilstorage + Riparian_Discharge
+    #
+    # if Effective_Precipitation> 0
+    #     Ratio_Soil = 1 - (1 - (Soilstorage/Soilstoragecapacity))^beta
+    #     Q_Soil = min((1 - Ratio_Soil) * Effective_Precipitation, Soilstoragecapacity - Soilstorage)
+    #     Soilstorage = Soilstorage + Q_Soil
+    #     # the other part does not enter the soil but flows into the fast reservoir
+    #     Overlandflow = (Effective_Precipitation + Riparian_Discharge - Q_Soil)
+    # else
+    #     Overlandflow = 0
+    # end
+    # Excess = max(0, Soilstorage - Soilstoragecapacity)
+    # Fastdrainage = ((Soilstorage - Excess) / Soilstoragecapacity) * Drainagecapacity + Excess
+    # # Transpiration in soil, only the part that not evaporated in interception reservoir can evaporate
+    # Potential_Soilevaporation = max(Potential_Evaporation - Interception_Evaporation,0)
+    # # transpiration can maximum be the amount stored in soil, or a percentage of potential evaporation
+    # Soil_Evaporation = Potential_Soilevaporation * min(Soilstorage / (Soilstoragecapacity * Ce), 1)
+    # Soil_Evaporation = min(Soilstorage, Soil_Evaporation)
+    # Soilstorage = Soilstorage - Soil_Evaporation
+
+
+
     @assert Overlandflow >= 0
     @assert Soil_Evaporation <= max(Potential_Evaporation - Interception_Evaporation,0)
     @assert Soil_Evaporation >= 0
     @assert Soilstorage >= 0
-    @assert Soilstorage <= Soilstoragecapacity
+    @assert Soilstoragecapacity - Soilstorage >= -10^(-10)
     return Overlandflow, Soil_Evaporation, Soilstorage
 end
 
@@ -190,7 +234,7 @@ function faststorage(Overlandflow, Faststorage, Kf)
     # the fast storage increases with the overland flow
     Faststorage = Faststorage + Overlandflow
     # a part of the fast storage gets redirected into discharge depending on the reservoir constant (linear response)
-    Fast_Discharge = Kf * Faststorage
+    Fast_Discharge = min(Kf * Faststorage, Faststorage)
     Faststorage = Faststorage - Fast_Discharge
     @assert Fast_Discharge >= 0
     @assert Faststorage >= 0
