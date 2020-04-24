@@ -3,7 +3,7 @@ counting = 0
 prec = 14
 @testset "snow_belowfreezing" begin
 
-    for i in 1:4000
+    for i in 1:40000
         # parameters that don't change
         Area_Glacier = 0.
         Meltfactor = 2.
@@ -51,7 +51,7 @@ prec = 14
 end
 
 @testset "snow_abovefreezing" begin
-    for i in 1:4000
+    for i in 1:40000
         # parameters that don't change
         Area_Glacier = 0.
         Meltfactor = 2.

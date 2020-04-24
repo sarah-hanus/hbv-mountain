@@ -11,7 +11,7 @@ prec=12
         @test faststorage(0, 0, Kf) == (0,0)
         # test that storage decreases if no input
         Discharge, Faststorage = faststorage(0, Storage, Kf)
-        @test round(Storage - Faststorage, digits=prec) == round(Discharge, digits=prec)
+        @test -eps(Float64)*10 <= Storage - Faststorage - Discharge <= eps(Float64)*10
         # test that discharge should be the Kf-ratio of sum of storage and overlandflow
         Discharge, Faststorage = faststorage(Overland, Storage, Kf)
         @test (Storage + Overland) * Kf == Discharge
