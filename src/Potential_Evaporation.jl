@@ -1,7 +1,7 @@
-using Dates
-using DelimitedFiles
-using CSV
-using Plots
+# using Dates
+# using DelimitedFiles
+# using CSV
+# using Plots
 
 #calculates the potential Evaporation based on the equation by Hargreaves-Samani
 
@@ -32,49 +32,33 @@ function radiation(Latitude::Float64, Day::Int)
     return Radiation::Float64
 end
 
-# function Day(DayofMonth::Int, Month::Int, Leapyear)
-#     Day = Int(floor(275 * Month/9 - 30 + DayofMonth)) - 2
-#     if Month < 3
-#         Day = Day + 2
-#     else
-#         if Leapyear == true
-#             Day = Day + 1
-#         end
-#     end
-#     return Day::Int
-# end
-
-
-
-function getEpot(Temp_min::Array{Float64, 1}, Temp::Array{Float64, 1}, Temp_max::Array{Float64, 1}, KT::Float64, Timeseries::Array{Any, 2}, Latitude::Float64)
+function getEpot(Temp_min::Array{Float64, 1}, Temp::Array{Float64, 1}, Temp_max::Array{Float64, 1}, KT::Float64, Timeseries::Array{Date, 1}, Latitude::Float64)
     Evaporation = Float64[]
     Radiation = Float64[]
-    Rs = Float64[]
     for (t, current_date) in enumerate(Timeseries)
-        current_date = Date(current_date, dateformat"y,m,d")
+        #current_date = Date(current_date, dateformat"y,m,d")
         Day = Dates.dayofyear(current_date)
         Current_Radiation = radiation(Latitude, Day)
         Current_Evaporation, Current_Rs = epot_hargreaves(Temp_min[t], Temp[t], Temp_max[t], KT, Current_Radiation)
         push!(Evaporation, Current_Evaporation)
         push!(Radiation, Current_Radiation)
-        push!(Rs, Current_Rs)
     end
-    return Evaporation::Array{Float64,1}, Radiation::Array{Float64,1}, Rs
+    return Evaporation::Array{Float64,1}, Radiation::Array{Float64,1}
 end
 
-Timeseries = readdlm("Pitztal/tas_model_timeseries.txt")
-Temp = CSV.read("Pitztal//tas_sim1.txt", header=false)
-Temp_Min = CSV.read("Pitztal/tasmin_sim1.txt", header=false)
-Temp_Max = CSV.read("Pitztal/tasmax_sim1.txt", header=false)
-Temp = Temp[:,25]/10
-Temp_Min = Temp_Min[:,25]/10
-Temp_Max = Temp_Max[:,25]/10
-Latitude = CSV.read("Pitztal/tas_model_lonlat.txt")[25,2]
-
-Potential_Evaporation, Radiation, Rs = getEpot(Temp_Min, Temp, Temp_Max, 0.19, Timeseries, Latitude)
-# remaining negative values and values larger than 15 mm day−1 were considered erroneous
-# total Epot per year around 400-600mm
-print(maximum(Potential_Evaporation), "min", minimum(Potential_Evaporation))
+# Timeseries = readdlm("Pitztal/tas_model_timeseries.txt")
+# Temp = CSV.read("Pitztal//tas_sim1.txt", header=false)
+# Temp_Min = CSV.read("Pitztal/tasmin_sim1.txt", header=false)
+# Temp_Max = CSV.read("Pitztal/tasmax_sim1.txt", header=false)
+# Temp = Temp[:,25]/10
+# Temp_Min = Temp_Min[:,25]/10
+# Temp_Max = Temp_Max[:,25]/10
+# Latitude = CSV.read("Pitztal/tas_model_lonlat.txt")[25,2]
+#
+# Potential_Evaporation, Radiation, Rs = getEpot(Temp_Min, Temp, Temp_Max, 0.19, Timeseries, Latitude)
+# # remaining negative values and values larger than 15 mm day−1 were considered erroneous
+# # total Epot per year around 400-600mm
+# print(maximum(Potential_Evaporation), "min", minimum(Potential_Evaporation))
 
 
 
@@ -171,6 +155,32 @@ function getEpot_thornthwaite(Temp::Array{Float64, 1}, Timeseries::Array{Date, 1
     return Evaporation::Array{Float64,1}
 end
 
+
+function getEpot_Daily_thornthwaite(Temp::Array{Float64, 1}, Timeseries::Array{Date, 1}, sunhours::Array{Float64, 1})
+    # assertion for that the timeseries contain whole years
+    @assert length(Timeseries) == length(Temp)
+    Evaporation = Float64[]
+    #calculate the annual heat indices of the timeseries
+    Temp_month = monthlytemp(Timeseries, Temp)
+    annual_heatindex = heatindex(Temp_month)
+    first_year = Dates.year(Timeseries[1])
+    for (i, current_date) in enumerate(Timeseries)
+        #current_date = Date(current_date, dateformat"y,m,d")
+        #get the number of days of the current month
+        daysinmonth = Dates.daysinmonth(current_date)
+        #print(daysinmonth)
+        datetuple = Dates.yearmonthday(current_date)
+        #print(datetuple[2])
+        #get the sunhours of the current month
+        sunhours_current = sunhours[datetuple[2]]
+        # get the annual heat index of the current year
+        current_annual_heatindex = annual_heatindex[abs(datetuple[1]-first_year) + 1]
+        Epot = epot_thornthwaite(Temp[i], current_annual_heatindex, daysinmonth, sunhours_current)
+        #Epot = Epot/daysinmonth
+        push!(Evaporation, Epot)
+    end
+    return Evaporation::Array{Float64,1}
+end
 # Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
 # Potential_Evaporation_Thornthwhaite = getEpot_thornthwaite(Temp, Timeseries, Sunhours_Vienna)
 
@@ -190,11 +200,11 @@ end
 # end
 
 #plot(Temp_Max[1:365] - Temp_Min[1:365], RatioRadiation)
-sumthornth = zeros(50)
-sumhargreaves = zeros(50)
-
-for i in 1:50
-    sumhargreaves[i] = sum(Potential_Evaporation[1+(i-1)*365: i*365])
-    sumthornth[i] = sum(Potential_Evaporation_Thornthwhaite[1+(i-1)*365: i*365])
-end
-plot([sumthornth, sumhargreaves])
+# sumthornth = zeros(50)
+# sumhargreaves = zeros(50)
+#
+# for i in 1:50
+#     sumhargreaves[i] = sum(Potential_Evaporation[1+(i-1)*365: i*365])
+#     sumthornth[i] = sum(Potential_Evaporation_Thornthwhaite[1+(i-1)*365: i*365])
+# end
+# plot([sumthornth, sumhargreaves])
