@@ -64,20 +64,22 @@ end
 
 # get elevations at which precipitation was measured in each precipitation zone
 # changed to 1400 in 2003
-Elevations_113589 = Elevations(200., 1000., 2800., 1430.,1140)
+Elevations_113589 = Elevations(200., 1000., 2600., 1430.,1140)
 Elevations_113597 = Elevations(200, 800, 2800, 1140, 1140)
 Elevations_113670 = Elevations(200, 400, 2400, 635, 1140)
-Elevations_114538 = Elevations(200, 600, 2600, 705, 1140)
+Elevations_114538 = Elevations(200, 600, 2400, 705, 1140)
 Elevations_All_Zones = [Elevations_113589, Elevations_113597, Elevations_113670, Elevations_114538]
 
 #get the total discharge
 Total_Discharge = zeros(length(Temperature_Daily))
 Inputs_All_Zones = Array{HRU_Input, 1}[]
 Storages_All_Zones = Array{Storages, 1}[]
-Precipitation_All_Zones = Array{Any, 1}[]
+Precipitation_All_Zones = Array{Float64, 2}[]
 Precipitation_Gradient = 0.0
-
-nmax = 2000
+Elevation_Percentage = Array{Float64, 1}[]
+nmax = 1
+Nr_Elevationbands_All_Zones = Int64[]
+Elevations_Each_Precipitation_Zone = Array{Float64, 1}[]
 
 for i in 1: length(ID_Prec_Zones)
         #print(ID_Prec_Zones)
@@ -93,16 +95,19 @@ for i in 1: length(ID_Prec_Zones)
         # drop missing values
         df = dropmissing(df)
         Precipitation_Array = convert(Matrix, df)
-        push!(Precipitation_All_Zones, Precipitation_Array[:,2])
+
 
         Elevation_HRUs, Precipitation, Nr_Elevationbands = getprecipitationatelevation(Elevations_All_Zones[i], Precipitation_Gradient, Precipitation_Array[:,2])
+        push!(Precipitation_All_Zones, Precipitation)
+        push!(Nr_Elevationbands_All_Zones, Nr_Elevationbands)
+        push!(Elevations_Each_Precipitation_Zone, Elevation_HRUs)
 
         index_HRU = (findall(x -> x==ID_Prec_Zones[i], Areas_HRUs[1,2:end]))
         #print(Areas_HRUs[1,:])
 
         # for each precipitation zone get the relevant areal extentd
         Current_Areas_HRUs = convert(Matrix, Areas_HRUs[2: end, index_HRU])
-
+        # the elevations of each HRU have to be known in order to get the right temperature data for each elevation
         Area_Bare_Elevations, Bare_Elevation_Count = getelevationsperHRU(Current_Areas_HRUs[:,1], Elevation_Catchment, Elevation_HRUs)
         Area_Forest_Elevations, Forest_Elevation_Count = getelevationsperHRU(Current_Areas_HRUs[:,2], Elevation_Catchment, Elevation_HRUs)
         Area_Grass_Elevations, Grass_Elevation_Count = getelevationsperHRU(Current_Areas_HRUs[:,3], Elevation_Catchment, Elevation_HRUs)
@@ -115,6 +120,16 @@ for i in 1: length(ID_Prec_Zones)
 
         Area = Area_Zones[i]
         Current_Percentage_HRU = Percentage_HRU[:,1 + i]/Area
+        #print(sum(Current_Percentage_HRU))
+        # calculate percenatge of elevations
+        Perc_Elevation = zeros(Total_Elevationbands_Catchment)
+        for j in 1 : Total_Elevationbands_Catchment
+                for h in 1:4
+                        Perc_Elevation[j] += Current_Areas_HRUs[j,h] * Current_Percentage_HRU[h]
+                end
+        end
+        Perc_Elevation = Perc_Elevation[(findall(x -> x!= 0, Perc_Elevation))]
+        push!(Elevation_Percentage, Perc_Elevation)
         # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
         bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1], 0.0, Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
         forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], 0, Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
@@ -125,10 +140,10 @@ for i in 1: length(ID_Prec_Zones)
         #print(typeof(all_inputs))
         push!(Inputs_All_Zones, all_inputs)
 
-        bare_storage = Storages(0, zeros(length(Bare_Elevation_Count)), zeros(length(Bare_Elevation_Count)), 0, 0)
-        forest_storage = Storages(0, zeros(length(Forest_Elevation_Count)), zeros(length(Forest_Elevation_Count)),0, 0)
-        grass_storage = Storages(0, zeros(length(Grass_Elevation_Count)), zeros(length(Grass_Elevation_Count)),0, 0)
-        rip_storage = Storages(0, zeros(length(Rip_Elevation_Count)), zeros(length(Rip_Elevation_Count)),0, 0)
+        bare_storage = Storages(0, zeros(length(Bare_Elevation_Count)), zeros(length(Bare_Elevation_Count)), zeros(length(Bare_Elevation_Count)), 0)
+        forest_storage = Storages(0, zeros(length(Forest_Elevation_Count)), zeros(length(Forest_Elevation_Count)), zeros(length(Bare_Elevation_Count)), 0)
+        grass_storage = Storages(0, zeros(length(Grass_Elevation_Count)), zeros(length(Grass_Elevation_Count)), zeros(length(Bare_Elevation_Count)), 0)
+        rip_storage = Storages(0, zeros(length(Rip_Elevation_Count)), zeros(length(Rip_Elevation_Count)), zeros(length(Bare_Elevation_Count)), 0)
 
         all_storages = [bare_storage, forest_storage, grass_storage, rip_storage]
         push!(Storages_All_Zones, all_storages)
@@ -143,21 +158,22 @@ for n in 1 : nmax
         beta_Grass = round(random_parameter(0.1, 3), digits = 3)
         beta_Rip = round(random_parameter(0.1, 3), digits = 3)
         Ce = round(random_parameter(0.4, 0.8), digits = 3)
-        Drainagecapacity = round(random_parameter(0.3, 6), digits = 3)
-        Interceptioncapacity_Bare = round(random_parameter(0, 2), digits=2)
-        Interceptioncapacity_Forest = round(random_parameter(1, 4), digits=2)
-        Interceptioncapacity_Grass = round(random_parameter(1, 3), digits=2)
-        Interceptioncapacity_Rip = round(random_parameter(1, 3), digits=2)
+        Drainagecapacity = 0.0
+        Interceptioncapacity_Bare = 0.0
+        Interceptioncapacity_Forest = round(random_parameter(1, 3), digits=2)
+        Interceptioncapacity_Grass = round(random_parameter(0, 2), digits=2)
+        Interceptioncapacity_Rip = round(random_parameter(0, 2), digits=2)
         Kf = round(random_parameter(0.5, 3), digits=2)
         Kf_Rip = round(random_parameter(0.5, 5), digits=2)
         Meltfactor = round(random_parameter(1.75, 6), digits=2)
         Mm = round(random_parameter(0.001, 1.5), digits=4)
-        Precipitation_Gradient = round(random_parameter(0, 0.0045), digits= 5)
+        Precipitation_Gradient = 0.0
+        #Precipitation_Gradient = round(random_parameter(0, 0.0045), digits= 5)
         Ratio_Pref = round(random_parameter(0, 1), digits=3)
-        Soilstoaragecapacity_Bare = round(random_parameter(5, 250), digits=1)
+        Soilstoaragecapacity_Bare = round(random_parameter(5, 100), digits=1)
         Soilstoaragecapacity_Forest = round(random_parameter(70, 500), digits=1)
         Soilstoaragecapacity_Grass = round(random_parameter(50, 250), digits=1)
-        Soilstoaragecapacity_Rip = round(random_parameter(50, 200), digits=1)
+        Soilstoaragecapacity_Rip = round(random_parameter(50, 250), digits=1)
         Temp_Thresh = round(random_parameter(-2, 2), digits=3)
         Ks = round(random_parameter(0.001, 0.1), digits=4)
         Ratio_Riparian = round(random_parameter(0.05, 0.5), digits=2)
@@ -168,58 +184,14 @@ for n in 1 : nmax
         grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Riparian, Soilstoaragecapacity_Grass, Temp_Thresh)
         rip_parameters = Parameters(beta_Rip, Ce, Drainagecapacity, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Riparian, Soilstoaragecapacity_Rip, Temp_Thresh)
 
-        #print(bare_parameters, "\n", forest_parameters, "\n", grass_parameters, "\n", rip_parameters,"\n")
-        # Precipitation_Gradient = 0.0035 # which units?
-        # Slowstorage = 0.0
-        # Meltfactor = 2.8
-        # Mm = 1
-        # bare_parameters = Parameters(1, 0.4, 0, 2, 0.8, Meltfactor, Mm, 0.1, 50, 0)
-        # forest_parameters = Parameters(1, 0.4, 0, 3, 0.8, Meltfactor, Mm, 0.1, 100, 0)
-        # grass_parameters = Parameters(1, 0.4, 0, 2, 0.8, Meltfactor, Mm, 0.1, 50, 0)
-        # rip_parameters = Parameters(1, 0.4, 0.1, 2, 0.8, Meltfactor, Mm, 0.1, 50, 0)
-        # Ks = 0.001
-        # Ratio_Riparian = 0.1
-
-        for i in 1: length(ID_Prec_Zones)
-                #print(ID_Prec_Zones[i])
-                Elevation_HRUs, Precipitation, Nr_Elevationbands = getprecipitationatelevation(Elevations_All_Zones[i], Precipitation_Gradient, Precipitation_All_Zones[i])
-                Inputs_HRUs = Inputs_All_Zones[i]
-                Storages_HRUs = Storages_All_Zones[i]
-
-                Discharge, Snow_Extend, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2, Snow_Elevations, Bare_Snow = runmodel(Area_Zones[i], Potential_Evaporation, Precipitation, Temperature_Elevation_Catchment,
-                        Inputs_HRUs[1], Inputs_HRUs[2], Inputs_HRUs[3], Inputs_HRUs[4],
-                        Storages_HRUs[1], Storages_HRUs[2], Storages_HRUs[3], Storages_HRUs[4], GWStorage,
-                        bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian, Total_Elevationbands_Catchment)
-
-
-                Total_Discharge += Discharge
-                #print("WB",Waterbalance," ", Waterbalance2,"\n")
-                #@assert -0.1 <= Waterbalance <= 0.1
-                @assert -0.01 <= Waterbalance2 <= 0.01
-        end
-        # calculate goodness of parameter set
+        Discharge, Snow_Extend = runmodelprecipitationzones(Area_Zones, Elevations_Each_Precipitation_Zone, Elevation_Zone_Catchment, Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, ID_Prec_Zones, Inputs_All_Zones, Storages_All_Zones, GWStorage, bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian, Nr_Elevationbands_All_Zones, Elevation_Percentage)
+        #writedlm( "Snowextend.csv",  Snow_Extend, ',')
+        #Plots.display(plot(Snow_Extend[end-365:end,:]))
+        #calculate goodness of parameter set
         Goodness_Fit = objectivefunctions(Total_Discharge, Observed_Discharge, observed_FDC, observed_AC_1day, observed_AC_90day)
         push!(All_Goodness, Goodness_Fit)
 end
 end
-
-
-
-# for n in 1:nmax
-#
-#
-#         @time begin
-#         Discharge, Snow_Extend, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2, Snow_Elevations, Bare_Snow = runmodel(Area, Potential_Evaporation, Precipitation, Temperature_Elevation_Catchment,
-#                 bare_input, forest_input, grass_input, rip_input,
-#                 bare_storage, forest_storage, grass_storage, rip_storage, Slowstorage,
-#                 bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian, Total_Elevationbands_Catchment)
-#         end
-#
-#         global Total_Discharge += Discharge
-#
-#
-# end
-
 
 
 

@@ -1,12 +1,12 @@
 using Test
 prec = 15
 @testset "slowstorage" begin
-    for i in 1:10000
+    for i in 1:100000
         Ks = rand(0.0001:0.001:0.1)[1]
         Ratio_Rip = rand(0.001:0.01:0.8)[1]
         Storage = rand(0.1:0.01:20)[1]
         GWflow = rand(0:0.1:10)[1]
-        AreaRiparian = rand(0:0.01:1)[1]
+        AreaRiparian = rand(0.01:0.01:1)[1]
         #Preferential = rand(0:0.1:10)[1]
         # test that output 0, if input 0
         @test slowstorage(0., 0.,AreaRiparian, Ks, Ratio_Rip) == (0, 0, 0)

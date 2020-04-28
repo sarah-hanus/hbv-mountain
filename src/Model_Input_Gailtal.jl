@@ -43,10 +43,10 @@ Precipitation_Gradient = 0.0035 # which units?
 Slowstorage = 0.0
 Meltfactor = 2.8
 Mm = 1
-bare_parameters = Parameters(1, 0.4, 0, 2, 0.8, Meltfactor, Mm, 0.1, 50, 0)
+bare_parameters = Parameters(1, 0.4, 0, 0, 0.8, Meltfactor, Mm, 0.1, 50, 0)
 forest_parameters = Parameters(1, 0.4, 0, 3, 0.8, Meltfactor, Mm, 0.1, 100, 0)
-grass_parameters = Parameters(1, 0.4, 0, 2, 0.8, Meltfactor, Mm, 0.1, 50, 0)
-rip_parameters = Parameters(1, 0.4, 0.1, 2, 0.8, Meltfactor, Mm, 0.1, 50, 0)
+grass_parameters = Parameters(1, 0.4, 0, 1, 0.8, Meltfactor, Mm, 0.1, 50, 0)
+rip_parameters = Parameters(1, 0.4, 0, 1, 0.8, Meltfactor, Mm, 0.1, 50, 0)
 Ks = 0.001
 Ratio_Riparian = 0.1
 

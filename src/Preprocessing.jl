@@ -1,4 +1,3 @@
-using DocStringExtensions
 """
 Computes the temperature at different elevations
 
@@ -21,7 +20,14 @@ function gettemperatureatelevation(Elevations::Elevations, Temperature::Array{Fl
     end
     return Elevation::Array{Float64, 1}, Temp_Elevation::Array{Float64,2}, Nr_Elevationbands::Int64
 end
+"""
+Computes the precipitation at different elevations assuming a precipitation gradient with altitude
 
+$(SIGNATURES)
+
+The precipitation should be an array of different days of measurements. The height of the station where percipitation was measured should be given (Elevations.Measured_Prec_Elevation)
+as well as the min and maximum elevation using the Elevation struct.
+"""
 function getprecipitationatelevation(Elevations::Elevations, Prec_Gradient::Float64, Precipitation::Array{Any,1})
     Nr_Elevationbands = Int((Elevations.Max_elevation - Elevations.Min_elevation) / Elevations.Thickness_Band)
     # make an array with number of rows equal to number of days, and columns equal to number of elevations
