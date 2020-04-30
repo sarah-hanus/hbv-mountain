@@ -8,7 +8,7 @@ The function returns the fluxes leaving the model (evaporation, discharge). It a
 function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
                 bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages,
                 bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters,
-                Slowstorage::Float64, Ks::Float64, Ratio_Riparian::Float64)
+                Slowstorage::Float64, slow_parameters::Slow_Paramters)
     #this function runs thy model for different HRUs
     #bare rock HRU
     bare_outflow::Outflows, bare_storage::Storages, Bare_precipitation::Float64, Bare_Storages::Float64 = hillslopeHRU(bare_input, bare_storage, bare_parameters)
@@ -21,7 +21,7 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     # total flow into groundwater is the weighted sum of the HRUs according to areal extent (this was already done in hillslopeHRU)
     Total_GWflow = bare_outflow.GWflow + forest_outflow.GWflow  + grass_outflow.GWflow
     # Groundwater storage
-    Riparian_Discharge::Float64, Slow_Discharge::Float64, Slowstorage_New::Float64 = slowstorage(Total_GWflow, Slowstorage, rip_input.Area_HRU, Ks, Ratio_Riparian)
+    Riparian_Discharge::Float64, Slow_Discharge::Float64, Slowstorage_New::Float64 = slowstorage(Total_GWflow, Slowstorage, rip_input.Area_HRU, slow_parameters.Ks, slow_parameters.Ratio_Riparian)
     #return all storage values, all evaporation values, Fast_Discharge and Slow_Discharge
     # calculate total discharge of the timestep using weighted sum of each HRU
     Total_Discharge::Float64 = bare_outflow.Fast_Discharge  + forest_outflow.Fast_Discharge + grass_outflow.Fast_Discharge  + rip_outflow.Fast_Discharge  + Slow_Discharge
@@ -44,7 +44,7 @@ end
 function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array{Float64,2}, Temp::Array{Float64,2},
                 bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
                 bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64,
-                bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters, Ks::Float64, Ratio_Riparian::Float64, Total_Elevationbands, Elevation_Percentage)
+                bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters, slow_parameters::Slow_Paramters, Total_Elevationbands, Elevation_Percentage)
     # the function takes as input the parameters of each HRU, the inital storage values of each HRU, the inital value of the slow storage
     # KS, ratio riparian, all inputs
 
@@ -94,7 +94,7 @@ function runmodel(Area, Evaporation_Mean::Array{Float64,1}, Precipitation::Array
         Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage::Float64, WB::Float64, Total_Prec::Float64 = allHRU(bare_input, forest_input, grass_input, rip_input,
                                                                                                             bare_storage, forest_storage, grass_storage, rip_storage,
                                                                                                             bare_parameters, forest_parameters, grass_parameters, rip_parameters,
-                                                                                                            Slowstorage, Ks, Ratio_Riparian)
+                                                                                                            Slowstorage, slow_parameters)
         # give new riparian discharge as input for next timestep
         rip_input.Riparian_Discharge = Riparian_Discharge
 

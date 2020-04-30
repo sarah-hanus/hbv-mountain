@@ -29,6 +29,11 @@ mutable struct Parameters
     Temp_Thresh:: Float64
 end
 
+mutable struct Slow_Paramters
+    Ks:: Float64
+    Ratio_Riparian:: Float64
+end
+
 mutable struct Storages
     Fast:: Float64
     Interception::Array{Float64,1}

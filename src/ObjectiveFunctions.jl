@@ -99,7 +99,7 @@ function autocorrelationcurve(Q::Array{Float64, 1}, Timelag::Int64)
     return AC::Array{Float64, 1}, Lags::Array{Int64, 1}
 end
 
-function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Timeseries::Vector{Any})
+function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Timeseries::Array{Date,1})
     # function calculates the monthly runoff coefficient of each month in the timeseries
     # discharge is given in m3/s and precipitation in mm/d
     # convert Discharge to mm/d
@@ -107,12 +107,12 @@ function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{
     sum_Precipitation = 0
     sum_Discharge = 0
     monthly_Runoff = Float64[]
-    Month = String[]
+    Month = Date[]
     for (i, current_date) in enumerate(Timeseries)
         # the precipitation and discharges are summed up
         sum_Precipitation += Precipitation[i]
         sum_Discharge += Discharge[i]
-        current_date = Date(current_date, dateformat"y,m,d")
+        #current_date = Date(current_date, dateformat"y,m,d")
         day = Dates.day(current_date)
         # if the last day of the month is reached
         if day == Dates.daysinmonth(current_date)
@@ -120,18 +120,18 @@ function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{
             push!(monthly_Runoff, monthly_Runoff_Current)
             sum_Precipitation = 0
             sum_Discharge = 0
-            Month_Current = Dates.format(current_date, "yyyy-mm")
-            push!(Month, Month_Current)
+            #Month_Current = Dates.format(current_date, "yyyy-mm")
+            push!(Month, current_date)
         end
     end
     return monthly_Runoff, Month
 end
 
-function averagemonthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Timeseries::Vector{Any})
+function averagemonthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Timeseries::Array{Date,1})
     # calculates the average runoff coefficient of a certain month over the timeperiod
     # all runoff coefficients of a certain months are summed up
     # assert that
-    monthly_runoff, Month = monthly_runoff(Area, Precipitation, Discharge, Timeseries)
+    monthly_Runoff, Month = monthlyrunoff(Area, Precipitation, Discharge, Timeseries)
 
     @assert length(monthly_Runoff) == length(Month)
     sum_January = 0
@@ -147,7 +147,7 @@ function averagemonthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge:
     sum_Nov = 0
     sum_Dec = 0
     for (i, current_date) in enumerate(Month)
-        current_date = Date(current_date, dateformat"yyyy-mm")
+        #current_date = Date(current_date, dateformat"yyyy-mm")
         current_month = Dates.month(current_date)
         if current_month == 1
             sum_January += monthly_Runoff[i]
@@ -176,8 +176,8 @@ function averagemonthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge:
         end
     end
     sum_monthly_Runoff = [sum_January, sum_February, sum_March, sum_April, sum_Mai, sum_June, sum_July, sum_August, sum_Sept, sum_Okt, sum_Nov, sum_Dec]
-    FirstYear = Dates.year(Date(Month[1], dateformat"yyyy-mm"))
-    LastYear = Dates.year(Date(Month[end], dateformat"yyyy-mm"))
+    FirstYear = Dates.year(Month[1])
+    LastYear = Dates.year(Month[end])
     Number_Years = LastYear - FirstYear + 1
     @assert Number_Years * 12 == length(monthly_Runoff)
     average_monthly_Runoff = sum_monthly_Runoff / Number_Years
@@ -186,7 +186,9 @@ end
 
 
 function snowcover(Modeled_Area::Array{Float64, 1}, Observed_Area::Array{Float64, 1})
-    Difference = (1 - abs.(Modeled_Area - Observed_Area))
+    # observed data can be -1 which is the error value
+    index = findall(x-> x>= 0, Observed_Area)
+        Difference = (1 - abs.(Modeled_Area[index] - Observed_Area[index]))
     Mean_Difference = mean(Difference)
     return Mean_Difference
 end
@@ -197,7 +199,7 @@ export lognse
 export volumetricefficiency
 export flowdurationcurve
 
-function objectivefunctions(Modelled_Discharge, Observed_Discharge, observed_FDC, obsered_AC_1day, observed_AC_90day)
+function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, observed_FDC, obsered_AC_1day, observed_AC_90day, observed_average_runoff, Area, Precipitation, Timerseries)
     # calculate the nse, lognse, ve
     NSE = nse(Observed_Discharge, Modelled_Discharge)
     NSElog = lognse(Observed_Discharge, Modelled_Discharge)
@@ -208,15 +210,32 @@ function objectivefunctions(Modelled_Discharge, Observed_Discharge, observed_FDC
     #calculate the autocorrelation curves
     modelled_AC_1day = autocorrelation(Modelled_Discharge, 1)
     modelled_AC_90day = autocorrelationcurve(Modelled_Discharge, 90)
-    Reative_Error_AC_1day = abs(observed_AC_1day - modelled_AC_1day)/ observed_AC_1day
+    Reative_Error_AC_1day = 1 - abs(observed_AC_1day - modelled_AC_1day)/ observed_AC_1day
     NSE_AC_90day = nse(observed_AC_90day, modelled_AC_90day[1])
     #calculate the avreage monthyl runoff
+    #area of whole catchment, precipitation whole catchment
+    #timeseries as dates
+    modelled_average_runoff = averagemonthlyrunoff(Area, Precipitation, Modelled_Discharge, Timeseries)
+    # take relative error of all runoff and high and low flow periods?
+    Relative_Error_Runoff = 1 - abs(observed_average_runoff - modelled_average_runoff) / observed_average_runoff
+    #snow cover was already calculated for each elevation zone
+    # function for snow cover should be maximized
 
-    #calculate snow cover
+    if NSE >=0 && NSElog >= 0 && NSE_FDC >= 0 && NSE_AC_90day
+        ObjFunctions = [NSE, NSElog, VE, NSE_FDC, Reative_Error_AC_1day, NSE_AC_90day, Relative_Error_Runoff, Snow_Cover]
+        Sum = 0
+        for Obj in ObjFunctions
+            Sum+= (1 - Obj)^2
+        end
+        Euclidean_Distance = (Sum / length(ObjFunctions))^0.5
+    else
+        Euclidean_Distance = -9999
+    end
 
+    # volumetric efficiency, NSE should be maximized
 
-    Euclidean_Distance = ((1-NSE)^2 + (1 - NSElog)^2 + (1 - VE)^2 + (1 - NSE_FDC)^2 + (1 - Reative_Error_AC_1day)^2 + (1 - NSE_AC_90day)^2)
-    Euclidean_Distance = Euclidean_Distance / 6
+    # Euclidean_Distance = ((1-NSE)^2 + (1 - NSElog)^2 + (1 - VE)^2 + (1 - NSE_FDC)^2 + (1 - Reative_Error_AC_1day)^2 + (1 - NSE_AC_90day)^2) + (1 - Reative_Error_Runoff)^2 + (1 - Snow_Cover)^2
+    # Euclidean_Distance = Euclidean_Distance / 8
 
     return Euclidean_Distance
 end

@@ -2,6 +2,9 @@ using DocStringExtensions
 using Dates
 using DelimitedFiles
 using CSV
+using DataFrames
+using Plots
+using Statistics
 # load list of structs
 include("structs.jl")
 # load components of models represented by buckets

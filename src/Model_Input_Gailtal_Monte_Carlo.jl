@@ -11,6 +11,8 @@ using Random
 ID_Prec_Zones = [113589, 113597, 113670, 114538]
 # size of the area of precipitation zones
 Area_Zones = [98227533, 184294158, 83478138, 220613195]
+Area_Catchment = sum(Area_Zones)
+Area_Zones_Percent = Area_Zones / Area_Catchment
 
 Mean_Elevation_Catchment = 1500 # in reality 1476
 Elevations_Catchment = Elevations(200, 400, 2800,1140, 1140)
@@ -45,13 +47,21 @@ Elevation_Catchment = convert(Vector, Areas_HRUs[2:end,1])
 Discharge = CSV.read("Gailtal/Q-Tagesmittel-212670.csv", header= false, skipto=23, decimal=',', delim = ';', types=[String, Float64])
 Discharge = convert(Matrix, Discharge)
 startindex = findfirst(isequal("01.01.1994 00:00:00"), Discharge)
-endindex = findfirst(isequal("31.12.2013 00:00:00"), Discharge)
+endindex = findfirst(isequal("31.12.2009 00:00:00"), Discharge)
+Timeseries = Date.(Discharge[startindex[1]:endindex[1],1], Dates.DateFormat("d.m.y H:M:S"))
+start2000 = findfirst(x -> x == Date(2000, 01, 01), Timeseries)
+
 Observed_Discharge = Array{Float64,1}[]
 push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
 Observed_Discharge = Observed_Discharge[1]
-observed_FDC = flowdurationcurve(Observed_Discharge)[1]
-observed_AC_1day = autocorrelation(Observed_Discharge, 1)
-observed_AC_90day = autocorrelationcurve(Observed_Discharge, 90)[1]
+length_2000_end = length(Observed_Discharge) - start2000
+observed_snow_cover = Array{Float64,2}[]
+for ID in ID_Prec_Zones
+        current_observed_snow = readdlm("Gailtal/snow_cover_fixed_"*string(114538)*".csv",',', Float64)
+        print(size(current_observed_snow))
+        push!(observed_snow_cover, current_observed_snow[2:length_2000_end,:])
+end
+
 
 # for Monte Carlo Simulation Parameters have to change
 
@@ -77,7 +87,7 @@ Storages_All_Zones = Array{Storages, 1}[]
 Precipitation_All_Zones = Array{Float64, 2}[]
 Precipitation_Gradient = 0.0
 Elevation_Percentage = Array{Float64, 1}[]
-nmax = 1
+nmax = 3
 Nr_Elevationbands_All_Zones = Int64[]
 Elevations_Each_Precipitation_Zone = Array{Float64, 1}[]
 
@@ -148,8 +158,17 @@ for i in 1: length(ID_Prec_Zones)
         all_storages = [bare_storage, forest_storage, grass_storage, rip_storage]
         push!(Storages_All_Zones, all_storages)
 end
+Total_Precipitation = Precipitation_All_Zones[1][:,1]*Area_Zones_Percent[1] + Precipitation_All_Zones[2][:,1]*Area_Zones_Percent[2] + Precipitation_All_Zones[3][:,1]*Area_Zones_Percent[3] + Precipitation_All_Zones[4][:,1]*Area_Zones_Percent[4]
+#calculating the observed FDC; AC; Runoff
+observed_FDC = flowdurationcurve(Observed_Discharge)[1]
+observed_AC_1day = autocorrelation(Observed_Discharge, 1)
+observed_AC_90day = autocorrelationcurve(Observed_Discharge, 90)[1]
+observed_average_runoff = averagemonthlyrunoff(Area_Catchment, Total_Precipitation, Observed_Discharge, Timeseries)
+
 
 All_Goodness = Float64[]
+All_Discharges = Array{Float64,1}[]
+All_Parameter_Sets = Array{Any, 1}[]
 @time begin
 for n in 1 : nmax
         Total_Discharge = zeros(length(Temperature_Daily))
@@ -179,44 +198,27 @@ for n in 1 : nmax
         Ratio_Riparian = round(random_parameter(0.05, 0.5), digits=2)
         GWStorage = 0.0
 
-        bare_parameters = Parameters(beta_Bare, Ce, 0, Interceptioncapacity_Bare, Kf, Meltfactor, Mm, Ratio_Riparian, Soilstoaragecapacity_Bare, Temp_Thresh)
-        forest_parameters = Parameters(beta_Forest, Ce, 0, Interceptioncapacity_Forest, Kf, Meltfactor, Mm, Ratio_Riparian, Soilstoaragecapacity_Forest, Temp_Thresh)
-        grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Riparian, Soilstoaragecapacity_Grass, Temp_Thresh)
-        rip_parameters = Parameters(beta_Rip, Ce, Drainagecapacity, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Riparian, Soilstoaragecapacity_Rip, Temp_Thresh)
-
-        Discharge, Snow_Extend = runmodelprecipitationzones(Area_Zones, Elevations_Each_Precipitation_Zone, Elevation_Zone_Catchment, Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, ID_Prec_Zones, Inputs_All_Zones, Storages_All_Zones, GWStorage, bare_parameters, forest_parameters, grass_parameters, rip_parameters, Ks, Ratio_Riparian, Nr_Elevationbands_All_Zones, Elevation_Percentage)
+        bare_parameters = Parameters(beta_Bare, Ce, 0, Interceptioncapacity_Bare, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Bare, Temp_Thresh)
+        forest_parameters = Parameters(beta_Forest, Ce, 0, Interceptioncapacity_Forest, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Forest, Temp_Thresh)
+        grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Grass, Temp_Thresh)
+        rip_parameters = Parameters(beta_Rip, Ce, Drainagecapacity, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Rip, Temp_Thresh)
+        slow_parameters = Slow_Paramters(Ks, Ratio_Riparian)
+        Discharge, Snow_Extend, Total_GWStorage = runmodelprecipitationzones(Area_Zones, Elevations_Each_Precipitation_Zone, Elevation_Zone_Catchment, Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, ID_Prec_Zones, Inputs_All_Zones, Storages_All_Zones, GWStorage, bare_parameters, forest_parameters, grass_parameters, rip_parameters, slow_parameters, Nr_Elevationbands_All_Zones, Elevation_Percentage, observed_snow_cover, start2000)
         #writedlm( "Snowextend.csv",  Snow_Extend, ',')
-        #Plots.display(plot(Snow_Extend[end-365:end,:]))
+        #Plots.display(plot(Total_GWStorage, title = "Run" * string(n)))
         #calculate goodness of parameter set
-        Goodness_Fit = objectivefunctions(Total_Discharge, Observed_Discharge, observed_FDC, observed_AC_1day, observed_AC_90day)
-        push!(All_Goodness, Goodness_Fit)
+        # timeseries as Dates
+        #calculate snow for each precipitation zone
+        print(size(Snow_Extend[1]), typeof(Snow_Extend[1]), "\n")
+        print(size(Snow_Extend[2]), typeof(Snow_Extend[2]), "\n")
+        print(size(Snow_Extend[3]), typeof(Snow_Extend[3]), "\n")
+        print(size(Snow_Extend[4]), typeof(Snow_Extend[4]), "\n")
+        # Goodness_Fit = objectivefunctions(Total_Discharge, Snow_Cover, Observed_Discharge, observed_FDC, observed_AC_1day, observed_AC_90day, observed_average_runoff, Area_Catchment, Total_Precipitation, Timerseries)
+        # if Goodness_Fit != -9999
+        #         push!(All_Goodness, Goodness_Fit)
+        #         push!(All_Discharges, Total_Discharge)
+        #         All_Parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters, slow_parameters]
+        #         push!(All_Parameter_Sets, All_Parameters)
+        # end
 end
 end
-
-
-
-#units
-#STorages [bare, forest, grass, rip]
-#Discharge in m3/s
-# GW Storage in mm (to get the amount of the total area has to be * Area_HRU)
-# Faststorage in mm (to get the amount of the total area has to be * Area_HRU)
-# Soilstorage in mm (to get the amount of the total area has to be * Area_HRU)
-# plot(Snowstorage[end-365:end,1], label=["Bare"])
-# xlabel!("Days of Year")
-# ylabel!("Snow Cover [mm]")
-# title!("Snow Cover after 30 years")
-# savefig("Snow_Cover_Defreggen_Bare.png")
-#
-# plot(Bare_Snow[end-730:end,:], label=[2050 2150 2250 2350 2450 2550 2650 2750 2850 2950 3050 3150])
-# xlabel!("Days")
-# ylabel!("Snow Cover [mm]")
-# title!("Snow Cover at Different Elevations")
-# #savefig("Snow_Cover_Elevations.png")
-#
-# Discharge_Defreggen_Measured = CSV.read("Defreggental/Q-Tagesmittel-212100.csv", header= false, skipto=26, decimal=',', delim = ';', types=[String, Float64])
-# Discharge_Defreggen_Measured = convert(Matrix, Discharge_Defreggen_Measured)
-# startindex = findfirst(isequal("01.01.1979 00:00:00"), Discharge_Defreggen_Measured)
-# endindex = findfirst(isequal("31.12.1979 00:00:00"), Discharge_Defreggen_Measured)
-# #Plot Measure Discharge against modeled discharge
-# plot(Discharge_Defreggen_Measured[startindex[1]:endindex[1],2])
-# plot!(Discharge[end-365: end])
