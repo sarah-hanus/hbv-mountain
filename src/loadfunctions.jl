@@ -19,3 +19,7 @@ include("Preprocessing.jl")
 include("Potential_Evaporation.jl")
 # load objective functions
 include("ObjectiveFunctions.jl")
+# load parameterselection
+include("parameterselection.jl")
+# load running model in several precipitation zones
+include("runmodel_Prec_Zones.jl")
