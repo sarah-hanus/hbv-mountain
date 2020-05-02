@@ -117,6 +117,7 @@ end
 # using dates
 total_days = 0
 Annual_Pot_Evap = Float64[]
+Annual_Pot_Evap_Thorn_Daily = Float64[]
 Annual_Pot_Evap_Hagreaves = Float64[]
 Annual_Discharge = Float64[]
 Annual_Precipitation = Float64[]
@@ -132,8 +133,10 @@ for i in 1:20
         Current_Annual_Discharge = sum(Observed_Discharge_mm[startday : endday])
         Current_Annual_Precipitation = sum(Total_Precipitation[startday : endday])
         Current_Annual_Pot_Evap = sum(Potential_Evaporation[startday : endday])
+        Current_Annual_Pot_Evap_Daily = sum(Potential_Evaporation_Daily[startday : endday])
         Current_Annual_Pot_Evap_Hag = sum(Evaporation_Hagreaves[startday : endday])
         append!(Annual_Pot_Evap, Current_Annual_Pot_Evap)
+        append!(Annual_Pot_Evap_Thorn_Daily, Current_Annual_Pot_Evap_Daily)
         append!(Annual_Pot_Evap_Hagreaves, Current_Annual_Pot_Evap_Hag)
         append!(Annual_Discharge, Current_Annual_Discharge)
         append!(Annual_Precipitation, Current_Annual_Precipitation)
@@ -143,11 +146,13 @@ end
 Average_Annual_Precipitation = mean(Annual_Precipitation)
 Average_Annual_Discharge = mean(Annual_Discharge)
 Average_Annual_Pot_Evap = mean(Annual_Pot_Evap)
+Average_Annual_Pot_Evap_Thorn_Daily = mean(Annual_Pot_Evap_Thorn_Daily)
 Average_Annual_Pot_Evap_Hagreaves = mean(Annual_Pot_Evap_Hagreaves)
 # Waterbalance: Inflow - Outflow = 0
 # Inflow = Precipitation, Outflow = Discharge and Actual Evaporation
 # so waterbalance using Potential_Evaporation should be negative
 Waterbalance = Average_Annual_Precipitation - Average_Annual_Discharge - Average_Annual_Pot_Evap
+Waterbalance_Thorn_Daily = Average_Annual_Precipitation - Average_Annual_Discharge - Average_Annual_Pot_Evap_Thorn_Daily
 Waterbalance_Hagreaves = Average_Annual_Precipitation - Average_Annual_Discharge - Average_Annual_Pot_Evap_Hagreaves
 # -80
 # actual evaporation
@@ -156,6 +161,7 @@ Average_Actual_Evaporation = Average_Annual_Precipitation - Average_Annual_Disch
 
 # calculate the ratio of Epot/Precipitation
 Epot_Prec_Gailtal = Average_Annual_Pot_Evap / Average_Annual_Precipitation
+Epot_Prec_Gailtal_Thorn_Daily = Average_Annual_Pot_Evap_Thorn_Daily / Average_Annual_Precipitation
 Epot_Prec_Gailtal_Hagreaves = Average_Annual_Pot_Evap_Hagreaves / Average_Annual_Precipitation
 # in order to calculate the actual evaporation according to Budyko
 Budyko_Eact_P_Gailtal = ( Epot_Prec_Gailtal * tanh(1/Epot_Prec_Gailtal)* (1 - exp(-Epot_Prec_Gailtal)))^0.5
@@ -171,8 +177,9 @@ part = ones(length(Epot_Prec)) - exp.(-Epot_Prec)
 plot!(Epot_Prec, Budyko_Eact_P, label="Budyko")
 #scatter!([Epot_Prec_Gailtal], [Budyko_Eact_P_Gailtal], markershape= :xcross, color = "black", label="Thornthwaite, Budyko")
 scatter!([Epot_Prec_Gailtal], [Average_Actual_Evaporation / Average_Annual_Precipitation], markershape= :xcross, color = "black", label="Thornthwaite")
+scatter!([Epot_Prec_Gailtal_Thorn_Daily], [Average_Actual_Evaporation / Average_Annual_Precipitation], markershape= :xcross, color = "green", label="Thornthwaite Daily")
 #scatter!([Epot_Prec_Gailtal_Hagreaves], [Budyko_Eact_P_Gailtal_Hagreaves], markershape= :xcross, color = "red", label="Hagreaves, Budyko")
 scatter!([Epot_Prec_Gailtal_Hagreaves], [Average_Actual_Evaporation / Average_Annual_Precipitation], markershape= :xcross, color = "red", label="Hagreaves")
 xlabel!("Epot/P")
 ylabel!("Eact/P")
-savefig("Budyko.png")
+#savefig("Budyko.png")
