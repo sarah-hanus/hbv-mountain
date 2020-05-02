@@ -188,7 +188,7 @@ end
 function snowcover(Modeled_Area::Array{Float64, 1}, Observed_Area::Array{Float64, 1})
     # observed data can be -1 which is the error value
     index = findall(x-> x>= 0, Observed_Area)
-        Difference = (1 - abs.(Modeled_Area[index] - Observed_Area[index]))
+        Difference = (ones(length(index)) - abs.(Modeled_Area[index] - Observed_Area[index]))
     Mean_Difference = mean(Difference)
     return Mean_Difference
 end
@@ -210,18 +210,19 @@ function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, 
     #calculate the autocorrelation curves
     modelled_AC_1day = autocorrelation(Modelled_Discharge, 1)
     modelled_AC_90day = autocorrelationcurve(Modelled_Discharge, 90)
-    Reative_Error_AC_1day = 1 - abs(observed_AC_1day - modelled_AC_1day)/ observed_AC_1day
+    Reative_Error_AC_1day = 1.0 - abs.(observed_AC_1day - modelled_AC_1day)/ observed_AC_1day
     NSE_AC_90day = nse(observed_AC_90day, modelled_AC_90day[1])
     #calculate the avreage monthyl runoff
     #area of whole catchment, precipitation whole catchment
     #timeseries as dates
-    modelled_average_runoff = averagemonthlyrunoff(Area, Precipitation, Modelled_Discharge, Timeseries)
+    Timeseries_Runoff = Timerseries
+    modelled_average_runoff = averagemonthlyrunoff(Area, Precipitation, Modelled_Discharge, Timeseries_Runoff)
     # take relative error of all runoff and high and low flow periods?
-    Relative_Error_Runoff = 1 - abs(observed_average_runoff - modelled_average_runoff) / observed_average_runoff
+    Relative_Error_Runoff = ones(length(observed_average_runoff)) - abs.(observed_average_runoff - modelled_average_runoff) ./ observed_average_runoff
+    Relative_Error_Runoff = mean(Relative_Error_Runoff)
     #snow cover was already calculated for each elevation zone
     # function for snow cover should be maximized
-
-    if NSE >=0 && NSElog >= 0 && NSE_FDC >= 0 && NSE_AC_90day
+    if NSE >=0 && NSElog >= 0 && NSE_FDC >= 0 && NSE_AC_90day >= 0
         ObjFunctions = [NSE, NSElog, VE, NSE_FDC, Reative_Error_AC_1day, NSE_AC_90day, Relative_Error_Runoff, Snow_Cover]
         Sum = 0
         for Obj in ObjFunctions
@@ -230,6 +231,7 @@ function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, 
         Euclidean_Distance = (Sum / length(ObjFunctions))^0.5
     else
         Euclidean_Distance = -9999
+        ObjFunctions = -9999
     end
 
     # volumetric efficiency, NSE should be maximized
@@ -237,5 +239,5 @@ function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, 
     # Euclidean_Distance = ((1-NSE)^2 + (1 - NSElog)^2 + (1 - VE)^2 + (1 - NSE_FDC)^2 + (1 - Reative_Error_AC_1day)^2 + (1 - NSE_AC_90day)^2) + (1 - Reative_Error_Runoff)^2 + (1 - Snow_Cover)^2
     # Euclidean_Distance = Euclidean_Distance / 8
 
-    return Euclidean_Distance
+    return Euclidean_Distance, ObjFunctions
 end
