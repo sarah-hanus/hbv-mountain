@@ -123,7 +123,6 @@ function soilstorage(Effective_Precipitation::Float64, Interception_Evaporation:
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
     @assert Potential_Evaporation / 2.0 - Interception_Evaporation >= -eps(Float64) * 10
-    @assert round(Interception_Evaporation, digits=12) <= round(Potential_Evaporation * 0.5, digits=12)
     @assert Soilstorage >= 0
     @assert Soilstoragecapacity - Soilstorage >= 0
     @assert Soilstoragecapacity >= 0 #within the parameter range
@@ -185,7 +184,7 @@ function ripariansoilstorage(Effective_Precipitation, Interception_Evaporation, 
     @assert Effective_Precipitation >= 0
     @assert Interception_Evaporation >= 0
     @assert Potential_Evaporation >= 0
-    @assert round(Interception_Evaporation, digits=12) <= round(Potential_Evaporation * 0.5, digits=12)
+    @assert - eps(Float64) * 10 <= Potential_Evaporation * 0.5 - Interception_Evaporation
     @assert Potential_Evaporation / 2.0 - Interception_Evaporation >= -eps(Float64) * 10
     @assert Riparian_Discharge >= 0
     #@assert Soil_Evaporation >= 0 #or should it be zero?
