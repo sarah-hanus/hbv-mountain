@@ -69,11 +69,8 @@ function fixmissingsnowcover(snow_cover, Dayofyear)
     header = snow_cover[1,3 : end]
     snow_cover_array = snow_cover[2:end,3:end]
     Timeseries_Snow_Cover = snow_cover[2:end,2]
-    print(size(Timeseries_Snow_Cover))
     elevations = size(snow_cover_array)[2]
-    print(elevations)
     snow_cover_fixed = zeros((length(Dayofyear), elevations))
-    print(header)
     snow_cover_fixed[1,:] = header
     h = 1
     for (i, day) in enumerate(Dayofyear)
@@ -85,9 +82,6 @@ function fixmissingsnowcover(snow_cover, Dayofyear)
             snow_cover_fixed[i,:] = snow_cover_array[h,:]
             h+=1
         end
-        # print(typeof(current_snow))
-        # print(current_snow)
-        #append!(snow_cover_fixed, current_snow)
     end
     return snow_cover_fixed
 end
@@ -97,20 +91,18 @@ ID_Prec_Zones = [113589, 113597, 113670, 114538]
 
 Timeseries = Date(2000,01, 01):Day(1):Date(2010,12,30)
 Timeseries = collect(Timeseries)
-Dayofyear = Float64[]
+Dayofyear = Int64[]
+Years = Int64[]
 for (i, day) in enumerate(Timeseries)
     append!(Dayofyear, Dates.dayofyear(day))
+    append!(Years, Dates.year(day))
 end
-# ID = ID_Prec_Zones[1]
-# snow_cover = readdlm("Gailtal/snow_cover_"*string(ID)*".csv", ';')
-# snow_cover_fixed = fixmissingsnowcover(snow_cover, Dayofyear)
-# print(snow_cover_fixed[57,:])
-# writedlm( "Gailtal/snow_cover_fixed_"*string(ID)*".csv",  snow_cover_fixed, ',')
-
+# get the snow_cover for each precipitation zone
 for ID in ID_Prec_Zones
     snow_cover = readdlm("Gailtal/snow_cover_"*string(ID)*".csv", ';')
     snow_cover_fixed = fixmissingsnowcover(snow_cover, Dayofyear)
     print(snow_cover_fixed[57,:])
+    snow_cover_fixed = [Years Dayofyear snow_cover_fixed]
     writedlm( "Gailtal/snow_cover_fixed_"*string(ID)*".csv",  snow_cover_fixed, ',')
     #CSV.write("Gailtal/snow_cover_fixed_"*string(ID_Prec_Zones[i])*".csv", DataFrame(snow_cover_fixed), delim = ';')
 end
