@@ -35,7 +35,7 @@ using Distributed
 
 @everywhere function run_MC(ID, nmax)
 
-
+        local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
         ID_Prec_Zones = [113589, 113597, 113670, 114538]
         # size of the area of precipitation zones
@@ -59,7 +59,7 @@ using Distributed
 
         #------------ TEMPERATURE AND POT. EVAPORATION CALCULATIONS ---------------------
         #Temperature is the same in whole catchment
-        Temperature = CSV.read("/home/sarah/HBVModel/Gailtal/LTkont113597.csv", header=false, skipto = 20, missingstring = "L\xfccke", decimal='.', delim = ';')
+        Temperature = CSV.read(local_path*"HBVModel/Gailtal/LTkont113597.csv", header=false, skipto = 20, missingstring = "L\xfccke", decimal='.', delim = ';')
         Temperature_Array = convert(Matrix, Temperature)
         startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00"), Temperature_Array)
         endindex = findfirst(isequal("31.12."*string(endyear)*" 23:00:00"), Temperature_Array)
@@ -73,7 +73,7 @@ using Distributed
         Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
 
         # ------------ LOAD OBSERVED DISCHARGE DATA ----------------
-        Discharge = CSV.read("/home/sarah/HBVModel/Gailtal/Q-Tagesmittel-212670.csv", header= false, skipto=23, decimal=',', delim = ';', types=[String, Float64])
+        Discharge = CSV.read(local_path*"HBVModel/Gailtal/Q-Tagesmittel-212670.csv", header= false, skipto=23, decimal=',', delim = ';', types=[String, Float64])
         Discharge = convert(Matrix, Discharge)
         startindex = findfirst(isequal("01.01."*string(startyear)*" 00:00:00"), Discharge)
         endindex = findfirst(isequal("31.12."*string(endyear)*" 00:00:00"), Discharge)
@@ -92,7 +92,7 @@ using Distributed
         length_2000_end = length(Observed_Discharge) - start2000 + 1
         observed_snow_cover = Array{Float64,2}[]
         for ID in ID_Prec_Zones
-                current_observed_snow = readdlm("/home/sarah/HBVModel/Gailtal/snow_cover_fixed_"*string(ID)*".csv",',', Float64)
+                current_observed_snow = readdlm(local_path*"HBVModel/Gailtal/snow_cover_fixed_"*string(ID)*".csv",',', Float64)
                 current_observed_snow = current_observed_snow[1:length_2000_end,3: end]
                 push!(observed_snow_cover, current_observed_snow)
         end
@@ -118,7 +118,7 @@ using Distributed
 
         for i in 1: length(ID_Prec_Zones)
                 #print(ID_Prec_Zones)
-                Precipitation = CSV.read("/home/sarah/HBVModel/Gailtal/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
+                Precipitation = CSV.read(local_path*"HBVModel/Gailtal/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
                 Precipitation_Array = convert(Matrix, Precipitation)
                 startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
                 endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
@@ -229,14 +229,14 @@ using Distributed
                 end
 
                 if size(All_Goodness)[1] == 100
-                        open("/home/sarah/HBVModel/Gailtal_Parameterfit_"*string(ID+2)*".csv", "a") do io
+                        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
                                 writedlm(io, All_Goodness,",")
                         end
                         All_Goodness = Array{Any,1}[]
 
                 end
         end
-        open("/home/sarah/HBVModel/Gailtal_Parameterfit_"*string(ID+2)*".csv", "a") do io
+        open("HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
                 writedlm(io, All_Goodness,",")
         end
         # columns = 1 + 8 + 20
