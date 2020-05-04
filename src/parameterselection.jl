@@ -67,7 +67,7 @@ function parameter_selection()
         if Soilstoaragecapacity_Grass < max_Soilstoaragecapacity_Bare
                 Soilstoaragecapacity_Bare = rand(5.0:precission:Soilstoaragecapacity_Grass)
         else
-                Soilstoaragecapacity_Bare = rand(50.0:precission: max_Soilstoaragecapacity_Bare)
+                Soilstoaragecapacity_Bare = rand(5.0:precission: max_Soilstoaragecapacity_Bare)
         end
 
         Temp_Thresh = rand(-2.0:precission:2.0)
