@@ -8,7 +8,7 @@ using Distributed
 @everywhere using DataFrames
 @everywhere using Random
 
-@everywhere module_dir = "/home/sarah/HBVModel/src/"
+@everywhere module_dir = "/home/jan/HBVModel/src/"
 @everywhere push!(LOAD_PATH, $module_dir)
 
 # load list of structs
@@ -35,7 +35,7 @@ using Distributed
 
 @everywhere function run_MC(ID, nmax)
 
-        local_path = "/home/sarah/"
+        local_path = "/home/jan/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
         ID_Prec_Zones = [113589, 113597, 113670, 114538]
         # size of the area of precipitation zones
@@ -184,7 +184,7 @@ using Distributed
         Total_Precipitation = Precipitation_All_Zones[1][:,1]*Area_Zones_Percent[1] + Precipitation_All_Zones[2][:,1]*Area_Zones_Percent[2] + Precipitation_All_Zones[3][:,1]*Area_Zones_Percent[3] + Precipitation_All_Zones[4][:,1]*Area_Zones_Percent[4]
         # don't consider spin up time for calculation of Goodness of Fit
         # end of spin up time is 3 years after the start of the calibration and start in the month October
-        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 3 && Dates.month(x) == 10, Timeseries)
+        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 2 && Dates.month(x) == 10, Timeseries)
         # evaluations chouls alsways contain whole year
         index_lastdate = findfirst(x -> Dates.year(x) == lastyear && Dates.month(x) == 10, Timeseries) - 1
         Timeseries_Obj = Timeseries[index_spinup: index_lastdate]
@@ -232,6 +232,7 @@ using Distributed
                         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
                                 writedlm(io, All_Goodness,",")
                         end
+			print("worker ", ID, " wrote 100 tested parameter sets to file.")
                         All_Goodness = Array{Any,1}[]
 
                 end
@@ -253,8 +254,8 @@ using Distributed
         #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_test"*string(ID+2)*".csv",  All_Goodness, ';')
         #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_new"*string(ID+2)*".csv",  All_Goodness_new, ';')
 end
-#
-nmax = 300
+
+nmax = 65000
 @time begin
-pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6])
+pmap(ID -> run_MC(ID, nmax) , [1,2,3])
 end
