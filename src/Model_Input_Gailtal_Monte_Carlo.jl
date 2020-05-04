@@ -236,7 +236,7 @@ using Distributed
 
                 end
         end
-        open("HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
+        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
                 writedlm(io, All_Goodness,",")
         end
         # columns = 1 + 8 + 20
