@@ -49,9 +49,9 @@ using Distributed
         # where to skip to in data file of precipitation measurements
         Skipto = [24, 22, 22, 22]
         # get the areal percentage of all elevation zones in the HRUs in the precipitation zones
-        Areas_HRUs =  CSV.read("/home/sarah/HBVModel/Gailtal/HBV_Area_Elevation.csv", skipto=2, decimal=',', delim = ';')
+        Areas_HRUs =  CSV.read(local_path*"HBVModel/Gailtal/HBV_Area_Elevation.csv", skipto=2, decimal=',', delim = ';')
         # get the percentage of each HRU of the precipitation zone
-        Percentage_HRU = CSV.read("/home/sarah/HBVModel/Gailtal/HRUPercentage.csv", header=[1], decimal=',', delim = ';')
+        Percentage_HRU = CSV.read(local_path*"HBVModel/Gailtal/HRUPercentage.csv", header=[1], decimal=',', delim = ';')
         Elevation_Catchment = convert(Vector, Areas_HRUs[2:end,1])
         startyear = 1983
         endyear = 2005
