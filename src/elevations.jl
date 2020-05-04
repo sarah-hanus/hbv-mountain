@@ -1,3 +1,4 @@
+using DocStringExtensions
 """
 Computes the fluxes and changes in storages in a hillslope hydrological response unit of the model.
 
@@ -84,6 +85,7 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     end
     Flows_Area = Fast_Discharge + GWflow + Total_Interception_Evaporation + Soil_Evaporation
     All_Storages = (hill_storages.Fast - storages.Fast) + (hill_storages.Soil - storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
+
     #assert that water balance closes
     @assert -0.00000001 <= Precipitation - (Flows + All_Storages) <= 0.00000001
     @assert -0.00000001 <= Precipitation * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU) <= 0.00000001
@@ -171,5 +173,6 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     All_Storages = (rip_storages.Fast - storages.Fast) + (rip_storages.Soil -storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
     @assert -0.00000001 <= Precipitation + rip.Riparian_Discharge / rip.Area_HRU - (Flows + All_Storages) <= 0.00000001
     @assert -0.00000001 <= (Precipitation * rip.Area_HRU + rip.Riparian_Discharge) - (Flows_Area + All_Storages * rip.Area_HRU) <= 0.00000001
+
     return rip_out, rip_storages, Precipitation, All_Storages
 end

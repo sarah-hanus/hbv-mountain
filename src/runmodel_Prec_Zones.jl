@@ -1,27 +1,41 @@
-function runmodelprecipitationzones(Area_Zones, Elevations_Each_Precipitation_Zone, Elevation_Zone_Catchment, Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, ID_Prec_Zones, Inputs_All_Zones, Storages_All_Zones, SlowStorage, parameters, Nr_Elevationbands_All_Zones, Elevation_Percentage, observed_snow_cover, start2000)
+using DocStringExtensions
+"""
+Runs the model for several precipitation zones of a catchment
+
+$(SIGNATURES)
+
+The function returns the sum of the discharges of the precipitation zones as well as the mean difference in snow coverage compared to observed data.
+As input potential evaporation, precipitation and temperature data is necessary.
+- Inputs, Storages and Paramaters for each elevation zone
+- Area_Zones : Area of all precipitation zones in m²
+- Elevation_Percentage: areal extend of each elevation zone in each precipitation zone
+- Elevation_Zone_Catchment
+- ID_Prec_Zones: IDs of rain gauges of each precipitation zone
+- Nr_Elevationbands_All_Zones
+- observed_snow_cover: the observed snow cover of each elevation zone in each precipitation zone
+- year_snow_observations: the day of the timeseries when the first observed snow cover is assessed
+"""
+function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Any,1}, Area_Zones::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1}, observed_snow_cover::Array{Array{Float64,2},1}, year_snow_observations::Int64)
         Total_Discharge = zeros(length(Precipitation_All_Zones[1][:,1]))
-        Total_GWStorage = zeros(length(Precipitation_All_Zones[1][:,1]))
         count = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
-        #Snow_Extend_Catchment = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
-        Snow_Extend_Catchment = Array{Float64,2}[]
         Snow_Overall_Objective_Function = 0
         for i in 1: length(ID_Prec_Zones)
+                # take the storages and input of the specific precipitation zone
                 Inputs_HRUs = Inputs_All_Zones[i]
                 Storages_HRUs = Storages_All_Zones[i]
-
-                Discharge, Snow_Extend, Waterbalance, Faststorage, GWstorage, Interceptionstorage, Snowstorage, Soilstorage, Waterbalance2, Snow_Elevations, Bare_Snow = runmodel(Area_Zones[i], Potential_Evaporation, Precipitation_All_Zones[i], Temperature_Elevation_Catchment,
+                # run the model for the specific precipitation zone
+                Discharge, Snow_Extend, Waterbalance = run_model(Area_Zones[i], Potential_Evaporation, Precipitation_All_Zones[i], Temperature_Elevation_Catchment,
                         Inputs_HRUs[1], Inputs_HRUs[2], Inputs_HRUs[3], Inputs_HRUs[4],
                         Storages_HRUs[1], Storages_HRUs[2], Storages_HRUs[3], Storages_HRUs[4], SlowStorage,
                         parameters[1], parameters[2], parameters[3], parameters[4], parameters[5], Nr_Elevationbands_All_Zones[i], Elevation_Percentage[i])
+                # sum up the discharge of all precipitation zones
                 Total_Discharge += Discharge
-                Total_GWStorage += GWstorage * Area_Zones[i]/sum(Area_Zones)
-                @assert -0.01 <= Waterbalance2 <= 0.01
-                j = 1
-                push!(Snow_Extend_Catchment, Snow_Extend)
+                #snow extend is given as 0 or 1 for each elevation zone at each timestep)
                 elevations = size(Snow_Extend)[2]
-                #print(elevations, " ", length(observed_snow_cover[i][:,1]), " ", size(Snow_Extend))
-                snow_cover_modelled = Snow_Extend[start2000: start2000 + length(observed_snow_cover[i][:,1]) - 1, :]
+                # only use the modeled snow cover data that is in line with the observed snow cover data
+                snow_cover_modelled = Snow_Extend[year_snow_observations: year_snow_observations + length(observed_snow_cover[i][:,1]) - 1, :]
                 Mean_difference = 0
+                #calculate the mean difference for all elevation zones
                 for h in 1: elevations
                         Difference = snowcover(snow_cover_modelled[:,h], observed_snow_cover[i][:,h])
                         Mean_difference += Difference
@@ -29,6 +43,7 @@ function runmodelprecipitationzones(Area_Zones, Elevations_Each_Precipitation_Zo
                 Mean_difference = Mean_difference / elevations
                 Snow_Overall_Objective_Function += Mean_difference
         end
+        # calculate the mean difference over all precipitation zones
         Snow_Overall_Objective_Function = Snow_Overall_Objective_Function / length(ID_Prec_Zones)
-        return Total_Discharge, Snow_Overall_Objective_Function, Total_GWStorage
+        return Total_Discharge::Array{Float64,1}, Snow_Overall_Objective_Function::Float64
 end

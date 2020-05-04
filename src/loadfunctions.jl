@@ -1,10 +1,3 @@
-using DocStringExtensions
-using Dates
-using DelimitedFiles
-using CSV
-using DataFrames
-using Plots
-using Statistics
 # load list of structs
 include("structs.jl")
 # load components of models represented by buckets
@@ -13,11 +6,13 @@ include("processes_buckets.jl")
 include("elevations.jl")
 # load functions for combining all HRUs and for running the model
 include("allHRU.jl")
+# load function for running model which just returns the necessary output for calibration
+include("run_model.jl")
 # load functions for preprocessing temperature and precipitation data
 include("Preprocessing.jl")
 # load functions for calculating the potential evaporation
 include("Potential_Evaporation.jl")
-# load objective functions
+# load objective functionsM
 include("ObjectiveFunctions.jl")
 # load parameterselection
 include("parameterselection.jl")

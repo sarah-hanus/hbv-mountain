@@ -1,4 +1,5 @@
-#using Dates
+using Dates
+using Statistics
 
 function nse(Qobserved::Array{Float64, 1}, Qmodelled::Array{Float64, 1})
     # input is array of modelled and observed data
@@ -124,10 +125,10 @@ function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{
             push!(Month, current_date)
         end
     end
-    return monthly_Runoff, Month
+    return monthly_Runoff::Array{Float64,1}, Month::Array{Date,1}
 end
 
-function averagemonthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Timeseries::Array{Date,1})
+function averagemonthlyrunoff(Area::Float64, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Timeseries::Array{Date,1})
     # calculates the average runoff coefficient of a certain month over the timeperiod
     # all runoff coefficients of a certain months are summed up
     # assert that
@@ -178,7 +179,7 @@ function averagemonthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge:
     sum_monthly_Runoff = [sum_January, sum_February, sum_March, sum_April, sum_Mai, sum_June, sum_July, sum_August, sum_Sept, sum_Okt, sum_Nov, sum_Dec]
     FirstYear = Dates.year(Month[1])
     LastYear = Dates.year(Month[end])
-    Number_Years = LastYear - FirstYear + 1
+    Number_Years = LastYear - FirstYear
     @assert Number_Years * 12 == length(monthly_Runoff)
     average_monthly_Runoff = sum_monthly_Runoff / Number_Years
     return average_monthly_Runoff::Vector{Float64}
@@ -190,7 +191,7 @@ function snowcover(Modeled_Area::Array{Float64, 1}, Observed_Area::Array{Float64
     index = findall(x-> x>= 0, Observed_Area)
         Difference = (ones(length(index)) - abs.(Modeled_Area[index] - Observed_Area[index]))
     Mean_Difference = mean(Difference)
-    return Mean_Difference
+    return Mean_Difference::Float64
 end
 
 
@@ -199,7 +200,7 @@ export lognse
 export volumetricefficiency
 export flowdurationcurve
 
-function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, observed_FDC, obsered_AC_1day, observed_AC_90day, observed_average_runoff, Area, Precipitation, Timerseries)
+function objectivefunctions(Modelled_Discharge::Array{Float64, 1}, Snow_Cover::Float64, Observed_Discharge::Array{Float64, 1}, observed_FDC::Array{Float64, 1}, observed_AC_1day::Float64, observed_AC_90day::Array{Float64, 1}, observed_average_runoff::Array{Float64, 1}, Area::Float64, Precipitation::Array{Float64, 1}, Timerseries::Array{Date, 1})
     # calculate the nse, lognse, ve
     NSE = nse(Observed_Discharge, Modelled_Discharge)
     NSElog = lognse(Observed_Discharge, Modelled_Discharge)
@@ -223,6 +224,7 @@ function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, 
     #snow cover was already calculated for each elevation zone
     # function for snow cover should be maximized
     if NSE >=0 && NSElog >= 0 && NSE_FDC >= 0 && NSE_AC_90day >= 0
+        #store values
         ObjFunctions = [NSE, NSElog, VE, NSE_FDC, Reative_Error_AC_1day, NSE_AC_90day, Relative_Error_Runoff, Snow_Cover]
         Sum = 0
         for Obj in ObjFunctions
@@ -230,8 +232,8 @@ function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, 
         end
         Euclidean_Distance = (Sum / length(ObjFunctions))^0.5
     else
-        Euclidean_Distance = -9999
-        ObjFunctions = -9999
+        Euclidean_Distance = -9999.0
+        ObjFunctions = [-9999.0]
     end
 
     # volumetric efficiency, NSE should be maximized
@@ -239,5 +241,5 @@ function objectivefunctions(Modelled_Discharge, Snow_Cover, Observed_Discharge, 
     # Euclidean_Distance = ((1-NSE)^2 + (1 - NSElog)^2 + (1 - VE)^2 + (1 - NSE_FDC)^2 + (1 - Reative_Error_AC_1day)^2 + (1 - NSE_AC_90day)^2) + (1 - Reative_Error_Runoff)^2 + (1 - Snow_Cover)^2
     # Euclidean_Distance = Euclidean_Distance / 8
 
-    return Euclidean_Distance, ObjFunctions
+    return Euclidean_Distance::Float64, ObjFunctions::Array{Float64, 1}
 end

@@ -1,3 +1,4 @@
+using DocStringExtensions
 """
 Computes the evaporative and runoff flux as well as the storage of the interception component of the model.
 
