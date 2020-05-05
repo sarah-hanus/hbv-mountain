@@ -8,7 +8,7 @@ using Distributed
 @everywhere using DataFrames
 @everywhere using Random
 
-@everywhere module_dir = "/home/sarah/HBVModel/src/"
+@everywhere module_dir = "/home/jan/HBVModel/src/"
 @everywhere push!(LOAD_PATH, $module_dir)
 
 # load list of structs
@@ -35,7 +35,7 @@ using Distributed
 
 @everywhere function run_MC(ID, nmax)
 
-        local_path = "/home/sarah/"
+        local_path = "/home/jan/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
         ID_Prec_Zones = [113589, 113597, 113670, 114538]
         # size of the area of precipitation zones
@@ -232,6 +232,7 @@ using Distributed
                         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
                                 writedlm(io, All_Goodness,",")
                         end
+			print("worker ", ID, " wrote 100 tested parameter sets to file.")
                         All_Goodness = Array{Any,1}[]
 
                 end
@@ -253,8 +254,15 @@ using Distributed
         #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_test"*string(ID+2)*".csv",  All_Goodness, ';')
         #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_new"*string(ID+2)*".csv",  All_Goodness_new, ';')
 end
+<<<<<<< HEAD
 #
 nmax = 65000
 @time begin
 pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
+=======
+
+nmax = 65000
+@time begin
+pmap(ID -> run_MC(ID, nmax) , [1,2,3])
+>>>>>>> 0a34a3d01418cd115663040cdc86917241b88f0e
 end
