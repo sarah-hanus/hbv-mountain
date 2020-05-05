@@ -35,7 +35,7 @@ using Distributed
 
 @everywhere function run_MC(ID, nmax)
 
-        local_path = "/home/jan/"
+        local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
         ID_Prec_Zones = [113589, 113597, 113670, 114538]
         # size of the area of precipitation zones
@@ -198,11 +198,12 @@ using Distributed
 
         # ---------------- START MONTE CARLO SAMPLING ------------------------
         #All_Goodness_new = []
-        All_Goodness = Array{Any,1}[]
+        All_Goodness = zeros(29)
         #All_Parameter_Sets = Array{Any, 1}[]
         GWStorage = 40.0
         print("worker ", ID, " preparation finished", "\n")
-
+        count = 0
+        number_Files = 0
         All_discharge = Array{Any, 1}[]
         for n in 1 : nmax
                 #print(typeof(all_inputs))
@@ -213,7 +214,6 @@ using Distributed
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
-                Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, Area_Zones, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, Area_Zones, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
@@ -222,21 +222,47 @@ using Distributed
                 #if goodness higher than -9999 save it
                 if Goodness_Fit != -9999
                         Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
-                        #Goodness_new = collect(Iterators.flatten(Goodness))
-                        #print("columns",length(Goodness), "\n")
+                        Goodness = collect(Iterators.flatten(Goodness))
+                        All_Goodness = hcat(All_Goodness, Goodness)
                         #append!(All_Goodness_new, Goodness_new)
-                        push!(All_Goodness, Goodness)
-                end
+                        #push!(All_Goodness, Goodness)
+                        if size(All_Goodness)[2]-1 == 100
+                                All_Goodness = transpose(All_Goodness[:, 2:end])
+                                print(typeof(All_Goodness))
+                                if count != 1
+                                        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                                writedlm(io, All_Goodness,",")
+                                        end
+                                        count+= 1
+                                else
+                                        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                                writedlm(io, All_Goodness,",")
+                                        end
+                                        count = 0
+                                        number_Files += 1
+                                        jl_gc_collect()
+                                end
 
-                if size(All_Goodness)[1] == 100
-                        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
-                                writedlm(io, All_Goodness,",")
+                                print("worker ", ID, " wrote 100 tested parameter sets to file.")
+                                All_Goodness = zeros(29)
                         end
-			print("worker ", ID, " wrote 100 tested parameter sets to file.")
-                        All_Goodness = Array{Any,1}[]
-
                 end
+                # if size(All_Goodness)[2]-1 == 100
+                #         transpose(All_Goodness)[2:end,:]
+                #         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
+                #                 writedlm(io, All_Goodness,",")
+                #         end
+                #         print("worker ", ID, " wrote 100 tested parameter sets to file.")
+                #         All_Goodness = zeros(29)
+                # if size(All_Goodness)[1] == 100
+                #         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
+                #                 writedlm(io, All_Goodness,",")
+                #         end
+			# print("worker ", ID, " wrote 100 tested parameter sets to file.")
+                        # All_Goodness = Array{Any,1}[]
+
         end
+        All_Goodness = transpose(All_Goodness[:, 2:end])
         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
                 writedlm(io, All_Goodness,",")
         end
@@ -254,15 +280,8 @@ using Distributed
         #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_test"*string(ID+2)*".csv",  All_Goodness, ';')
         #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_new"*string(ID+2)*".csv",  All_Goodness_new, ';')
 end
-<<<<<<< HEAD
 #
-nmax = 65000
+nmax = 300
 @time begin
-pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
-=======
-
-nmax = 65000
-@time begin
-pmap(ID -> run_MC(ID, nmax) , [1,2,3])
->>>>>>> 0a34a3d01418cd115663040cdc86917241b88f0e
+pmap(ID -> run_MC(ID, nmax) , [1])
 end
