@@ -243,7 +243,9 @@ using Distributed
                                 All_Goodness = zeros(29)
                         end
                 end
-
+                if mod(n, 1000) == 0
+                        print("number of runs", n, "\n")
+                end
         end
         All_Goodness = transpose(All_Goodness[:, 2:end])
         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
