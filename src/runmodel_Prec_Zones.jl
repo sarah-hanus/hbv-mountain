@@ -15,7 +15,7 @@ As input potential evaporation, precipitation and temperature data is necessary.
 - observed_snow_cover: the observed snow cover of each elevation zone in each precipitation zone
 - year_snow_observations: the day of the timeseries when the first observed snow cover is assessed
 """
-function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Any,1}, Area_Zones::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1}, observed_snow_cover::Array{Array{Float64,2},1}, year_snow_observations::Int64)
+function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Parameters,1}, slow_parameters::Slow_Paramters, Area_Zones::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1}, observed_snow_cover::Array{Array{Float64,2},1}, year_snow_observations::Int64)
         Total_Discharge = zeros(length(Precipitation_All_Zones[1][:,1]))
         count = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
         Snow_Overall_Objective_Function = 0
@@ -27,7 +27,7 @@ function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Pre
                 Discharge, Snow_Extend, Waterbalance = run_model(Area_Zones[i], Potential_Evaporation, Precipitation_All_Zones[i], Temperature_Elevation_Catchment,
                         Inputs_HRUs[1], Inputs_HRUs[2], Inputs_HRUs[3], Inputs_HRUs[4],
                         Storages_HRUs[1], Storages_HRUs[2], Storages_HRUs[3], Storages_HRUs[4], SlowStorage,
-                        parameters[1], parameters[2], parameters[3], parameters[4], parameters[5], Nr_Elevationbands_All_Zones[i], Elevation_Percentage[i])
+                        parameters[1], parameters[2], parameters[3], parameters[4], slow_parameters, Nr_Elevationbands_All_Zones[i], Elevation_Percentage[i])
                 # sum up the discharge of all precipitation zones
                 Total_Discharge += Discharge
                 #snow extend is given as 0 or 1 for each elevation zone at each timestep)

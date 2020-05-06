@@ -82,5 +82,5 @@ function parameter_selection()
 
         parameters_array = [beta_Bare, beta_Forest, beta_Grass, beta_Rip, Ce, Interceptioncapacity_Forest, Interceptioncapacity_Grass, Interceptioncapacity_Rip, Kf_Rip, Kf, Ks, Meltfactor, Mm, Ratio_Pref, Ratio_Riparian, Soilstoaragecapacity_Bare, Soilstoaragecapacity_Forest, Soilstoaragecapacity_Grass, Soilstoaragecapacity_Rip, Temp_Thresh]
 
-        return [bare_parameters, forest_parameters, grass_parameters, rip_parameters, slow_parameters], parameters_array
+        return [bare_parameters, forest_parameters, grass_parameters, rip_parameters], slow_parameters, parameters_array
 end

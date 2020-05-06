@@ -29,7 +29,7 @@ $(SIGNATURES)
 The precipitation should be an array of different days of measurements. The height of the station where percipitation was measured should be given (Elevations.Measured_Prec_Elevation)
 as well as the min and maximum elevation using the Elevation struct.
 """
-function getprecipitationatelevation(Elevations::Elevations, Prec_Gradient::Float64, Precipitation::Array{Any,1})
+function getprecipitationatelevation(Elevations::Elevations, Prec_Gradient::Float64, Precipitation)
     Nr_Elevationbands = Int((Elevations.Max_elevation - Elevations.Min_elevation) / Elevations.Thickness_Band)
     # make an array with number of rows equal to number of days, and columns equal to number of elevations
     Precipitation_Elevation = zeros(length(Precipitation),Nr_Elevationbands)
@@ -99,7 +99,7 @@ Compute the mean daily temperature, assuming that the times of measurement are r
 
 """
 function daily_mean(Temperature_Array)
-        Temperature_Daily::Array{Float64, 1} = Array{Any, 1}[]
+        Temperature_Daily::Array{Float64, 1} = Array{Float64, 1}[]
         Date_Daily::Array{Date,1} = Array{Date, 1}[]
         # to make it correct when a value is missing the mean should not just be taken from the other values (Different times of day)
         # skips days with missing values

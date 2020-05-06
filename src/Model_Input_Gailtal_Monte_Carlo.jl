@@ -202,22 +202,19 @@ using Distributed
         #All_Parameter_Sets = Array{Any, 1}[]
         GWStorage = 40.0
         print("worker ", ID, " preparation finished", "\n")
-        count = 0
+        count = 1
         number_Files = 0
-        All_discharge = Array{Any, 1}[]
         for n in 1 : nmax
-                #print(typeof(all_inputs))
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
                 Current_GWStorage = deepcopy(GWStorage)
-                parameters, parameters_array = parameter_selection()
+                parameters, slow_parameters, parameters_array = parameter_selection()
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
-                Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, Area_Zones, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
+                Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
-                push!(All_discharge, Discharge)
                 Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_average_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
                 if Goodness_Fit != -9999
@@ -228,8 +225,7 @@ using Distributed
                         #push!(All_Goodness, Goodness)
                         if size(All_Goodness)[2]-1 == 100
                                 All_Goodness = transpose(All_Goodness[:, 2:end])
-                                print(typeof(All_Goodness))
-                                if count != 1
+                                if count != 20
                                         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
@@ -238,47 +234,21 @@ using Distributed
                                         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
-                                        count = 0
+                                        count = 1
                                         number_Files += 1
                                         jl_gc_collect()
                                 end
 
-                                print("worker ", ID, " wrote 100 tested parameter sets to file.")
+                                print("worker ", ID, " wrote 100 tested parameter sets to file.", "\n")
                                 All_Goodness = zeros(29)
                         end
                 end
-                # if size(All_Goodness)[2]-1 == 100
-                #         transpose(All_Goodness)[2:end,:]
-                #         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
-                #                 writedlm(io, All_Goodness,",")
-                #         end
-                #         print("worker ", ID, " wrote 100 tested parameter sets to file.")
-                #         All_Goodness = zeros(29)
-                # if size(All_Goodness)[1] == 100
-                #         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
-                #                 writedlm(io, All_Goodness,",")
-                #         end
-			# print("worker ", ID, " wrote 100 tested parameter sets to file.")
-                        # All_Goodness = Array{Any,1}[]
 
         end
         All_Goodness = transpose(All_Goodness[:, 2:end])
         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
                 writedlm(io, All_Goodness,",")
         end
-        # columns = 1 + 8 + 20
-        # Goodness_new = collect(Iterators.flatten(All_Goodness))
-        # All_Goodness_new = collect(Iterators.flatten(Goodness_new))
-        # print("length",length(All_Goodness_new),"\n")
-        # rows = Int(length(All_Goodness_new)) / Int(columns)
-        # print("rows", rows,"\n")
-        # All_Goodness_new = reshape(All_Goodness_new, Int(rows), Int(columns))
-        # print("worker ", ID, " finished", "\n")
-        # print("Total Fits: ", length(All_Goodness_new[:,1]),"\n")
-        # print("Max goodness: ", maximum(All_Goodness_new[:,1]), "\n")
-
-        #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_test"*string(ID+2)*".csv",  All_Goodness, ';')
-        #writedlm("/home/sarah/HBVModel/Gailtal_Parameterfit_new"*string(ID+2)*".csv",  All_Goodness_new, ';')
 end
 #
 nmax = 300
