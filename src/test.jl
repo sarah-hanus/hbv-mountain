@@ -1,13 +1,8 @@
-All_Numbers = Float64[]
-precission = 0.00001
-for i in 1:100000000
-    number = rand(100.0:precission:500.0)
-    append!(All_Numbers, number)
-end
+ID_Prec_Zones = [113589, 113597, 113670, 114538]
 
-percentage = Float64[]
-for i in 100:499
-    z = findall(x -> x >= i && x <= (i + 1), All_Numbers)
-    percent = length(z) / length(All_Numbers)
-    push!(percentage, percent)
-end
+
+
+snow_cover = readdlm("Gailtal/snow_cover_fixed_113589.csv", ',')
+
+i = 2
+scatter(snow_cover[(i-1)*365:365*i, 8])
