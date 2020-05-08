@@ -160,6 +160,7 @@ using Distributed
                         end
                 end
                 Perc_Elevation = Perc_Elevation[(findall(x -> x!= 0, Perc_Elevation))]
+                @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
                 bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1], 0.0, Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
@@ -194,7 +195,7 @@ using Distributed
         observed_FDC = flowdurationcurve(Observed_Discharge_Obj)[1]
         observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
         observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
-        observed_average_runoff = averagemonthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)
+        observed_monthly_runoff = monthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)[1]
 
         # ---------------- START MONTE CARLO SAMPLING ------------------------
         #All_Goodness_new = []
@@ -212,10 +213,10 @@ using Distributed
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
-                Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
+                Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
-                Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_average_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
+                Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
                 if Goodness_Fit != -9999
                         Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
@@ -236,10 +237,9 @@ using Distributed
                                         end
                                         count = 1
                                         number_Files += 1
-                                        jl_gc_collect()
                                 end
 
-                                print("worker ", ID, " wrote 100 tested parameter sets to file.", "\n")
+                                #print("worker ", ID, " wrote 100 tested parameter sets to file.", "\n")
                                 All_Goodness = zeros(29)
                         end
                 end
@@ -253,7 +253,8 @@ using Distributed
         end
 end
 #
-nmax = 300
+nmax = 100000
 @time begin
-pmap(ID -> run_MC(ID, nmax) , [1])
+#run_MC(1,100)
+pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
 end

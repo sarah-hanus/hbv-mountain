@@ -200,32 +200,33 @@ export lognse
 export volumetricefficiency
 export flowdurationcurve
 
-function objectivefunctions(Modelled_Discharge::Array{Float64, 1}, Snow_Cover::Float64, Observed_Discharge::Array{Float64, 1}, observed_FDC::Array{Float64, 1}, observed_AC_1day::Float64, observed_AC_90day::Array{Float64, 1}, observed_average_runoff::Array{Float64, 1}, Area::Float64, Precipitation::Array{Float64, 1}, Timerseries::Array{Date, 1})
+function objectivefunctions(Modelled_Discharge::Array{Float64, 1}, Snow_Cover::Float64, Observed_Discharge::Array{Float64, 1}, observed_FDC::Array{Float64, 1}, observed_AC_1day::Float64, observed_AC_90day::Array{Float64, 1}, observed_monthly_runoff::Array{Float64, 1}, Area::Float64, Precipitation::Array{Float64, 1}, Timerseries::Array{Date, 1})
     # calculate the nse, lognse, ve
     NSE = nse(Observed_Discharge, Modelled_Discharge)
     NSElog = lognse(Observed_Discharge, Modelled_Discharge)
     VE = volumetricefficiency(Observed_Discharge, Modelled_Discharge)
     # calculate the flow duration durves
     modelled_FDC = flowdurationcurve(Modelled_Discharge)
-    NSE_FDC = nse(observed_FDC, modelled_FDC[1])
+    NSE_FDC = lognse(observed_FDC, modelled_FDC[1])
     #calculate the autocorrelation curves
     modelled_AC_1day = autocorrelation(Modelled_Discharge, 1)
     modelled_AC_90day = autocorrelationcurve(Modelled_Discharge, 90)
     Reative_Error_AC_1day = 1.0 - abs.(observed_AC_1day - modelled_AC_1day)/ observed_AC_1day
     NSE_AC_90day = nse(observed_AC_90day, modelled_AC_90day[1])
-    #calculate the avreage monthyl runoff
+    #calculate the monthly runoff
     #area of whole catchment, precipitation whole catchment
     #timeseries as dates
     Timeseries_Runoff = Timerseries
-    modelled_average_runoff = averagemonthlyrunoff(Area, Precipitation, Modelled_Discharge, Timeseries_Runoff)
-    # take relative error of all runoff and high and low flow periods?
-    Relative_Error_Runoff = ones(length(observed_average_runoff)) - abs.(observed_average_runoff - modelled_average_runoff) ./ observed_average_runoff
-    Relative_Error_Runoff = mean(Relative_Error_Runoff)
+    modelled_monthly_runoff = monthlyrunoff(Area, Precipitation, Modelled_Discharge, Timeseries_Runoff)
+    # calculate the NSE of the monthly runoffs
+    NSE_monthly_runoff = nse(observed_monthly_runoff, modelled_monthly_runoff[1])
+    #Relative_Error_Runoff = ones(length(observed_average_runoff)) - abs.(observed_average_runoff - modelled_average_runoff) ./ observed_average_runoff
+    #Relative_Error_Runoff = mean(Relative_Error_Runoff)
     #snow cover was already calculated for each elevation zone
     # function for snow cover should be maximized
-    if NSE >=0 && NSElog >= 0 && NSE_FDC >= 0 && NSE_AC_90day >= 0
+    if NSE > 0 && NSElog > 0 && NSE_FDC > 0 && NSE_AC_90day > 0 && NSE_monthly_runoff > 0
         #store values
-        ObjFunctions = [NSE, NSElog, VE, NSE_FDC, Reative_Error_AC_1day, NSE_AC_90day, Relative_Error_Runoff, Snow_Cover]
+        ObjFunctions = [NSE, NSElog, VE, NSE_FDC, Reative_Error_AC_1day, NSE_AC_90day, NSE_monthly_runoff, Snow_Cover]
         Sum = 0
         for Obj in ObjFunctions
             Sum+= (1 - Obj)^2

@@ -30,7 +30,7 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
         #global Total_Melt += (Melt * Area_Elevations[i])
         hill.Total_Interception_Evaporation::Float64 += (Interception_Evaporation * hill.Area_Elevations[i])
         # get the extend of snow cover, if there is snow in the snow bucket the snow cover is 1
-        if Snow[i] > 10
+        if Snow[i] > 1
             Snow_Cover[i] = 1
         end
     end
@@ -117,7 +117,7 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
         #global Total_Melt += (Melt * Area_Elevations[i])
         rip.Total_Interception_Evaporation::Float64 += Interception_Evaporation * rip.Area_Elevations[i]
         #get snow cover extent
-        if Snow[i] > 10
+        if Snow[i] > 1
             Snow_Cover[i] = 1
         end
     end
