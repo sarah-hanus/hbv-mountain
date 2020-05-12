@@ -60,9 +60,9 @@ function parameter_selection()
         end
 
         if Soilstoaragecapacity_Grass < max_Soilstoaragecapacity_Rip
-                Soilstoaragecapacity_Rip = rand(5.0:precission_soilcap:Soilstoaragecapacity_Grass - precission_soilcap)
+                Soilstoaragecapacity_Rip = rand(4.9:precission_soilcap:Soilstoaragecapacity_Grass - precission_soilcap)
         else
-                Soilstoaragecapacity_Rip = rand(5.0:precission_soilcap: max_Soilstoaragecapacity_Rip)
+                Soilstoaragecapacity_Rip = rand(4.9:precission_soilcap: max_Soilstoaragecapacity_Rip)
         end
 
         if Soilstoaragecapacity_Grass < max_Soilstoaragecapacity_Bare
