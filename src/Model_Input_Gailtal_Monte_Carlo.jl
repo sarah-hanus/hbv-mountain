@@ -8,7 +8,7 @@ using Distributed
 @everywhere using DataFrames
 @everywhere using Random
 
-@everywhere module_dir = "/home/jan/HBVModel/src/"
+@everywhere module_dir = "/home/sarah/HBVModel/src/"
 @everywhere push!(LOAD_PATH, $module_dir)
 
 # load list of structs
@@ -226,7 +226,7 @@ using Distributed
                         #push!(All_Goodness, Goodness)
                         if size(All_Goodness)[2]-1 == 100
                                 All_Goodness = transpose(All_Goodness[:, 2:end])
-                                if count != 20
+                                if count != 100
                                         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
@@ -253,7 +253,7 @@ using Distributed
         end
 end
 #
-nmax = 100000
+nmax = 200000
 @time begin
 #run_MC(1,100)
 pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
