@@ -4,7 +4,7 @@ using Statistics
 using DataFrames
 using Plots
 
-function runmodelprecipitationzones_validation(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Any,1}, Area_Zones::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1}, observed_snow_cover::Array{Array{Float64,2},1}, index_spinup::Int64, index_last::Int64)
+function runmodelprecipitationzones_validation(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Parameters,1}, slow_parameters::Slow_Paramters, Area_Zones::Array{Float64,1}, Area_Zones_Percent::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1}, observed_snow_cover::Array{Array{Float64,2},1}, index_spinup::Int64, index_last::Int64)
         Total_Discharge = zeros(length(Precipitation_All_Zones[1][:,1]))
         count = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
         Snow_Overall_Objective_Function = 0
@@ -16,35 +16,23 @@ function runmodelprecipitationzones_validation(Potential_Evaporation::Array{Floa
                 Discharge, Snow_Extend, Waterbalance = run_model(Area_Zones[i], Potential_Evaporation, Precipitation_All_Zones[i], Temperature_Elevation_Catchment,
                         Inputs_HRUs[1], Inputs_HRUs[2], Inputs_HRUs[3], Inputs_HRUs[4],
                         Storages_HRUs[1], Storages_HRUs[2], Storages_HRUs[3], Storages_HRUs[4], SlowStorage,
-                        parameters[1], parameters[2], parameters[3], parameters[4], parameters[5], Nr_Elevationbands_All_Zones[i], Elevation_Percentage[i])
+                        parameters[1], parameters[2], parameters[3], parameters[4], slow_parameters, Nr_Elevationbands_All_Zones[i], Elevation_Percentage[i])
                 # sum up the discharge of all precipitation zones
                 Total_Discharge += Discharge
                 #snow extend is given as 0 or 1 for each elevation zone at each timestep)
                 elevations = size(Snow_Extend)[2]
                 # only use the modeled snow cover data that is in line with the observed snow cover data
                 snow_cover_modelled = Snow_Extend[index_spinup: index_last, :]
-                #snow_cover_observed = observed_snow_cover[i][index_spinup+90:index_spinup+365+90,:]
-                #snow_cover_modelled2 = Snow_Extend[index_spinup+90: index_spinup+365+90, :]
-                #print(size(snow_cover_modelled2), size(snow_cover_observed))
 
                 Mean_difference = 0
                 #calculate the mean difference for all elevation zones
                 for h in 1: elevations
                         Difference = snowcover(snow_cover_modelled[:,h], observed_snow_cover[i][index_spinup:index_last,h])
-                        Mean_difference += Difference
-                        # print(size(snow_cover_modelled2))
-                        # snow_cover_modelled_new = snow_cover_modelled2[:,h]
-                        # snow_cover_observed_new = snow_cover_observed[:,h]
-                        # index = findall(x-> x>= 0, snow_cover_observed_new)
-                        # print(size(snow_cover_modelled_new[index]))
-                        # scatter([snow_cover_modelled_new, snow_cover_observed_new], label=["Modelled" "Observed"])
-                        # savefig("Zone"*string(i)*"elevation"*string(h)*".png")
+                        Mean_difference += Difference * Elevation_Percentage[i][h]
                 end
-                Mean_difference = Mean_difference / elevations
-                Snow_Overall_Objective_Function += Mean_difference
+                Snow_Overall_Objective_Function += Mean_difference * Area_Zones_Percent[i]
         end
         # calculate the mean difference over all precipitation zones
-        Snow_Overall_Objective_Function = Snow_Overall_Objective_Function / length(ID_Prec_Zones)
         return Total_Discharge::Array{Float64,1}, Snow_Overall_Objective_Function::Float64
 end
 
@@ -215,12 +203,12 @@ function run_validation(path_to_best_parameter)
         observed_FDC = flowdurationcurve(Observed_Discharge_Obj)[1]
         observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
         observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
-        observed_average_runoff = averagemonthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)
+        observed_monthly_runoff = monthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)[1]
 
 
         # ---------------- START VALIDATION ------------------------
         #All_Goodness_new = []
-        All_Goodness = Array{Any,1}[]
+        All_Goodness = zeros(29)
         #All_Parameter_Sets = Array{Any, 1}[]
         GWStorage = 40.0
         #print("worker ", ID, " preparation finished", "\n")
@@ -228,7 +216,7 @@ function run_validation(path_to_best_parameter)
         parameters_best_calibrations = best_calibrations[:,10:29]
 
         #All_discharge = Array{Any, 1}[]
-        for n in 1 : 100#size(parameters_best_calibrations)[1]
+        for n in 1 : 1:size(parameters_best_calibrations)[1]
                 #print(typeof(all_inputs))
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
@@ -240,58 +228,66 @@ function run_validation(path_to_best_parameter)
                 rip_parameters = Parameters(beta_Rip, Ce, 0.0, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Rip, Temp_Thresh)
                 slow_parameters = Slow_Paramters(Ks, Ratio_Riparian)
 
-                parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters, slow_parameters]
+                parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
+                parameters_array = parameters_best_calibrations[n, :]
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
                 #Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, Area_Zones, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000
-                Discharge, Snow_Extend = runmodelprecipitationzones_validation(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, Area_Zones, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, index_spinup, index_lastdate)
+                Discharge, Snow_Extend = runmodelprecipitationzones_validation(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, index_spinup, index_lastdate)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
                 #push!(All_discharge, Discharge)
-                Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_average_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
+                Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
-                Goodness = [Goodness_Fit, ObjFunctions]
-                push!(All_Goodness, Goodness)
-
-                # if size(All_Goodness)[1] == 100
-                #         open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
-                #                 writedlm(io, All_Goodness,",")
-                #         end
-		# 	print("worker ", ID, " wrote 100 tested parameter sets to file.")
-                #         All_Goodness = Array{Any,1}[]
-                #
-                # end
+                Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
+                Goodness = collect(Iterators.flatten(Goodness))
+                All_Goodness = hcat(All_Goodness, Goodness)
         end
+        All_Goodness = transpose(All_Goodness[:, 2:end])
         return All_Goodness
 end
 
 
-#All_Goodness = run_validation("Gailtal/Calibration_6.05/Gailtal_Parameterfit_best100.csv")
-#writedlm("Gailtal/Calibration_6.05/Gailtal_Parameterfit_best100_validation.csv", All_Goodness,',')
+#All_Goodness = run_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best1000.csv")
+#writedlm("Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best1000_validation.csv", All_Goodness,',')
 
 #-------- COMPARE calibration and validation period ----------------
 
-Calibration = readdlm("Gailtal/Calibration_6.05/Gailtal_Parameterfit_best100.csv", ',')[:,1:9]
-Validation = readdlm("Gailtal/Calibration_6.05/Gailtal_Parameterfit_best100_validation.csv", ',')[:,1:9]
+# Calibration = readdlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", ',')[:,1:9]
+# Validation = readdlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100_validation.csv", ',')[:,1:9]
 
-number = collect(1:100)
-Objective_Functions = ["Euclidean Distance","NSE", "NSElog", "VE", "NSE_FDC", "Reative_Error_AC_1day", "NSE_AC_90day", "Relative_Error_Runoff", "Snow_Cover"]
-plots_obj = []
+function plot_validation(path_to_Calibration, path_to_Validation)
+        Calibration = readdlm(path_to_Calibration, ',')[:,1:9]
+        Validation = readdlm(path_to_Validation, ',')[:,1:9]
+        number_best = size(Calibration)[1]
+        number = collect(1:number_best)
+        Objective_Functions = ["Euclidean Distance","NSE", "NSElog", "VE", "NSElog_FDC", "Reative_Error_AC_1day", "NSE_AC_90day", "NSE_Runoff", "Snow_Cover"]
+        plots_obj = []
+        print(size(Calibration), size(Validation), size(number))
 
-for i in 1:9
-    push!(plots_obj, scatter(number, [Calibration[:,i] - Validation[:,i]], xlabel="Number of Runs", ylabel=Objective_Functions[i],  label=["Calibration" "Validation"]))
+        # for i in 1:9
+        #     push!(plots_obj, scatter(number, [Validation[:,i] - Calibration[:,i]], xlabel="Number of Runs", ylabel=Objective_Functions[i],  label=["Calibration" "Validation"]))
+        # end
+        # plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(1800,1000))
+        # title!("Validation - Calibration")
+        # savefig("Gailtal/Calibration_8.05/Validation/obj_Calibration_Validation_"*string(number_best)*".png")
+
+        for i in 2:9
+            push!(plots_obj, scatter(Validation[:,1], Validation[:,i], xlabel="Euclidean Distance", ylabel=Objective_Functions[i],  label=["Validation"]))
+        end
+        plot(plots_obj[1], plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], layout= (2,4), legend = false, size=(1800,1000))
+        title!("Validation")
+        savefig("Gailtal/Calibration_8.05/Validation/obj_Validation_"*string(number_best)*".png")
+
+
+        # plot(plots_obj[1], layout= (1), legend = true, size=(1400,800))
+        # title!("Performance Comparison, Validation better if negative")
+        # savefig("Gailtal/Calibration_8.05/Validation/Euclidean_Distance_Calibration_Validation_"*string(number_best)*".png")
 end
-plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(1800,1000))
-title!("Calibration - Validation")
-savefig("obj_Calibration_Validation2.png")
 
+plot_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", "Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best100_validation.csv")
 
-plot(plots_obj[1], layout= (1), legend = true, size=(1400,800))
-title!("Performance Comparison, Validation better if positive")
-savefig("Euclidean_Distance_Calibration_Validation.png")
-
-
-scatter(number, [Calibration[:,1]- Validation[:,1]], label=["Calibration" "Validation"])
-xlabel!("Number of Runs")
-ylabel!(Objective_Functions[1])
+# scatter(number, [Calibration[:,1]- Validation[:,1]], label=["Calibration" "Validation"])
+# xlabel!("Number of Runs")
+# ylabel!(Objective_Functions[1])
