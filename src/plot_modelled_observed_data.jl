@@ -315,54 +315,56 @@ function run_bestparameters(path_to_best_parameter, nmax)
         return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, Observed_Discharge_Obj, Timeseries_Obj
 end
 
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, Observed_Discharge, Timeseries = run_bestparameters("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 100)
+All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, Observed_Discharge, Timeseries = run_bestparameters("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 100)
 
-# for i in 1:19
-#         current_year = 1985+i
-#         indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
-#         indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
-#         # plot(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
-#         # for h in 1:100
-#         #         plot!(Timeseries[indexfirstday:indexlasttday], All_Discharges[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
-#         # end
-#         # plot!(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
-#         # savefig("Gailtal/Calibration_8.05/Plots/Discharge_"*string(current_year)*".png")
-#         #plot GW storage
-#         plot()
-#         for h in 1:100
-#                 plot!(Timeseries[indexfirstday:indexlasttday], All_GWstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
-#         end
-#         xlabel!("Timeseries")
-#         ylabel!("Slow Storage [mm]")
-#         title!("100 best parameters sets: Gailtal")
-#         savefig("Gailtal/Calibration_8.05/Plots/GWstorage_"*string(current_year)*".png")
-#         #plot Snow storage
-#         plot()
-#         for h in 1:100
-#                 plot!(Timeseries[indexfirstday:indexlasttday], ALl_Snowstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000),)
-#         end
-#         xlabel!("Timeseries")
-#         ylabel!("Snow Storage [mm]")
-#         title!("100 best parameters sets: Gailtal")
-#         savefig("Gailtal/Calibration_8.05/Plots/Snowstorage_"*string(current_year)*".png")
-#
-# end
-Farben = palette(:tab10)
-labels_HRU = ["bare", "forest", "grass", "rip"]
+writedlm("Gailtal/Calibration_8.05/Discharges_best100.csv", All_Discharges)
 for i in 1:1
-        #plot()
-        current_year = 1989+i
+        current_year = 1985+i
         indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
-        indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
-        for h in 1:20
-        plot()
-                for elevation in 1:4
-                        plot!(Timeseries[indexfirstday:indexlasttday], All_Soilstorage[h][indexfirstday:indexlasttday, elevation], color = [Farben[elevation]], label = labels_HRU[elevation], size=(1800,1000))
-                end
-        xlabel!("Timeseries")
-        ylabel!("Soil Storage [mm]")
-        title!("Best parameter set: Gailtal")
-        savefig("Gailtal/Calibration_8.05/Plots/Soilstorage__best1990"*string(h)*"_all.png")
+        indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(2004,1,1)), Timeseries)[1]
+        plot!(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
+        plot(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
+        for h in 1:100
+                plot!(Timeseries[indexfirstday:indexlasttday], All_Discharges[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
         end
 
+        savefig("Gailtal/Calibration_8.05/Plots/Discharge_All"*string(current_year)*".png")
+        #plot GW storage
+        # plot()
+        # for h in 1:100
+        #         plot!(Timeseries[indexfirstday:indexlasttday], All_GWstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
+        # end
+        # xlabel!("Timeseries")
+        # ylabel!("Slow Storage [mm]")
+        # title!("100 best parameters sets: Gailtal")
+        # savefig("Gailtal/Calibration_8.05/Plots/GWstorage_"*string(current_year)*".png")
+        # #plot Snow storage
+        # plot()
+        # for h in 1:100
+        #         plot!(Timeseries[indexfirstday:indexlasttday], ALl_Snowstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000),)
+        # end
+        # xlabel!("Timeseries")
+        # ylabel!("Snow Storage [mm]")
+        # title!("100 best parameters sets: Gailtal")
+        # savefig("Gailtal/Calibration_8.05/Plots/Snowstorage_"*string(current_year)*".png")
+
 end
+# Farben = palette(:tab10)
+# labels_HRU = ["bare", "forest", "grass", "rip"]
+# for i in 1:1
+#         #plot()
+#         current_year = 1989+i
+#         indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
+#         indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
+#         for h in 1:20
+#         plot()
+#                 for elevation in 1:4
+#                         plot!(Timeseries[indexfirstday:indexlasttday], All_Soilstorage[h][indexfirstday:indexlasttday, elevation], color = [Farben[elevation]], label = labels_HRU[elevation], size=(1800,1000))
+#                 end
+#         xlabel!("Timeseries")
+#         ylabel!("Soil Storage [mm]")
+#         title!("Best parameter set: Gailtal")
+#         savefig("Gailtal/Calibration_8.05/Plots/Soilstorage__best1990"*string(h)*"_all.png")
+#         end
+#
+# end

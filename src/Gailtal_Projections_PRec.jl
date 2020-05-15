@@ -19,21 +19,21 @@ for i in 1:6
         append!(index_Coordinates, current_index[1])
     end
     push!(index_Coordinates_Prec_Zones, index_Coordinates)
-    writedlm("Gailtal/Projections/index_coordinates.csv", index_Coordinates_Prec_Zones, ',')
+    writedlm("Gailtal/Projections/index_coordinates_4_prec_whole.csv", index_Coordinates_Prec_Zones, ',')
 end
 
 
 
-function getPrec(path_to_prec, ID_Prec_Zones)
+function getPrec(path_to_prec, ID_Prec_Zone, index_Coordinates_Prec_Zones, length_Coordinates)
     Projections_Precipitation = readdlm(path_to_prec, ',')
     Precipitation_Zone = zeros(size(Projections_Precipitation)[1])
-    for i in 1: length(index_Coordinates_Prec_Zones[prec_Zone])
+    for i in 1: length(index_Coordinates_Prec_Zones[prec_Zone][1:length_Coordinates])
         Current_Precipitation = Projections_Precipitation[:,index_Coordinates_Prec_Zones[prec_Zone][i]]
         Precipitation_Zone = hcat(Precipitation_Zone, Current_Precipitation)
     end
     Precipitation_Zone = Precipitation_Zone[:,2:end] ./ 10
     mean_Prec = mean(Precipitation_Zone, dims=2)
-    writedlm("Gailtal/Projections/Prec"*string(prec_Zone)*".csv", mean_Prec, ',')
+    #writedlm("Gailtal/Projections/Prec"*string(prec_Zone)*".csv", mean_Prec, ',')
     return Precipitation_Zone
 end
 
@@ -50,7 +50,7 @@ end
 # savefig("Temp_Proj_Gailttal_Zone"*string(ID)*".png")
 
 
-function getTemp()
+function getTemp(path_to_temp, Temp_Coordinates)
     # given the coordinates of the temperature measurement used for each precipitation zone, gets the temperature of the current projections
     # gives the elevation of each temperature
     Temp_Coordinates = readdlm("Gailtal/Projections/Temp_Coordinates.csv", ',')

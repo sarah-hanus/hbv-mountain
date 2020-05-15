@@ -2,6 +2,10 @@
 # get number of saved values
 using DelimitedFiles
 using Plots
+using StatsPlots
+using CSV
+# pyplot()
+# Plots.PyPlotBackend()
 
 
 function calibration_statistics(path_to_file, number_best)
@@ -137,6 +141,147 @@ function combine_calibrations2(path)
     return all_calibrations[2:end, :], total_saved
 end
 
+function projections_statistics(path_to_file)
+    names_obj = ["NSE", "NSElog", "VE","NSE_FDC", "Reative_Error_AC_1day", "NSE_AC_90day", "NSE_Runoff", "Snow_Cover"]
+    #Parameters = ["beta_Bare", "beta_Forest", "beta_Grass", "beta_Rip", "Ce", "Interceptioncapacity_Forest", "Interceptioncapacity_Grass", "Interceptioncapacity_Rip", "Kf_Rip", "Kf", "Ks", "Meltfactor", "Mm", "Ratio_Pref", "Ratio_Riparian", "Soilstoaragecapacity_Bare", "Soilstoaragecapacity_Forest", "Soilstoaragecapacity_Grass", "Soilstoaragecapacity_Rip", "Temp_Thresh"]
+    #Objective_Functions = [max_NSE, max_NSElog, max_VE, max_NSE_FDC, max_Reative_Error_AC_1day, max_NSE_AC_90day, max_Relative_Error_Runoff, max_Snow_Cover]
+    # get array with all calibtation data
+    projections = readdlm(path_to_file, ',')
+    number_best = size(projections)[1]
+    runs = collect(1:number_best)
+    print(size(projections))
+    plots_obj = []
+    for i in 1:8
+        #scatter(ED_best, calibration_best[:,i+1], xlabel = "Euclidean Distance", ylabel= names_obj[i])
+        # xlabel!("Euclidean Distance")
+        # ylabel!(names_obj[i])
+        #savefig(names_obj[i]*".png")
+        push!(plots_obj, scatter(runs, projections[:,i+1], xlabel = "Runs", ylabel= names_obj[i]))
+    end
+    plot(plots_obj[1], plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], layout= (2,4), legend = false, size=(1400,800))
+    savefig("Gailtal/Projections/objbestfit_"*string(number_best)*".png")
+end
+
+
+function boxplot_projection(path)
+    #path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
+    # 14 different projections
+    Name_Projections = readdir(path)
+    # run the model for all projections using the best 100 parameter sets
+    All_Obj_Functions = Array{Float64,2}[]
+    for (i, name) in enumerate(Name_Projections)
+            getData = readdlm(path*name*"/Gailtal/100_model_results_05_10.csv",',')
+            push!(All_Obj_Functions, getData[:,1:9])
+    end
+
+    Calibration = readdlm("Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best100_validation.csv", ',')[:,1:9]
+
+    names_obj = ["Euclidean Distance", "NSE", "NSElog", "VE","NSE_FDC", "Reative_Error_AC_1day", "NSE_AC_90day", "NSE_Runoff", "Snow_Cover"]
+    #number = collect(1:size(All_Obj_Functions)[1])
+    for obj in 1:size(names_obj)[1]
+        plot()
+        for i in 1:size(All_Obj_Functions)[1]
+            boxplot!(["Proj " *string(i)],All_Obj_Functions[i][:,obj],leg = false)
+
+        end
+        #boxplot!(["Calibration"],Calibration[:,obj],leg = false)
+        ylabel!(names_obj[obj])
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Validation_Period/"*names_obj[obj]*"rcp45.png")
+    end
+end
+
+
+function plot_FDC(path)
+    Name_Projections = readdir(path)
+    All_Discharges = Array{Float64,2}[]
+    for (i, name) in enumerate(Name_Projections)
+            getDischarge = readdlm(path*name*"/Gailtal/100_model_results_85_05_discharge.csv",',')
+            push!(All_Discharges, getDischarge)
+    end
+    #observed discharge
+
+    Discharge = CSV.read("/home/sarah/HBVModel/Gailtal/Q-Tagesmittel-212670.csv", header= false, skipto=23, decimal=',', delim = ';', types=[String, Float64])
+    Discharge = convert(Matrix, Discharge)
+    startindex = findfirst(isequal("01.10.1985 00:00:00"), Discharge)
+    endindex = findfirst(isequal("30.09.2005 00:00:00"), Discharge)
+    Observed_Discharge = Array{Float64,1}[]
+    push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
+    #Observed_Discharge = Observed_Discharge[1]
+    observed_FDC = flowdurationcurve(log.(Observed_Discharge[1]))
+    plot()
+
+    #print(size(All_Discharges[1][1,:]))
+    for proj in 1:length(Name_Projections)
+        NSE_FDC_observations = Float64[]
+        for i in 1:size(All_Discharges[1])[1]
+            modeled_FDC = flowdurationcurve(log.(All_Discharges[proj][i,:]))
+            #plot!(modeled_FDC[2], modeled_FDC[1], color="black", legend=false, size=(1400,800))
+            NSE_FDC = nse(observed_FDC[1], modeled_FDC[1])
+            append!(NSE_FDC_observations, NSE_FDC)
+        end
+        # plot!(observed_FDC[2], observed_FDC[1], color="red", size=(1400,800))
+        # title!(Name_Projections[proj])
+        # xlabel!("Exceedance Probability")
+        # ylabel!("Discharge [m3/s]")
+        # savefig("/home/sarah/Master/Thesis/Results/Projektionen/FDC_"*Name_Projections[proj]*".png")
+        boxplot!(NSE_FDC_observations, leg=false)
+    end
+    Modelled_Discharge_Observations = readdlm("Gailtal/Calibration_8.05/Discharges_best100.csv", '\t')
+    #print(size(Modelled_Discharge_Observations)[1])
+    NSE_FDC_observations = Float64[]
+    for i in 1:size(Modelled_Discharge_Observations)[2]
+        modeled_FDC = flowdurationcurve(log.(Modelled_Discharge_Observations[:,i]))
+        #plot!(modeled_FDC[2], modeled_FDC[1], color="black", legend=false, size=(1400,800))
+        NSE_FDC = nse(observed_FDC[1], modeled_FDC[1])
+        append!(NSE_FDC_observations, NSE_FDC)
+    end
+    boxplot!(["obs"],NSE_FDC_observations, leg=false)
+    # plot!(observed_FDC[2], observed_FDC[1], color="red")
+    # title!("Observed Data")
+    # xlabel!("Exceedance Probability")
+    # ylabel!("Discharge [m3/s]")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/FDC_Boxplot.png")
+    plot()
+    observed_FDC = flowdurationcurve((Observed_Discharge[1]))
+    for proj in 1:length(Name_Projections)
+        NSE_FDC_observations = Float64[]
+        for i in 1:size(All_Discharges[1])[1]
+            modeled_FDC = flowdurationcurve(All_Discharges[proj][i,:])
+            #plot!(modeled_FDC[2], modeled_FDC[1], color="black", legend=false, size=(1400,800))
+            NSE_FDC = lognse(observed_FDC[1], modeled_FDC[1])
+            append!(NSE_FDC_observations, NSE_FDC)
+        end
+        # plot!(observed_FDC[2], observed_FDC[1], color="red", size=(1400,800))
+        # title!(Name_Projections[proj])
+        # xlabel!("Exceedance Probability")
+        # ylabel!("Discharge [m3/s]")
+        # savefig("/home/sarah/Master/Thesis/Results/Projektionen/FDC_"*Name_Projections[proj]*".png")
+        boxplot!(NSE_FDC_observations, leg=false)
+    end
+    Modelled_Discharge_Observations = readdlm("Gailtal/Calibration_8.05/Discharges_best100.csv", '\t')
+    #print(size(Modelled_Discharge_Observations)[1])
+    NSE_FDC_observations = Float64[]
+    for i in 1:size(Modelled_Discharge_Observations)[2]
+        modeled_FDC = flowdurationcurve(Modelled_Discharge_Observations[:,i])
+        #plot!(modeled_FDC[2], modeled_FDC[1], color="black", legend=false, size=(1400,800))
+        NSE_FDC = lognse(observed_FDC[1], modeled_FDC[1])
+        append!(NSE_FDC_observations, NSE_FDC)
+    end
+    boxplot!(["obs"],NSE_FDC_observations, leg=false)
+    # plot!(observed_FDC[2], observed_FDC[1], color="red")
+    # title!("Observed Data")
+    # xlabel!("Exceedance Probability")
+    # ylabel!("Discharge [m3/s]")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/FDC_old_Boxplot.png")
+
+end
+
+boxplot_projection("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
+#Modelled_Discharge_Observations = plot_FDC("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
+
+
+
+
 # #----------------- COMBINE RESULTS OF ONE DEVICE-------------
 #All_Calibrations_Laptop, total_saved = combine_calibrations2("Gailtal/Calibration_8.05/Laptop_Jan/Gailtal_Parameterfit_10.5/")
 #writedlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_Jan_Laptop3.csv", All_Calibrations_Laptop, ',')
@@ -163,8 +308,8 @@ end
 
 
 
-calibration_best = calibration_statistics("Gailtal/Calibration_8.05/Gailtal_Parameterfit_All_new.csv", 10000)
-writedlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best10000.csv", calibration_best, ',')
+#calibration_best = calibration_statistics("Gailtal/Calibration_8.05/Gailtal_Parameterfit_All_new.csv", 10000)
+#writedlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best10000.csv", calibration_best, ',')
 
 
 function EC_calibration(path_to_file)
@@ -187,3 +332,6 @@ end
 # xlabel!("Euclidean Distance")
 # ylabel!("Percent of Runs below the Euclidean Distance")
 # savefig("Gailtal/Calibration_8.05/compare_ED3.png")
+
+
+#projections_statistics("Gailtal/Projections/Gailtal_Parameterfit_best100_projection1.csv")

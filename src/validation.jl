@@ -249,8 +249,8 @@ function run_validation(path_to_best_parameter)
 end
 
 
-#All_Goodness = run_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best1000.csv")
-#writedlm("Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best1000_validation.csv", All_Goodness,',')
+All_Goodness = run_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv")
+# writedlm("Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best100_validation.csv", All_Goodness,',')
 
 #-------- COMPARE calibration and validation period ----------------
 
@@ -274,16 +274,16 @@ function plot_validation(path_to_Calibration, path_to_Validation)
         # savefig("Gailtal/Calibration_8.05/Validation/obj_Calibration_Validation_"*string(number_best)*".png")
 
         for i in 2:9
-            push!(plots_obj, scatter(Validation[:,1], Validation[:,i], xlabel="Euclidean Distance", ylabel=Objective_Functions[i],  label=["Validation"]))
+            push!(plots_obj, scatter(Validation[:,1],Validation[:,i], xlabel="Euclidean Distance", ylabel=Objective_Functions[i],  label=["Validation"]))
         end
         plot(plots_obj[1], plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], layout= (2,4), legend = false, size=(1800,1000))
-        title!("Validation")
+        title!("Validation - Calibration")
         savefig("Gailtal/Calibration_8.05/Validation/obj_Validation_"*string(number_best)*".png")
 
 
-        # plot(plots_obj[1], layout= (1), legend = true, size=(1400,800))
-        # title!("Performance Comparison, Validation better if negative")
-        # savefig("Gailtal/Calibration_8.05/Validation/Euclidean_Distance_Calibration_Validation_"*string(number_best)*".png")
+        scatter(Validation[:,1], layout= (1), xlabel="Number of Runs", ylabel="Euclidean Distance", size=(1400,800))
+        title!("Validation- Calibration")
+        savefig("Gailtal/Calibration_8.05/Validation/Euclidean_Distance_Validation"*string(number_best)*".png")
 end
 
 plot_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", "Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best100_validation.csv")
