@@ -117,7 +117,11 @@ function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{
         day = Dates.day(current_date)
         # if the last day of the month is reached
         if day == Dates.daysinmonth(current_date)
-            monthly_Runoff_Current = sum_Discharge / sum_Precipitation
+            if sum_Precipitation != 0
+                monthly_Runoff_Current = sum_Discharge / sum_Precipitation
+            else
+                monthly_Runoff_Current = sum_Discharge / 0.01
+            end
             push!(monthly_Runoff, monthly_Runoff_Current)
             sum_Precipitation = 0
             sum_Discharge = 0
@@ -242,5 +246,41 @@ function objectivefunctions(Modelled_Discharge::Array{Float64, 1}, Snow_Cover::F
     # Euclidean_Distance = ((1-NSE)^2 + (1 - NSElog)^2 + (1 - VE)^2 + (1 - NSE_FDC)^2 + (1 - Reative_Error_AC_1day)^2 + (1 - NSE_AC_90day)^2) + (1 - Reative_Error_Runoff)^2 + (1 - Snow_Cover)^2
     # Euclidean_Distance = Euclidean_Distance / 8
 
+    return Euclidean_Distance::Float64, ObjFunctions::Array{Float64, 1}
+end
+
+
+
+function objectivefunctions_projections(Modelled_Discharge::Array{Float64, 1}, Snow_Cover::Float64, Observed_Discharge::Array{Float64, 1}, observed_FDC::Array{Float64, 1}, observed_AC_1day::Float64, observed_AC_90day::Array{Float64, 1}, observed_monthly_runoff::Array{Float64, 1}, Area::Float64, Precipitation::Array{Float64, 1}, Timerseries::Array{Date, 1})
+    # calculate the nse, lognse, ve
+    NSE = nse(Observed_Discharge, Modelled_Discharge)
+    NSElog = lognse(Observed_Discharge, Modelled_Discharge)
+    VE = volumetricefficiency(Observed_Discharge, Modelled_Discharge)
+    # calculate the flow duration durves
+    modelled_FDC = flowdurationcurve(Modelled_Discharge)
+    NSE_FDC = lognse(observed_FDC, modelled_FDC[1])
+    #calculate the autocorrelation curves
+    modelled_AC_1day = autocorrelation(Modelled_Discharge, 1)
+    modelled_AC_90day = autocorrelationcurve(Modelled_Discharge, 90)
+    Reative_Error_AC_1day = 1.0 - abs.(observed_AC_1day - modelled_AC_1day)/ observed_AC_1day
+    NSE_AC_90day = nse(observed_AC_90day, modelled_AC_90day[1])
+    #calculate the monthly runoff
+    #area of whole catchment, precipitation whole catchment
+    #timeseries as dates
+    Timeseries_Runoff = Timerseries
+    modelled_monthly_runoff = monthlyrunoff(Area, Precipitation, Modelled_Discharge, Timeseries_Runoff)
+    #print("runoff", size(modelled_monthly_runoff[1]), "\n")
+    @assert modelled_monthly_runoff[1] >= zeros(length(modelled_monthly_runoff[1]))
+    # calculate the NSE of the monthly runoffs
+    #print(observed_monthly_runoff)
+    #print("mean1", mean(observed_monthly_runoff),"\n")
+    NSE_monthly_runoff = nse(observed_monthly_runoff, modelled_monthly_runoff[1])
+    # function for snow cover should be maximized
+    ObjFunctions = [NSE, NSElog, VE, NSE_FDC, Reative_Error_AC_1day, NSE_AC_90day, NSE_monthly_runoff, Snow_Cover]
+    Sum = 0
+    for Obj in ObjFunctions
+        Sum+= (1 - Obj)^2
+    end
+    Euclidean_Distance = (Sum / length(ObjFunctions))^0.5
     return Euclidean_Distance::Float64, ObjFunctions::Array{Float64, 1}
 end
