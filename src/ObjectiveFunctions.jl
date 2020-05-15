@@ -210,8 +210,8 @@ function objectivefunctions(Modelled_Discharge::Array{Float64, 1}, Snow_Cover::F
     NSElog = lognse(Observed_Discharge, Modelled_Discharge)
     VE = volumetricefficiency(Observed_Discharge, Modelled_Discharge)
     # calculate the flow duration durves
-    modelled_FDC = flowdurationcurve(Modelled_Discharge)
-    NSE_FDC = lognse(observed_FDC, modelled_FDC[1])
+    modelled_FDC = flowdurationcurve(log.(Modelled_Discharge))
+    NSE_FDC = nse(observed_FDC, modelled_FDC[1])
     #calculate the autocorrelation curves
     modelled_AC_1day = autocorrelation(Modelled_Discharge, 1)
     modelled_AC_90day = autocorrelationcurve(Modelled_Discharge, 90)

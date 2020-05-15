@@ -8,6 +8,19 @@ using CSV
 # Plots.PyPlotBackend()
 
 
+
+function getbest_parametersets(path_to_file, number_best)
+    calibration = readdlm(path_to_file, ',')
+    # sort the calibration according to the euclidean distance
+    calibration_sorted = sortslices(calibration, dims=1)
+    #number_best = 10
+    calibration_best = calibration_sorted[1:number_best,:]
+    writedlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best"*string(number_best)*".csv", calibration_best)
+end
+
+getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Gailtal/Calibration8-10.5/Gailtal_Parameterfit_All_new.csv", 50000)
+
+
 function calibration_statistics(path_to_file, number_best)
     max_Obj = Float64[]
     max_NSE = Float64[]
