@@ -1,7 +1,16 @@
 using CSV
 using DelimitedFiles
 using Plots
-function run_projections(path_to_projection, path_to_best_parameter)
+using DocStringExtensions
+"""
+Runs the model for the projections for validating the historical input
+
+$(SIGNATURES)
+
+Input: Path to projection data, path to best parameter sets which should be used for running the "historical" projections, start year and end year
+Returns the goodness of the fits and save the fits in a file.
+"""
+function run_projections_validation(path_to_projection, path_to_best_parameter, startyear, endyear)
 
         local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
@@ -19,8 +28,8 @@ function run_projections(path_to_projection, path_to_best_parameter)
         # get the percentage of each HRU of the precipitation zone
         Percentage_HRU = CSV.read(local_path*"HBVModel/Gailtal/HRUPercentage.csv", header=[1], decimal=',', delim = ';')
         Elevation_Catchment = convert(Vector, Areas_HRUs[2:end,1])
-        startyear = 2003#1983
-        endyear = 2010#2005
+        #startyear = 2003#1983
+        #endyear = 2010#2005
 
         # ------------ LOAD TIMESERIES DATA AS DATES ------------------
         # load the timeseries and get indexes of start and end
@@ -156,7 +165,7 @@ function run_projections(path_to_projection, path_to_best_parameter)
         Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
         Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
         #calculating the observed FDC; AC; Runoff
-        observed_FDC = flowdurationcurve(Observed_Discharge_Obj)[1]
+        observed_FDC = flowdurationcurve(log.(Observed_Discharge_Obj))[1]
         observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
         observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
         observed_monthly_runoff = monthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)[1]
@@ -197,15 +206,15 @@ function run_projections(path_to_projection, path_to_best_parameter)
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
+        writedlm(path_to_projection*"100_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
 
-path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
 # 14 different projections
 Name_Projections = readdir(path)
 # run the model for all projections using the best 100 parameter sets
 for (i, name) in enumerate(Name_Projections)
-        run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv")
+        run_projections_validation(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1983, 2005)
 end

@@ -3,6 +3,8 @@ using DelimitedFiles
 using Statistics
 using DataFrames
 using Plots
+using StatsPlots
+using Plots.PlotMeasures
 
 function runmodelprecipitationzones_validation(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Parameters,1}, slow_parameters::Slow_Paramters, Area_Zones::Array{Float64,1}, Area_Zones_Percent::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1}, observed_snow_cover::Array{Array{Float64,2},1}, index_spinup::Int64, index_last::Int64)
         Total_Discharge = zeros(length(Precipitation_All_Zones[1][:,1]))
@@ -200,7 +202,7 @@ function run_validation(path_to_best_parameter)
         Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
         Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
         #calculating the observed FDC; AC; Runoff
-        observed_FDC = flowdurationcurve(Observed_Discharge_Obj)[1]
+        observed_FDC = flowdurationcurve(log.(Observed_Discharge_Obj))[1]
         observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
         observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
         observed_monthly_runoff = monthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)[1]
@@ -249,23 +251,42 @@ function run_validation(path_to_best_parameter)
 end
 
 
-All_Goodness = run_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv")
-# writedlm("Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best100_validation.csv", All_Goodness,',')
+#All_Goodness = run_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best1000.csv")
+#writedlm("Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best1000_validation.csv", All_Goodness,',')
 
 #-------- COMPARE calibration and validation period ----------------
 
 # Calibration = readdlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", ',')[:,1:9]
 # Validation = readdlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100_validation.csv", ',')[:,1:9]
 
-function plot_validation(path_to_Calibration, path_to_Validation)
+function plot_validation(path_to_Calibration, path_to_Validation, path_to_Calibration_1000, path_to_Validation_1000)
         Calibration = readdlm(path_to_Calibration, ',')[:,1:9]
         Validation = readdlm(path_to_Validation, ',')[:,1:9]
+        Calibration_1000 = readdlm(path_to_Calibration_1000, ',')[:,1:9]
+        Validation_1000 = readdlm(path_to_Validation_1000, ',')[:,1:9]
         number_best = size(Calibration)[1]
         number = collect(1:number_best)
         Objective_Functions = ["Euclidean Distance","NSE", "NSElog", "VE", "NSElog_FDC", "Reative_Error_AC_1day", "NSE_AC_90day", "NSE_Runoff", "Snow_Cover"]
         plots_obj = []
         print(size(Calibration), size(Validation), size(number))
 
+
+        for obj in 1:size(Objective_Functions)[1]
+            plot()
+            box = boxplot!(["Calibration 100 "],Calibration[:,obj],leg = false, color="blue")
+            box =boxplot!(["Validation 100 "],Validation[:,obj],leg = false, color="darkblue")
+            box =boxplot!(["Calibration 1000 "],Calibration_1000[:,obj],leg = false, color="lightgreen")
+            box =boxplot!(["Validation 1000 "],Validation_1000[:,obj],leg = false, color="darkgreen")
+            ylabel!(Objective_Functions[obj])
+            push!(plots_obj, box)
+            savefig("Gailtal/Calibration_8.05/Validation"*string(Objective_Functions[obj])*".png")
+        end
+
+        plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(1800,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
+        savefig("Gailtal/Calibration_8.05/Validation/obj_Calibration_Validation.png")
+
+        plot(plots_obj[1], left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
+        savefig("Gailtal/Calibration_8.05/Validation/ED_Calibration_Validation.png")
         # for i in 1:9
         #     push!(plots_obj, scatter(number, [Validation[:,i] - Calibration[:,i]], xlabel="Number of Runs", ylabel=Objective_Functions[i],  label=["Calibration" "Validation"]))
         # end
@@ -273,20 +294,20 @@ function plot_validation(path_to_Calibration, path_to_Validation)
         # title!("Validation - Calibration")
         # savefig("Gailtal/Calibration_8.05/Validation/obj_Calibration_Validation_"*string(number_best)*".png")
 
-        for i in 2:9
-            push!(plots_obj, scatter(Validation[:,1],Validation[:,i], xlabel="Euclidean Distance", ylabel=Objective_Functions[i],  label=["Validation"]))
-        end
-        plot(plots_obj[1], plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], layout= (2,4), legend = false, size=(1800,1000))
-        title!("Validation - Calibration")
-        savefig("Gailtal/Calibration_8.05/Validation/obj_Validation_"*string(number_best)*".png")
-
-
-        scatter(Validation[:,1], layout= (1), xlabel="Number of Runs", ylabel="Euclidean Distance", size=(1400,800))
-        title!("Validation- Calibration")
-        savefig("Gailtal/Calibration_8.05/Validation/Euclidean_Distance_Validation"*string(number_best)*".png")
+        # for i in 2:9
+        #     push!(plots_obj, scatter(Validation[:,1],Validation[:,i], xlabel="Euclidean Distance", ylabel=Objective_Functions[i],  label=["Validation"]))
+        # end
+        # plot(plots_obj[1], plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], layout= (2,4), legend = false, size=(1800,1000))
+        # title!("Validation - Calibration")
+        # savefig("Gailtal/Calibration_8.05/Validation/obj_Validation_"*string(number_best)*".png")
+        #
+        #
+        # scatter(Validation[:,1], layout= (1), xlabel="Number of Runs", ylabel="Euclidean Distance", size=(1400,800))
+        # title!("Validation- Calibration")
+        # savefig("Gailtal/Calibration_8.05/Validation/Euclidean_Distance_Validation"*string(number_best)*".png")
 end
 
-plot_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", "Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best100_validation.csv")
+plot_validation("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", "Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best100_validation.csv", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best1000.csv", "Gailtal/Calibration_8.05/Validation/Gailtal_Parameterfit_best1000_validation.csv")
 
 # scatter(number, [Calibration[:,1]- Validation[:,1]], label=["Calibration" "Validation"])
 # xlabel!("Number of Runs")

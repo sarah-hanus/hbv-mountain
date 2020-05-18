@@ -48,3 +48,26 @@ function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Pre
         #Snow_Overall_Objective_Function = Snow_Overall_Objective_Function / length(ID_Prec_Zones)
         return Total_Discharge::Array{Float64,1}, Snow_Overall_Objective_Function::Float64
 end
+
+
+function runmodelprecipitationzones_future(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Parameters,1}, slow_parameters::Slow_Paramters, Area_Zones::Array{Float64,1}, Area_Zones_Percent::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1})
+        Total_Discharge = zeros(length(Precipitation_All_Zones[1][:,1]))
+        count = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
+        Snow_Overall_Objective_Function = 0
+        for i in 1: length(ID_Prec_Zones)
+                # take the storages and input of the specific precipitation zone
+                Inputs_HRUs = Inputs_All_Zones[i]
+                Storages_HRUs = Storages_All_Zones[i]
+                # run the model for the specific precipitation zone
+                Discharge, Snow_Extend, Waterbalance = run_model(Area_Zones[i], Potential_Evaporation, Precipitation_All_Zones[i], Temperature_Elevation_Catchment,
+                        Inputs_HRUs[1], Inputs_HRUs[2], Inputs_HRUs[3], Inputs_HRUs[4],
+                        Storages_HRUs[1], Storages_HRUs[2], Storages_HRUs[3], Storages_HRUs[4], SlowStorage,
+                        parameters[1], parameters[2], parameters[3], parameters[4], slow_parameters, Nr_Elevationbands_All_Zones[i], Elevation_Percentage[i])
+                # sum up the discharge of all precipitation zones
+                Total_Discharge += Discharge
+
+        end
+        # calculate the mean difference over all precipitation zones
+        #Snow_Overall_Objective_Function = Snow_Overall_Objective_Function / length(ID_Prec_Zones)
+        return Total_Discharge::Array{Float64,1}
+end
