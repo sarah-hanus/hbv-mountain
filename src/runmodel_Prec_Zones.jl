@@ -31,7 +31,7 @@ function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Pre
                 # sum up the discharge of all precipitation zones
                 Total_Discharge += Discharge
                 #snow extend is given as 0 or 1 for each elevation zone at each timestep)
-                elevations = size(Snow_Extend)[2]
+                elevations = size(observed_snow_cover[i],2)
                 # only use the modeled snow cover data that is in line with the observed snow cover data
                 snow_cover_modelled = Snow_Extend[year_snow_observations: year_snow_observations + length(observed_snow_cover[i][:,1]) - 1, :]
                 Mean_difference = 0

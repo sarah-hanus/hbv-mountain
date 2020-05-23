@@ -2,37 +2,40 @@ using DataFrames
 using Plots
 using GLM
 
-Discharge = CSV.read("Gailtal/Q-Tagesmittel-212670.csv", header= 2, skipto=2, decimal=',', delim = ';', types=[String, Float64])
+Discharge = CSV.read("Palten/Q-Tagesmittel-210815.csv", header= 2, skipto=2, decimal=',', delim = ';', types=[String, Float64])
 Discharge = convert(Matrix, Discharge)
 startindex = findfirst(isequal("01.01.1994 00:00:00"), Discharge)
-endindex = findfirst(isequal("31.12.2006 00:00:00"), Discharge)
+endindex = findfirst(isequal("31.12.2005 00:00:00"), Discharge)
 Observed_Discharge = Float64[]
 append!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
-ID_Prec_Zones = [113589, 113597, 113670, 114538]
-Skipto = [24, 22, 22, 22]
-Area_Zones = [98227533, 184294158, 83478138, 220613195]
+Area_Zones = [198175943.0, 56544073.0, 115284451.3]
+# ID_Prec_Zones = [113589, 113597, 113670, 114538]
+# Skipto = [24, 22, 22, 22]
+# Area_Zones = [98227533, 184294158, 83478138, 220613195]
 
-Timeseries = Array{Date, 1}
-Total_Precipitation = zeros(length(Observed_Discharge))
-for i in 1: length(ID_Prec_Zones)
-        #print(ID_Prec_Zones)
-        Precipitation = CSV.read("Gailtal/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
-        Precipitation_Array = convert(Matrix, Precipitation)
-        startindex = findfirst(isequal("01.01.1994 07:00:00   "), Precipitation_Array)
-        endindex = findfirst(isequal("31.12.2006 07:00:00   "), Precipitation_Array)
-        Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
-        Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
-        # find duplicates and remove them
-        df = DataFrame(Precipitation_Array)
-        df = unique!(df)
-        # drop missing values
-        df = dropmissing(df)
-        #print(size(df), typeof(df))
-        Precipitation_Array = convert(Vector, df[:,2]) * Area_Zones[i] / sum(Area_Zones)
-        Dates_Array = convert(Vector, df[:,1])
-        global Total_Precipitation += Precipitation_Array
-        global Timeseries = Dates_Array
-end
+#Timeseries = Array{Date, 1}
+Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
+
+Total_Precipitation = check_waterbalance[findfirst(x->x == Date(1994,1,1), Timeseries):end,1]
+# for i in 1: length(ID_Prec_Zones)
+#         #print(ID_Prec_Zones)
+#         Precipitation = CSV.read("Gailtal/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
+#         Precipitation_Array = convert(Matrix, Precipitation)
+#         startindex = findfirst(isequal("01.01.1994 07:00:00   "), Precipitation_Array)
+#         endindex = findfirst(isequal("31.12.2006 07:00:00   "), Precipitation_Array)
+#         Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+#         Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
+#         # find duplicates and remove them
+#         df = DataFrame(Precipitation_Array)
+#         df = unique!(df)
+#         # drop missing values
+#         df = dropmissing(df)
+#         #print(size(df), typeof(df))
+#         Precipitation_Array = convert(Vector, df[:,2]) * Area_Zones[i] / sum(Area_Zones)
+#         Dates_Array = convert(Vector, df[:,1])
+#         global Total_Precipitation += Precipitation_Array
+#         global Timeseries = Dates_Array
+# end
 function dryspells(Precipitation, Timeseries)
         count = 0
         startindex = Int64[]
@@ -75,7 +78,7 @@ plot()
 for z in index_14daysdry
         start_dryperiod = start[z]
         ending_dryperiod = ending[z]
-        print(z)
+        #print(z)
         @assert ending_dryperiod - start_dryperiod + 1 == length_dry[z]
         Current_Observed_Discharge = Observed_Discharge[start_dryperiod:ending_dryperiod] * 3600 * 24 / sum(Area_Zones) * 1000
         Timespan = collect(1:length_dry[z])
@@ -94,15 +97,19 @@ for z in index_14daysdry
         plot!(Timespan, Current_Observed_Discharge)
         xlabel!("Days")
         ylabel!("Discharge")
-        savefig("recessioncurves.png")
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/Paltental/recessioncurves.png")
+
 end
 
 GWstorage = Interception ./ kvalue
 GWstorage = GWstorage[findall(x -> x < 0, GWstorage)]
-print(mean(GWstorage), " min ", minimum(GWstorage), " max ",maximum(GWstorage),"\n")
-
+print("mean", mean(GWstorage), " min ", minimum(GWstorage), " max ",maximum(GWstorage),"\n")
 kvalue = kvalue[findall(x -> x < 0, kvalue)]
 print(mean(kvalue))
+mean_GW = abs(mean(GWstorage))
+title!("Mean GW: "*string(round(mean_GW))* " ks: "*string(round(mean(kvalue), digits=3)))
+savefig("/home/sarah/Master/Thesis/Results/Calibration/Paltental/recessioncurves.png")
+
 
 #plot(Observed_Discharge * 3600 * 24 / sum(Area_Zones) * 1000, xylims = (0,1000),ylims = (0,10))
 #xaxis!()

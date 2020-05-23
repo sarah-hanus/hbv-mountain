@@ -12,7 +12,7 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
     @assert hill.Total_Interception_Evaporation == 0
     @assert hill.Total_Effective_Precipitation == 0
-    @assert 1 - eps(Float64) <= sum(hill.Area_Elevations) <= 1 + eps(Float64)
+    @assert 0.9999999 <= sum(hill.Area_Elevations) <= 1.000001
     @assert hill.Area_HRU >= 0 and <= 1
     @assert hill.Nr_Elevationbands >= 1
     # define Arrays for Snow and Interception storage
