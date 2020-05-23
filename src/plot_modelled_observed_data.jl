@@ -12,7 +12,10 @@ function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Pre
         count = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
         Snow_Overall_Objective_Function = 0
         Snow_Elevations_All = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
+        Snow_Extend_All = zeros(length(observed_snow_cover[1][:,1]), length(Elevation_Zone_Catchment))
+        Snow_Extend_All_Observed = zeros(length(observed_snow_cover[1][:,1]), length(Elevation_Zone_Catchment))
         percentage = zeros(length(Precipitation_All_Zones[1][:,1]), length(Elevation_Zone_Catchment))
+        percentage_Snow_Extend = zeros(length(observed_snow_cover[1][:,1]), length(Elevation_Zone_Catchment))
         percentage_soil = zeros(length(Precipitation_All_Zones[1][:,1]), 4)
         Soilstorage_All = zeros(length(Precipitation_All_Zones[1][:,1]), 4)
         for i in 1: length(ID_Prec_Zones)
@@ -47,7 +50,10 @@ function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Pre
                 for (h, current_elevation) in enumerate(Elevation_Zone_Catchment)
                         if counter <= length(Elevations_Each_Precipitation_Zone[i]) && Elevations_Each_Precipitation_Zone[i][counter] == current_elevation
                                 Snow_Elevations_All[:,h] .+= Snow_Elevations[:,counter] .* Elevation_Percentage[i][counter] .* Area_Zones_Percent[i]
+                                Snow_Extend_All[:,h] .+= snow_cover_modelled[:,counter] .* Elevation_Percentage[i][counter] .* Area_Zones_Percent[i]
+                                Snow_Extend_All_Observed[:,h] .+= observed_snow_cover[i][:,counter] .* Elevation_Percentage[i][counter] .* Area_Zones_Percent[i]
                                 percentage[:,h] .+= Elevation_Percentage[i][counter] .* Area_Zones_Percent[i] .* ones(length(Precipitation_All_Zones[1][:,1]))
+                                percentage_Snow_Extend[:,h] .+= Elevation_Percentage[i][counter] .* Area_Zones_Percent[i] .* ones(length(observed_snow_cover[1][:,1]))
                                 #plot(Snow_Elevations[:,counter], title=string(current_elevation))
                                 #savefig("Gailtal/Calibration_8.05/Plots/Snowstorage_"*string(current_elevation)*string(ID_Prec_Zones[i])*".png")
                                 counter += 1
@@ -64,8 +70,10 @@ function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Pre
         end
         # calculate the mean difference over all precipitation zones
         Snow_Elevations_All = Snow_Elevations_All ./ percentage
+        Snow_Extend_All = Snow_Extend_All ./percentage_Snow_Extend
+        Snow_Extend_All_Observed = Snow_Extend_All_Observed ./percentage_Snow_Extend
         Soilstorage_All = Soilstorage_All ./ percentage_soil
-        return Total_Discharge::Array{Float64,1}, Snow_Overall_Objective_Function::Float64, Total_GWstorage::Array{Float64,1}, Total_Snowstorage::Array{Float64,1}, Snow_Elevations_All, Soilstorage_All
+        return Total_Discharge::Array{Float64,1}, Snow_Overall_Objective_Function::Float64, Total_GWstorage::Array{Float64,1}, Total_Snowstorage::Array{Float64,1}, Snow_Elevations_All, Soilstorage_All, Snow_Extend_All, Snow_Extend_All_Observed
 end
 
 function run_bestparameters(path_to_best_parameter, nmax)
@@ -240,6 +248,8 @@ function run_bestparameters(path_to_best_parameter, nmax)
         All_Snowstorage = zeros(length(Observed_Discharge_Obj))
         All_Snow_Elevations = Array{Float64,2}[]
         All_Soilstorage = Array{Float64,2}[]
+        All_Snow_Extend_Modeled = Array{Float64,2}[]
+        All_Snow_Extend_Observed = Array{Float64,2}[]
 
         #All_Parameter_Sets = Array{Any, 1}[]
         GWStorage = 40.0
@@ -267,13 +277,15 @@ function run_bestparameters(path_to_best_parameter, nmax)
                 parameters_array = parameters_best_calibrations[n, :]
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
-                Discharge, Snow_Extend, GWstorage, Snowstorage, Snow_Elevations, Soilstorage = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000, Elevations_Each_Precipitation_Zone)
+                Discharge, Snow_Extend, GWstorage, Snowstorage, Snow_Elevations, Soilstorage, Snow_Extend_Modeled, Snow_Extend_Observed = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000, Elevations_Each_Precipitation_Zone)
 
                 All_Discharges = hcat(All_Discharges, Discharge[index_spinup: index_lastdate])
                 All_GWstorage = hcat(All_GWstorage, GWstorage[index_spinup: index_lastdate])
                 All_Snowstorage = hcat(All_Snowstorage, Snowstorage[index_spinup: index_lastdate])
                 push!(All_Snow_Elevations, Snow_Elevations)
                 push!(All_Soilstorage, Soilstorage)
+                push!(All_Snow_Extend_Modeled, Snow_Extend_Modeled)
+                push!(All_Snow_Extend_Observed, Snow_Extend_Observed)
 
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
@@ -312,59 +324,68 @@ function run_bestparameters(path_to_best_parameter, nmax)
         # open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
         #         writedlm(io, All_Goodness,",")
         #end
-        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, Observed_Discharge_Obj, Timeseries_Obj
+        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj
 end
 
-All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, Observed_Discharge, Timeseries = run_bestparameters("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 100)
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries = run_bestparameters("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 100)
 
-writedlm("Gailtal/Calibration_8.05/Discharges_best100.csv", All_Discharges)
-for i in 1:1
-        current_year = 1985+i
-        indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
-        indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(2004,1,1)), Timeseries)[1]
-        plot!(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
-        plot(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
-        for h in 1:100
-                plot!(Timeseries[indexfirstday:indexlasttday], All_Discharges[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
-        end
-
-        savefig("Gailtal/Calibration_8.05/Plots/Discharge_All"*string(current_year)*".png")
-        #plot GW storage
-        # plot()
-        # for h in 1:100
-        #         plot!(Timeseries[indexfirstday:indexlasttday], All_GWstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
-        # end
-        # xlabel!("Timeseries")
-        # ylabel!("Slow Storage [mm]")
-        # title!("100 best parameters sets: Gailtal")
-        # savefig("Gailtal/Calibration_8.05/Plots/GWstorage_"*string(current_year)*".png")
-        # #plot Snow storage
-        # plot()
-        # for h in 1:100
-        #         plot!(Timeseries[indexfirstday:indexlasttday], ALl_Snowstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000),)
-        # end
-        # xlabel!("Timeseries")
-        # ylabel!("Snow Storage [mm]")
-        # title!("100 best parameters sets: Gailtal")
-        # savefig("Gailtal/Calibration_8.05/Plots/Snowstorage_"*string(current_year)*".png")
-
-end
-# Farben = palette(:tab10)
-# labels_HRU = ["bare", "forest", "grass", "rip"]
+# writedlm("Gailtal/Calibration_8.05/Discharges_best100.csv", All_Discharges)
 # for i in 1:1
-#         #plot()
-#         current_year = 1989+i
+#         current_year = 1985+i
 #         indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
-#         indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
-#         for h in 1:20
-#         plot()
-#                 for elevation in 1:4
-#                         plot!(Timeseries[indexfirstday:indexlasttday], All_Soilstorage[h][indexfirstday:indexlasttday, elevation], color = [Farben[elevation]], label = labels_HRU[elevation], size=(1800,1000))
-#                 end
-#         xlabel!("Timeseries")
-#         ylabel!("Soil Storage [mm]")
-#         title!("Best parameter set: Gailtal")
-#         savefig("Gailtal/Calibration_8.05/Plots/Soilstorage__best1990"*string(h)*"_all.png")
+#         indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(2004,1,1)), Timeseries)[1]
+#         plot!(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
+#         plot(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"])
+#         for h in 1:100
+#                 plot!(Timeseries[indexfirstday:indexlasttday], All_Discharges[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
 #         end
 #
+#         savefig("Gailtal/Calibration_8.05/Plots/Discharge_All"*string(current_year)*".png")
+#         #plot GW storage
+#         # plot()
+#         # for h in 1:100
+#         #         plot!(Timeseries[indexfirstday:indexlasttday], All_GWstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
+#         # end
+#         # xlabel!("Timeseries")
+#         # ylabel!("Slow Storage [mm]")
+#         # title!("100 best parameters sets: Gailtal")
+#         # savefig("Gailtal/Calibration_8.05/Plots/GWstorage_"*string(current_year)*".png")
+#         # #plot Snow storage
+#         # plot()
+#         # for h in 1:100
+#         #         plot!(Timeseries[indexfirstday:indexlasttday], ALl_Snowstorage[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000),)
+#         # end
+#         # xlabel!("Timeseries")
+#         # ylabel!("Snow Storage [mm]")
+#         # title!("100 best parameters sets: Gailtal")
+#         # savefig("Gailtal/Calibration_8.05/Plots/Snowstorage_"*string(current_year)*".png")
+#
 # end
+#Farben = palette(:tab20)
+Farben = ["blue", "red", "green", "blue", "red", "green", "blue", "red", "green", "blue", "red", "green"]
+current_elevation = collect(500:200:2700)
+# labels_HRU = ["bare", "forest", "grass", "rip"]
+for i in 1:1
+        #plot()
+        current_year = 1999+i
+        indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
+        indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
+        endday_snow = 0
+        startday_snow = 1
+        endday_snow = 365*5
+        for h in 1:1
+        plot()
+                for elevation in 10:12
+                        index = findall(x-> x >= -1, All_Snow_Cover_Observed[h][startday_snow:endday_snow, elevation])
+                        print(size(index))
+                        #print(typeof(All_Snow_Cover_Observed[h][startday_snow:endday_snow, elevation]))
+                        plot!(All_Snow_Cover_Modeled[h][startday_snow:endday_snow, elevation], color = Farben[elevation],label=string(current_elevation[elevation]), size=(2200,700))
+                        scatter!(All_Snow_Cover_Observed[h][startday_snow:endday_snow, elevation], color = Farben[elevation], label=string(current_elevation[elevation]), size=(2200,700), ylims=(-0.1,1.1))
+                end
+        end
+        xlabel!("Timeseries")
+        ylabel!("Snow Cover")
+        title!("Best parameter set: Gailtal")
+        savefig("Gailtal/Calibration_8.05/Plots/Snow_Cover_high_elevations_all.png")
+
+end

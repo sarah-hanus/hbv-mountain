@@ -168,7 +168,8 @@ function run_projections_validation(path_to_projection, path_to_best_parameter, 
         observed_FDC = flowdurationcurve(log.(Observed_Discharge_Obj))[1]
         observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
         observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
-        observed_monthly_runoff = monthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)[1]
+        observed_monthly_runoff = readdlm("Gailtal/observed_runoff_coefficent_85_05.csv", ',')
+        observed_monthly_runoff = observed_monthly_runoff[:,1]
 
         # ---------------- START CALCULATING OBJECTIVE FUNCTIONS FOR THE PROJECTIONS ------------------------
         All_Goodness = zeros(29)
@@ -206,7 +207,7 @@ function run_projections_validation(path_to_projection, path_to_best_parameter, 
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"100_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
+        writedlm(path_to_projection*"100_model_results_"*string(startyear+3)*"_"*string(endyear)*"_new.csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
@@ -216,5 +217,5 @@ path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45
 Name_Projections = readdir(path)
 # run the model for all projections using the best 100 parameter sets
 for (i, name) in enumerate(Name_Projections)
-        run_projections_validation(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1983, 2005)
+        observed_monthly_runoff = run_projections_validation(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1983, 2005)
 end

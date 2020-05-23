@@ -217,10 +217,9 @@ path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85
 # 14 different projections
 Name_Projections = readdir(path)
 # run the model for all projections using the best 100 parameter sets
-#for (i, name) in enumerate(Name_Projections)
-# for i in 10: 14
-#         name = Name_Projections[i]
-#         Discharge_present = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1978, 2010)
-#         Discharge_future = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 2068, 2100)
-#         print(size(Discharge_present), size(Discharge_future))
-# end
+for (i, name) in enumerate(Name_Projections)
+        name = Name_Projections[i]
+        Discharge_present = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1983, 2005)
+        #Discharge_future = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 2068, 2100)
+        print(size(Discharge_present))
+end

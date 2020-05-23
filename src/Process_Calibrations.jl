@@ -4,6 +4,7 @@ using DelimitedFiles
 using Plots
 using StatsPlots
 using CSV
+using Plots.PlotMeasures
 # pyplot()
 # Plots.PyPlotBackend()
 
@@ -120,7 +121,7 @@ function boxplot_projection(path, number_best)
     # run the model for all projections using the best 100 parameter sets
     All_Obj_Functions = Array{Float64,2}[]
     for (i, name) in enumerate(Name_Projections)
-            getData = readdlm(path*name*"/Gailtal/100_model_results_1986_2005.csv",',')
+            getData = readdlm(path*name*"/Gailtal/100_model_results_1986_2005_new.csv",',')
             push!(All_Obj_Functions, getData[1:number_best,1:9])
     end
 
@@ -141,10 +142,10 @@ function boxplot_projection(path, number_best)
     end
 
     plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/100best/rcp45_comparison_Calibration_"*string(number_best)*"best.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/100best/rcp45_comparison_Calibration_"*string(number_best)*"best_new.png")
 
     plot(plots_obj[1], left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/100best/rcp45_comparison_Calibration_ED_"*string(number_best)*"best.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/100best/rcp45_comparison_Calibration_ED_"*string(number_best)*"best_new.png")
 end
 
 
@@ -265,8 +266,8 @@ boxplot_projection("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data
 
 
 
-calibration_best = calibration_statistics("Gailtal/Calibration_8.05/Calibration_newFDC/Gailtal_Parameterfit_best50000.csv", 100)
-writedlm("Gailtal/Calibration_8.05/Calibration_newFDC/Gailtal_Parameterfit_best100.csv", calibration_best, ',')
+#calibration_best = calibration_statistics("Gailtal/Calibration_8.05/Calibration_newFDC/Gailtal_Parameterfit_best50000.csv", 100)
+#writedlm("Gailtal/Calibration_8.05/Calibration_newFDC/Gailtal_Parameterfit_best100.csv", calibration_best, ',')
 
 
 function EC_calibration(path_to_file)

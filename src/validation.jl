@@ -273,20 +273,22 @@ function plot_validation(path_to_Calibration, path_to_Validation, path_to_Calibr
 
         for obj in 1:size(Objective_Functions)[1]
             plot()
+            box = boxplot!(["Calibration 10 "],Calibration[1:10,obj],leg = false, color="orange")
+            box =boxplot!(["Validation 10 "],Validation[1:10,obj],leg = false, color="darkorange")
             box = boxplot!(["Calibration 100 "],Calibration[:,obj],leg = false, color="blue")
             box =boxplot!(["Validation 100 "],Validation[:,obj],leg = false, color="darkblue")
             box =boxplot!(["Calibration 1000 "],Calibration_1000[:,obj],leg = false, color="lightgreen")
             box =boxplot!(["Validation 1000 "],Validation_1000[:,obj],leg = false, color="darkgreen")
             ylabel!(Objective_Functions[obj])
             push!(plots_obj, box)
-            savefig("Gailtal/Calibration_8.05/Validation"*string(Objective_Functions[obj])*".png")
+            #savefig("Gailtal/Calibration_8.05/Validation"*string(Objective_Functions[obj])*"_new.png")
         end
 
         plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(1800,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig("Gailtal/Calibration_8.05/Validation/obj_Calibration_Validation.png")
+        savefig("Gailtal/Calibration_8.05/Validation/obj_Calibration_Validation_new.png")
 
         plot(plots_obj[1], left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig("Gailtal/Calibration_8.05/Validation/ED_Calibration_Validation.png")
+        savefig("Gailtal/Calibration_8.05/Validation/ED_Calibration_Validation_new.png")
         # for i in 1:9
         #     push!(plots_obj, scatter(number, [Validation[:,i] - Calibration[:,i]], xlabel="Number of Runs", ylabel=Objective_Functions[i],  label=["Calibration" "Validation"]))
         # end
