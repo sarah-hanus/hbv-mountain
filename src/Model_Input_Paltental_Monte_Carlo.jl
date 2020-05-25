@@ -208,7 +208,7 @@ using Distributed
 
         for i in 1: length(ID_Prec_Zones)
                 if ID_Prec_Zones[i] == 106120 || ID_Prec_Zones[i] == 111815
-                        print(ID_Prec_Zones[i])
+                        #print(ID_Prec_Zones[i])
                         Precipitation = CSV.read(local_path*"HBVModel/Palten/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
                         Precipitation_Array = convert(Matrix, Precipitation)
                         startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
@@ -310,7 +310,7 @@ using Distributed
         count = 1
         number_Files = 0
         for n in 1 : nmax
-                print(n,"\n")
+                #print(n,"\n")
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
                 Current_GWStorage = deepcopy(GWStorage)
