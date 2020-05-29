@@ -1,7 +1,7 @@
 using CSV
 using DelimitedFiles
 using Plots
-function run_projections(path_to_projection, path_to_best_parameter, startyear, endyear)
+function run_projections(path_to_projection, path_to_best_parameter, startyear, endyear, period)
 
         local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
@@ -31,7 +31,7 @@ function run_projections(path_to_projection, path_to_best_parameter, startyear, 
                 indexend_Proj = findlast(x-> x == endyear, Dates.year.(Timeseries))[1]
         else
                 endyear = Dates.year(Timeseries[end])
-                startyear = endyear - 29
+                startyear = endyear - 29 - 3 # -3 for the spinup time
                 indexend_Proj = length(Timeseries)
                 indexstart_Proj = findfirst(x-> x == startyear, Dates.year.(Timeseries))[1]
                 print(Timeseries[end])
@@ -209,7 +209,7 @@ function run_projections(path_to_projection, path_to_best_parameter, startyear, 
         All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
-        writedlm(path_to_projection*"100_model_results_discharge_"*string(startyear+3)*".csv", All_Discharge, ',')
+        writedlm(path_to_projection*"100_model_results_discharge_"*period*".csv", All_Discharge, ',')
         return All_Discharge
 end
 
@@ -219,7 +219,7 @@ Name_Projections = readdir(path)
 # run the model for all projections using the best 100 parameter sets
 for (i, name) in enumerate(Name_Projections)
         name = Name_Projections[i]
-        Discharge_present = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1983, 2005)
-        #Discharge_future = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 2068, 2100)
-        print(size(Discharge_present))
+        Discharge_present = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1978, 2010, "past_2010")
+        Discharge_future = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 2068, 2100, "future_2100")
+        #print(size(Discharge_present))
 end

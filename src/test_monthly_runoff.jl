@@ -3,6 +3,7 @@ using DelimitedFiles
 using Plots
 using StatsPlots
 using Plots.PlotMeasures
+using Dates
 
 function monthlyrunoff_test(Area, Precipitation::Array{Float64, 1}, Discharge::Array{Float64, 1}, Potential_Evaporation, Timeseries::Array{Date,1})
     # function calculates the monthly runoff coefficient of each month in the timeseries
@@ -328,6 +329,7 @@ function plot_total_Fluxes(monthly_Discharge, monthly_Precipitation, monthly_Epo
     total_Epot_real = sum(monthly_Epot)
 
     plot()
+    Farben = palette(:tab20)
     for (i, name) in enumerate(Name_Projections)
         # discharge of best 100 runs
         Discharge = readdlm(path*name*"/Gailtal/100_model_results_discharge_1986.csv", ',')
@@ -345,43 +347,66 @@ function plot_total_Fluxes(monthly_Discharge, monthly_Precipitation, monthly_Epo
         Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==1500, Elevation_Zone_Catchment)]
         Potential_Evaporation_modeled = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Timeseries, Sunhours_Vienna)
         total_Discharge_all_runs = Float64[]
-        total_Precipitation_all_runs = Float64[]
+        global total_Precipitation_all_runs = Float64[]
         total_Epot_all_runs = Float64[]
 
-        for h in 1:100
+        for h in 2:3
             monthly_Runoff_modeled, monthly_Discharge_modeled, monthly_Precipitation_modeled, monthly_Epot_modeled, Month_modeled = monthlyrunoff_test(Area_Catchment, Precipitation, Discharge[h,:], Potential_Evaporation_modeled, Timeseries)
-            total_Discharge = sum(monthly_Discharge_modeled)
-            total_Precipitation = sum(monthly_Precipitation_modeled)
-            total_Epot = sum(monthly_Epot_modeled)
-            append!(total_Discharge_all_runs, total_Discharge)
+            #total_Discharge = sum(monthly_Discharge_modeled)
+            total_Precipitation = (monthly_Precipitation_modeled - monthly_Precipitation) ./ monthly_Precipitation
+            #total_Epot = sum(monthly_Epot_modeled)
+            #append!(total_Discharge_all_runs, total_Discharge)
             append!(total_Precipitation_all_runs, total_Precipitation)
-            append!(total_Epot_all_runs, total_Epot)
+            #append!(total_Epot_all_runs, total_Epot)
             #box = scatter!([year], monthly_Epot_modeled_all, legend=false)
         end
         #print(total_Precipitation_all_runs)
-        scatter!(["Proj " *string(i)], total_Epot_all_runs,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false)
-        ylabel!("Total Epot")
+        #scatter!(["Proj " *string(i)], total_Epot_all_runs,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false)
+        #violin!(["Proj " *string(i)], total_Precipitation_all_runs,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=true,color=[Farben[i]])
+        boxplot!(["Proj " *string(i)], total_Precipitation_all_runs,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=true, alpha=0.8,color=[Farben[i]])
+        ylabel!("Relative Error Precipitation")
+        ylims!((-2,10))
         #xlabel!("Years")
-        title!("Real Total Epot: "*string(total_Epot_real))
-        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Total_Epot.png")
+        title!("Real Error Monthly Precipitation")
+        #savefig("/home/sarah/Master/Thesis/Results/Projektionen/Total_Epot.png")
     end
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Relative_Erros_Prec.png")
+    return total_Precipitation_all_runs
 end
-#plot_total_Fluxes(monthly_Discharge, monthly_Precipitation, monthly_Epot)
+#relative_error_prec = plot_total_Fluxes(monthly_Discharge, monthly_Precipitation, monthly_Epot)
 
-function plot_runoff_coefficient(monthly_Runoff, monthly_Discharge, monthly_Precipitation)
-    for i in 1:19
-        plot()
-        start = 1 + 12*(1*(i-1))
-        last = 12 *(1*(i))
-        startyear = 1985+(1*(i-1))
-        endyear = 1985+(1*(i))
+function plot_runoff_coefficient(Precipitation, Discharge, Discharge_modelled, Potential_Evaporation_Daily)
+    # for i in 1:19
+    #     plot()
+    #     start = 1 + 12*(1*(i-1))
+    #     last = 12 *(1*(i))
+    #     startyear = 1985+(1*(i-1))
+    #     endyear = 1985+(1*(i))
+    monthly_Runoff_modeled, monthly_Discharge_modeled, monthly_Precipitation_modeled, monthly_Epot_modeled, Month_modeled = monthlyrunoff_test(Area_Catchment, Precipitation, Discharge_modelled[:,1], Potential_Evaporation_Daily, Timeseries)
+    monthly_Runoff_Real, monthly_Discharge_Real, monthly_Precipitation_Real, monthly_Epot_Real, Month_Real = monthlyrunoff_test(Area_Catchment, Precipitation, Discharge, Potential_Evaporation_Daily, Timeseries)
+    Farben = palette(:tab20)
+    for j in 1:1
+        Runoff_Monthly_Mean_Proj = Float64[]
+        Runoff_Monthly_Mean = Float64[]
+        Runoff_Monthly_Mean_Real = Float64[]
+        for year in 1:20
+            #append!(Runoff_Monthly_Mean_Proj, mean(monthly_Runoff_modeled_Proj[j+(year-1+12)]))
+            append!(Runoff_Monthly_Mean, mean(monthly_Runoff_modeled[j+(year-1+12)]))# - monthly_Runoff_modeled[j+(year-1+12)]) / monthly_Runoff_modeled[j+(year-1+12)])
+            append!(Runoff_Monthly_Mean_Real, mean(monthly_Runoff_Real[j+(year-1+12)]))#
+        end
+        violin!(["Month "*string(j)*"Real"], Runoff_Monthly_Mean_Real,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[15]], ylims=(0.5))
+        violin!(["Month "*string(j)*"Cal"], Runoff_Monthly_Mean,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[16]], ylims=(0.5))
+        #violin!(["Month "*string(j)*"Proj"], Runoff_Monthly_Mean_Proj,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[j]], ylims=(0.5))
+        #boxplot!(["Real"], Runoff_Monthly_Mean_Real,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[15]], alpha=0.8, ylims=(0.5))
+        #boxplot!(["Cal"], Runoff_Monthly_Mean,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[16]], alpha=0.8, ylims=(0.5))
+    end
         for (i, name) in enumerate(Name_Projections)
             #if i !=3 && i!= 10
                 # discharge of best 100 runs
-                Discharge = readdlm(path*name*"/Gailtal/100_model_results_discharge_1986.csv", ',')
+                Discharge_Proj = readdlm(path*name*"/Gailtal/100_model_results_discharge_1986.csv", ',')
                 #print(size(Discharge))
                 # precipitation
-                Precipitation = readdlm(path*name*"/Gailtal/total_precipitation_1986.csv", ',')[:,1]
+                Precipitation_Proj = readdlm(path*name*"/Gailtal/total_precipitation_1986.csv", ',')[:,1]
 
                 Projections_Temperature = readdlm(path*name*"/Gailtal/tas_113597_sim1.txt", ',')
                 Temperature_Daily = Projections_Temperature[13150:20454] ./ 10
@@ -391,42 +416,95 @@ function plot_runoff_coefficient(monthly_Runoff, monthly_Discharge, monthly_Prec
                 Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
                 # get the temperature data at the mean elevation to calculate the mean potential evaporation
                 Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==1500, Elevation_Zone_Catchment)]
-                Potential_Evaporation_modeled = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Timeseries, Sunhours_Vienna)
+                Potential_Evaporation_Proj = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Timeseries, Sunhours_Vienna)
 
                 Difference_Runoff = Float64[]
-                Total_Runoff_Melt_Real = sum(monthly_Discharge[start+2:start+7])/sum(monthly_Precipitation[start+2:start+7])
-                for h in 1:100
-                    monthly_Runoff_modeled, monthly_Discharge_modeled, monthly_Precipitation_modeled, monthly_Epot_modeled, Month_modeled = monthlyrunoff_test(Area_Catchment, Precipitation, Discharge[h,:], Potential_Evaporation_modeled, Timeseries)
-                    # difference modelled and real monthly runoff
-                    Total_Runoff_Melt = sum(monthly_Discharge_modeled[start+2:start+7]) / sum(monthly_Precipitation_modeled[start+2:start+7])
-                    Relative_Error = (Total_Runoff_Melt - Total_Runoff_Melt_Real) / Total_Runoff_Melt_Real
-                    append!(Difference_Runoff, Relative_Error)
+                #Total_Runoff_Melt_Real = sum(monthly_Discharge[start+2:start+7])/sum(monthly_Precipitation[start+2:start+7])
+                # for h in 1:100
+                #     monthly_Runoff_modeled_Proj, monthly_Discharge_modeled_Proj, monthly_Precipitation_modeled_Proj, monthly_Epot_modeled_Proj, Month_modeled_Proj = monthlyrunoff_test(Area_Catchment, Precipitation_Proj, Discharge_Proj[h,:], Potential_Evaporation_Proj, Timeseries)
+                #     # get the monthly runoffs from the calibration
+                #     monthly_Runoff_modeled, monthly_Discharge_modeled, monthly_Precipitation_modeled, monthly_Epot_modeled, Month_modeled = monthlyrunoff_test(Area_Catchment, Precipitation, Discharge_modelled[:,h], Potential_Evaporation_Daily, Timeseries)
+                #     # difference modelled and real monthly runoff
+                #     Total_Runoff_Melt_Proj = sum(monthly_Discharge_modeled_Proj[start+2:start+7]) / sum(monthly_Precipitation_modeled_Proj[start+2:start+7])
+                #     Total_Runoff_Melt_Calibration = sum(monthly_Discharge_modeled[start+2:start+7])/sum(monthly_Precipitation_modeled[start+2:start+7])
+                #     Relative_Error = (Total_Runoff_Melt_Proj - Total_Runoff_Melt_Calibration) / Total_Runoff_Melt_Calibration
+                #     append!(Difference_Runoff, Relative_Error)
+                # end
+                #
+                #     boxplot!(["Proj " *string(i)], Difference_Runoff,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false)
+                #     title!("March to August Year:"*string(startyear)* "-"*string(endyear))
+                h = 1
+                monthly_Runoff_modeled_Proj, monthly_Discharge_modeled_Proj, monthly_Precipitation_modeled_Proj, monthly_Epot_modeled_Proj, Month_modeled_Proj = monthlyrunoff_test(Area_Catchment, Precipitation_Proj, Discharge_Proj[1,:], Potential_Evaporation_Proj, Timeseries)
+                # get the monthly runoffs from the calibration
+
+
+                Runoff_Mean_All_Months = Float64[]
+                #plot()
+                Farben = palette(:tab20)
+                for j in 1:1
+                    Runoff_Monthly_Mean_Proj = Float64[]
+                    Runoff_Monthly_Mean = Float64[]
+                    Runoff_Monthly_Mean_Real = Float64[]
+                    for year in 1:20
+                        append!(Runoff_Monthly_Mean_Proj, mean(monthly_Runoff_modeled_Proj[j+(year-1+12)]))
+                        append!(Runoff_Monthly_Mean, mean(monthly_Runoff_modeled[j+(year-1+12)]))# - monthly_Runoff_modeled[j+(year-1+12)]) / monthly_Runoff_modeled[j+(year-1+12)])
+                        append!(Runoff_Monthly_Mean_Real, mean(monthly_Runoff_Real[j+(year-1+12)]))#
+                    end
+                    #violin!(["Month "*string(j)*"Real"], Runoff_Monthly_Mean_Real,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[j]], ylims=(0.5))
+                    #violin!(["Month "*string(j)*"Cal"], Runoff_Monthly_Mean,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[j]], ylims=(0.5))
+                    violin!(["Proj "*string(i)], Runoff_Monthly_Mean_Proj,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[i]], ylims=(0.5))
+                    #boxplot!(["Real"], Runoff_Monthly_Mean_Real,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[j]], alpha=0.8, ylims=(0.5))
+                    #boxplot!(["Cal"], Runoff_Monthly_Mean,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[j]], alpha=0.8, ylims=(0.5))
+                    #boxplot!(["Proj "*string(i)], Runoff_Monthly_Mean_Proj,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false, color=[Farben[i]], alpha=0.8, ylims=(0.5))
+
+
                 end
-
-                    boxplot!(["Proj " *string(i)], Difference_Runoff,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false)
-                    title!("March to August Year:"*string(startyear)* "-"*string(endyear)* "Real Runoff Coefficient:"*string(sum(monthly_Discharge[start+2:start+7])/sum(monthly_Precipitation[start+2:start+7])))
-
-                # Runoff_Mean_All_Months = Float64[]
-                    # for j in 1:12
-                    #     Runoff_Monthly_Mean = Float64[]
-                    #     for year in 1:20
-                    #         append!(Runoff_Monthly_Mean, (monthly_Runoff_modeled[j+(year-1+12)] - monthly_Runoff[j+(year-1+12)]) / monthly_Runoff[j+(year-1+12)])
-                    #     end
-                    #     boxplot!(["Month "*string(j)], Runoff_Monthly_Mean,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false, outliers=false)
-                    #     title!(string(name))
-                    #     savefig("/home/sarah/Master/Thesis/Results/Projektionen/RUnoff_Coefficient/REalative_Difference_Each_Month"*string(name)*".png")
-                    # end
+                title!(string(name))
+                savefig("/home/sarah/Master/Thesis/Results/Projektionen/RUnoff_Coefficient/Compare_to_Calibration/Yearly_RUnoff_Calibration_vs_Proj_Violin.png")
                     #box = scatter!([year], monthly_Epot_modeled_all, legend=false)
                 #print(total_Precipitation_all_runs)
-                #boxplot!(["Proj " *string(i)], Difference_Runoff,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false)
-
-                #xlabel!("Years")
-                #title!("Real Total Epot: "*string(total_Epot_real))
+                # boxplot!(["Proj " *string(i)], Difference_Runoff,  size=(1000,600), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60, legend=false)
+                #
+                # xlabel!("Years")
+                # title!("Real Total Epot: "*string(total_Epot_real))
             #end
         end
-        ylabel!("Total RUnoff Coefficent 100 runs")
-        savefig("/home/sarah/Master/Thesis/Results/Projektionen/RUnoff_Coefficient/Relative_Error_Runoff_MeltSeason"*string(startyear)*"-"*string(endyear)*".png")
-    end
+        #ylabel!("Total RUnoff Coefficent 100 runs")
+        #savefig("/home/sarah/Master/Thesis/Results/Projektionen/RUnoff_Coefficient/Compare_to_Calibration/Relative_Error_Runoff_MeltSeason"*string(startyear)*"-"*string(endyear)*".png")
+    #end
 end
 
-plot_runoff_coefficient(monthly_Runoff, monthly_Discharge, monthly_Precipitation)
+#plot_runoff_coefficient(Precipitation, Observed_Discharge, Discharge_modelled, Potential_Evaporation_Daily)
+
+# plot Discharges
+
+
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
+# 14 different projections
+Name_Projections = readdir(path)
+
+#---------- real DATA-------------
+total_Discharge_real = sum(monthly_Discharge)
+total_Precipitation_real = sum(monthly_Precipitation)
+total_Epot_real = sum(monthly_Epot)
+
+Discharge = readdlm(path*Name_Projections[1]*"/Gailtal/100_model_results_discharge_1986.csv", ',')
+
+Farben = palette(:tab20)
+for year in 1:20
+    plot()
+    current_year = 1985+year
+    start = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
+    last_day = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
+    #for (i, name) in enumerate(Name_Projections[1:2])
+    plot()
+    # discharge of best 100 runs
+
+    print(size(Discharge[:,1:365]))
+    for h in 1:100
+        plot!(Timeseries[start:last_day], Discharge[h,start:last_day], color=["black"])
+    end
+    plot!(Timeseries[start:last_day], [Observed_Discharge[start:last_day]], color = ["red"], legend=false)
+    title!("Discharge Projection Real, Year: "*string(current_year))
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Discharge"*string(current_year)*".png")
+end
