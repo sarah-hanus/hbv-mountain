@@ -12,7 +12,7 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
     @assert hill.Total_Interception_Evaporation == 0
     @assert hill.Total_Effective_Precipitation == 0
-    @assert 0.9999999 <= sum(hill.Area_Elevations) <= 1.000001
+    @assert 0.9999999 <= sum(hill.Area_Elevations) <= 1.000001 || sum(hill.Area_Elevations) == 0
     @assert hill.Area_HRU >= 0 and <= 1
     @assert hill.Nr_Elevationbands >= 1
     # define Arrays for Snow and Interception storage
@@ -104,6 +104,12 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     # Are_Elevations gives the areal percentage of each elevation band. The sum has to be 1
     # Area_elevations, Precipitation, Temp_elevation, Snowstorage, Interceptionstorage has to be array of length Nr_Elevationbands
     # riparian HRU has no preferential flow
+
+    @assert rip.Total_Interception_Evaporation == 0
+    @assert rip.Total_Effective_Precipitation == 0
+    @assert 0.9999999 <= sum(rip.Area_Elevations) <= 1.000001 || sum(rip.Area_Elevations) == 0
+    @assert rip.Area_HRU >= 0 and <= 1
+    @assert rip.Nr_Elevationbands >= 1
     Snow = zeros(rip.Nr_Elevationbands)
     Interception = zeros(rip.Nr_Elevationbands)
     Snow_Cover = zeros(rip.Nr_Elevationbands)

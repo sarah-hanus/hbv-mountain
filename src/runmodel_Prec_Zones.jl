@@ -29,6 +29,7 @@ function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Pre
                         Storages_HRUs[1], Storages_HRUs[2], Storages_HRUs[3], Storages_HRUs[4], SlowStorage,
                         parameters[1], parameters[2], parameters[3], parameters[4], slow_parameters, Nr_Elevationbands_All_Zones[i], Elevation_Percentage[i])
                 # sum up the discharge of all precipitation zones
+                @assert -10^(-10) <= Waterbalance <= 10^(-10)
                 Total_Discharge += Discharge
                 #snow extend is given as 0 or 1 for each elevation zone at each timestep)
                 elevations = size(observed_snow_cover[i],2)
