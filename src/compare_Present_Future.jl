@@ -405,6 +405,7 @@ function seasonal_low_flows(Discharge, Timeseries, Months_to_analyse, days)
     Months = Months_to_analyse
     Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
     Seasonal_Low_Flows_7days = Float64[]
+    Timing_Seasonal_Low_Flows_7days = Float64[]
     for (i, Current_Year) in enumerate(Years)
             #for (j, Current_Month) in enumerate(Months)
             Dates_Current_Season = filter(Timeseries) do x
@@ -416,8 +417,6 @@ function seasonal_low_flows(Discharge, Timeseries, Months_to_analyse, days)
                               Dates.Month(x) == Dates.Month(Months[5]) ||
                               Dates.Month(x) == Dates.Month(Months[6]))
                           end
-                          #print(length(Dates_Current_Month),"\n")
-                         # print(Current_Month)
             Current_Discharge = Discharge[indexin(Dates_Current_Season, Timeseries)]
             #print(Current_Year, " ", Current_Month)
             #print(Dates.daysinmonth(Current_Year, Current_Month))
@@ -427,8 +426,9 @@ function seasonal_low_flows(Discharge, Timeseries, Months_to_analyse, days)
                 append!(All_Discharges_7days, Current_Discharge_7days)
             end
             append!(Seasonal_Low_Flows_7days, minimum(All_Discharges_7days))
+            append!(Timing_Seasonal_Low_Flows_7days, Dates.dayofyear(Dates_Current_Season[argmin(All_Discharges_7days)]))
     end
-    return Seasonal_Low_Flows_7days
+    return Seasonal_Low_Flows_7days, Timing_Seasonal_Low_Flows_7days
 end
 """
 Calculates the minimum X day moving average of daily discharge (mm/d) for all climate projections with each 100 parameter sets for the given path.
@@ -452,6 +452,8 @@ function analyse_low_flows(path_to_projections, Months_Low_Flow_Summer)
 
     average_Low_Flows_past = Float64[]
     average_Low_Flows_future = Float64[]
+    average_Low_Flows_past_Timing = Float64[]
+    average_Low_Flows_future_Timing = Float64[]
     #all_months = Float64[]
 
     error_average_monthly_Discharge_all_runs = Float64[]
@@ -465,26 +467,29 @@ function analyse_low_flows(path_to_projections, Months_Low_Flow_Summer)
         #change_all_runs = Float64[]
      # determine by looking at monthly discharges
         for run in 1:100
-            Seasonal_Low_Flows_Past = seasonal_low_flows(Past_Discharge_45[run,:], Timeseries_Past, Months_Low_Flow_Summer, 7)
-            Seasonal_Low_Flows_Future = seasonal_low_flows(Future_Discharge_45[run,:], Timeseries_Future_45,Months_Low_Flow_Summer, 7)
+            Seasonal_Low_Flows_Past, Timing_Seasonal_Low_Flows_Past = seasonal_low_flows(Past_Discharge_45[run,:], Timeseries_Past, Months_Low_Flow_Summer, 7)
+            Seasonal_Low_Flows_Future, Timing_Seasonal_Low_Flows_Future = seasonal_low_flows(Future_Discharge_45[run,:], Timeseries_Future_45,Months_Low_Flow_Summer, 7)
             append!(average_Low_Flows_past, mean(Seasonal_Low_Flows_Past))
             append!(average_Low_Flows_future, mean(Seasonal_Low_Flows_Future))
+            append!(average_Low_Flows_past_Timing, mean(Timing_Seasonal_Low_Flows_Past))
+            append!(average_Low_Flows_future_Timing, mean(Timing_Seasonal_Low_Flows_Future))
         end
     end
-    return average_Low_Flows_past, average_Low_Flows_future
+    return average_Low_Flows_past, average_Low_Flows_future, average_Low_Flows_past_Timing, average_Low_Flows_future_Timing
 end
-@time begin
-#Summer_Low_Flows_past85, Summer_Low_Flows_future85 = analyse_low_flows(path_85)
-end
+# @time begin
+# Summer_Low_Flows_past45, Summer_Low_Flows_future45, Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45 = analyse_low_flows(path_45, [5,6,7,8,9,10])
+# end
 
 # --------- TOTAL LOW FLOWS PLOTS ---------------------
 """
 Plots low flows in past and future, the relative and aboslute changes, as well as the low flows of each climate projection separately.
 $(SIGNATURES)
 """
-function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past85, Seasonal_Low_Flows_future85)
+function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past85, Seasonal_Low_Flows_future85, Timing_Seasonal_Low_Flows_past45, Timing_Seasonal_Low_Flows_future45,  Timing_Seasonal_Low_Flows_past85, Timing_Seasonal_Low_Flows_future85)
     Farben45=palette(:blues)
     Farben85=palette(:reds)
+    # plot seasonal low flows of each projection
     for proj in 1:14
         boxplot(Seasonal_Low_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
         boxplot!(Seasonal_Low_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
@@ -493,10 +498,10 @@ function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, 
         xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
         ylabel!("minimum 7 day moving average of daily runoff [m³/s]")
         ylims!((2,10))
-        title!("Winter Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+        title!("Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
         savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/summerlowflows_"*string(Name_Projections_45[proj])*".png")
     end
-
+    # plot seasonal low flows of all projections combined
     boxplot(Seasonal_Low_Flows_past45, color=[Farben45[1]])
     boxplot!(Seasonal_Low_Flows_future45,color=[Farben45[2]])
     boxplot!(Seasonal_Low_Flows_past85, color=[Farben85[1]])
@@ -504,8 +509,33 @@ function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, 
     xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
     ylabel!("minimum 7 day moving average of daily runoff [m³/s]")
     ylims!((2,10))
-    title!("Winter Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    title!("Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/summerlowflows.png")
+
+    # plot timing of seasonal low flows of all projections combined
+    boxplot(Timing_Seasonal_Low_Flows_past45, color=[Farben45[1]])
+    boxplot!(Timing_Seasonal_Low_Flows_future45,color=[Farben45[2]])
+    boxplot!(Timing_Seasonal_Low_Flows_past85, color=[Farben85[1]])
+    boxplot!(Timing_Seasonal_Low_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    ylabel!("Timing of minimum 7 day moving average of daily runoff")
+    #ylims!((2,10))
+    yticks!([213, 227, 244, 258, 274], ["1.8", "15.8", "1.9", "15.9", "1.10"])
+    title!("Timing of Summer Low Flows 30 year average of lowest 7 day runoff from May - Nov")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/timing_summerlowflows.png")
+
+    # plot timing of seasonal low flows of each projection
+    for proj in 1:14
+        boxplot(Timing_Seasonal_Low_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
+        boxplot!(Timing_Seasonal_Low_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
+        boxplot!(Timing_Seasonal_Low_Flows_past85[1+(proj-1)*100: proj*100], color=[Farben85[1]])
+        boxplot!(Timing_Seasonal_Low_Flows_future85[1+(proj-1)*100: proj*100], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+        xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+        ylabel!("Timing of minimum 7 day moving average of daily runoff")
+        yticks!([213, 227, 244, 258, 274], ["1.8", "15.8", "1.9", "15.9", "1.10"])
+        title!("Timing of Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/timing_summerlowflows_"*string(Name_Projections_45[proj])*".png")
+    end
 
     #absolute and relative decrease
     boxplot(Seasonal_Low_Flows_future45 - Seasonal_Low_Flows_past45,color=[Farben45[2]])
@@ -516,9 +546,9 @@ function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, 
     #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
     absolute_change = boxplot!()
     # relative change
-    boxplot((Seasonal_Low_Flows_future45 - Seasonal_Low_Flows_past45) ./ Seasonal_Low_Flows_past45,color=[Farben45[2]])
+    boxplot(relative_error(Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past45),color=[Farben45[2]])
     #boxplot!(, color=[Farben85[1]])
-    boxplot!((Seasonal_Low_Flows_future85 - Seasonal_Low_Flows_past85) ./ Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    boxplot!(relative_error(Seasonal_Low_Flows_future85, Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
     xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
     ylabel!("relative change [%]")
     #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
@@ -537,9 +567,9 @@ function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, 
     #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
     absolute_change = boxplot!()
     # relative change
-    violin((Seasonal_Low_Flows_future45 - Seasonal_Low_Flows_past45) ./ Seasonal_Low_Flows_past45,color=[Farben45[2]])
+    violin(relative_error(Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past45),color=[Farben45[2]])
     #boxplot!(, color=[Farben85[1]])
-    violin!((Seasonal_Low_Flows_future85 - Seasonal_Low_Flows_past85) ./ Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    violin!(relative_error(Seasonal_Low_Flows_future85, Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
     xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
     ylabel!("relative change [%]")
     #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
@@ -549,15 +579,59 @@ function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, 
     #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
     plot(absolute_change, relative_change)
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_summerlowflows_violins.png")
+
+
+    #absolute and relative change in timing of low flows
+    boxplot(Timing_Seasonal_Low_Flows_future45 - Timing_Seasonal_Low_Flows_past45,color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    boxplot!(Timing_Seasonal_Low_Flows_future85 - Timing_Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("absolute change [days]")
+    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    absolute_change = boxplot!()
+    # relative change
+    boxplot(relative_error(Timing_Seasonal_Low_Flows_future45, Timing_Seasonal_Low_Flows_past45),color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    boxplot!(relative_error(Timing_Seasonal_Low_Flows_future85, Timing_Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("relative change [%]")
+    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    relative_change = boxplot!()
+
+
+    #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    plot(absolute_change)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_summerlowflows.png")
+
+    violin(Timing_Seasonal_Low_Flows_future45 - Timing_Seasonal_Low_Flows_past45,color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    violin!(Timing_Seasonal_Low_Flows_future85 - Timing_Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("absolute change [days]")
+    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    absolute_change = boxplot!()
+    # relative change
+    violin(relative_error(Timing_Seasonal_Low_Flows_future45, Timing_Seasonal_Low_Flows_past45),color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    violin!(relative_error(Timing_Seasonal_Low_Flows_future85, Timing_Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("relative change [%]")
+    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    relative_change = boxplot!()
+
+
+    #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    plot(absolute_change, relative_change)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_summerlowflows_violins.png")
 end
 
-#plot_low_flows(Summer_Low_Flows_past45, Summer_Low_Flows_future45, Summer_Low_Flows_past85, Summer_Low_Flows_future85)
+#plot_low_flows(Summer_Low_Flows_past45, Summer_Low_Flows_future45, Summer_Low_Flows_past85, Summer_Low_Flows_future85,  Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45,  Timing_Summer_Low_Flows_Past_85, Timing_Summer_Low_Flows_Future_85)
 
 
 #------------------- FUNCTIONS -----------------------
 
 findnearest(A::Array{Float64,1},t::Float64) = findmin(abs.(A-t*ones(length(A))))[2]
-relative_error(future::Float64, initial::Float64) = (future - initial) / initial
+relative_error(future, initial) = (future - initial) ./ initial
 
 function plot_FDC(Past_Discharge_45, Future_Discharge_45, Past_Discharge_85, Future_Discharge_85, Name_Projection, Percentiles)
     FDC_Past_45 = flowdurationcurve((Past_Discharge_45))
@@ -650,7 +724,7 @@ end
 Percentiles = collect(0.1:0.1:0.9)
 
 
-#monthly average discharges (or winter summer
+# ---------------------------------- ANNUAL MAXIMUM DISCHARGE --------------------------------
 
 function max_Annual_Discharge(Discharge, Timeseries)
     Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
@@ -661,41 +735,274 @@ function max_Annual_Discharge(Discharge, Timeseries)
                               Dates.Year(x) == Dates.Year(Current_Year)
                           end
             max_Discharge = maximum(Discharge[indexin(Dates_Current_Year, Timeseries)])
-            Date_Max_Discharge = Timeseries[findfirst(x->x == max_Discharge, Discharge)]
+
+            #Date_Max_Discharge = Timeseries[findfirst(x->x == max_Discharge, Discharge)]
             append!(max_Annual_Discharge, max_Discharge)
-            append!(Date_max_Annual_Discharge, Dates.dayofyear(Date_Max_Discharge))
+            append!(Date_max_Annual_Discharge, Dates.dayofyear(Dates_Current_Year[argmax(Discharge[indexin(Dates_Current_Year, Timeseries)])]))
     end
     return max_Annual_Discharge, Date_max_Annual_Discharge
 end
 
-function change_max_Annual_Discharge(path_45)
-    Name_Projections_45 = readdir(path_45)
+function max_Annual_Discharge_7days(Discharge, Timeseries)
+    days = 7
+    Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
+    max_Annual_Discharge = Float64[]
+    Date_max_Annual_Discharge = Float64[]
+    for (i, Current_Year) in enumerate(Years)
+            Dates_Current_Year = filter(Timeseries) do x
+                              Dates.Year(x) == Dates.Year(Current_Year)
+                          end
+            Current_Discharge = Discharge[indexin(Dates_Current_Year, Timeseries)]
+
+            All_Discharges_7days = Float64[]
+            for week in 1: length(Current_Discharge) - days
+                Current_Discharge_7days = mean(Current_Discharge[week: week+days])
+                append!(All_Discharges_7days, Current_Discharge_7days)
+            end
+            #Date_Max_Discharge = Timeseries[findfirst(x->x == max_Discharge, Discharge)]
+            append!(max_Annual_Discharge, maximum(All_Discharges_7days))
+            append!(Date_max_Annual_Discharge, Dates.dayofyear(Dates_Current_Year[argmax(All_Discharges_7days)]))
+    end
+    return max_Annual_Discharge, Date_max_Annual_Discharge
+end
+
+function average_timing(Dates_Max_Annual_Discharge, Timeseries)
+    Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
+    @assert length(Dates_Max_Annual_Discharge) ==  length(Years)
+    Days_In_Year = Float64[]
+    Formula_x = Float64[]
+    Formula_y = Float64[]
+    for (i, current_year) in enumerate(Years)
+        Current_Circular_Date = Dates_Max_Annual_Discharge[i] * 2 * pi / Dates.daysinyear(current_year)
+        x = cos(Current_Circular_Date)
+        y = sin(Current_Circular_Date)
+        append!(Days_In_Year, Dates.daysinyear(current_year))
+        append!(Formula_x, x)
+        append!(Formula_y, y)
+    end
+    mean_x = mean(Formula_x)
+    mean_y = mean(Formula_y)
+    mean_DaysinYear = mean(Days_In_Year)
+
+    if mean_x > 0 && mean_y >= 0
+        Mean_Timing = atan(mean_y / mean_x) * mean_DaysinYear / (2*pi)
+    elseif mean_x <= 0
+        Mean_Timing = (atan(mean_y / mean_x) + pi) * mean_DaysinYear / (2*pi)
+    else
+        Mean_Timing = (atan(mean_y / mean_x) + 2*pi) * mean_DaysinYear / (2*pi)
+    end
+    concentration_floods = sqrt(mean_x^2 + mean_y^2)
+    #print(mean_DaysinYear, "\n")
+    #Day_Mean_Timing = Mean_Timing * ()
+
+    return Mean_Timing, concentration_floods
+end
+
+function difference_timing(Timing_Past, Timing_Future)
+    Timing_Past = Timing_Past .* (2*pi) ./ 365.23333
+    Timing_Future = Timing_Future .* (2*pi) ./ 365.23333
+    Difference = Timing_Future - Timing_Past
+    for (i,current_Difference) in enumerate(Difference)
+        if current_Difference > pi
+            Difference[i] = 2*pi - current_Difference
+        elseif current_Difference < -pi
+            Difference[i] = -(2*pi + current_Difference)
+        end
+    end
+    return Difference .* (365.23333/(2*pi))
+end
+
+function change_max_Annual_Discharge(path_to_projections)
+    Name_Projections_45 = readdir(path_to_projections)
     Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
     Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
     change_all_runs = Float64[]
-    timing_change_all_runs = Float64[]
-    timing_change_all_runs2 = Float64[]
+    average_max_Discharge_past = Float64[]
+    average_max_Discharge_future = Float64[]
+    Timing_max_Discharge_past = Float64[]
+    Timing_max_Discharge_future = Float64[]
+    All_Concentration_past = Float64[]
+    All_Concentration_future = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
     for (i, name) in enumerate(Name_Projections_45)
-        Timeseries_Future_45 = collect(Date(Timeseries_End[i,2]-29,1,1):Day(1):Date(Timeseries_End[i,2],12,31))
-        Past_Discharge_45 = readdlm(path_45*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge_45 = readdlm(path_45*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
         #change_all_runs = Float64[]
         for run in 1:100
-            max_Discharge_past, Date_max_Discharge_past = max_Annual_Discharge(Past_Discharge_45[run,:], Timeseries_Past)
-            max_Discharge_future, Date_max_Discharge_future = max_Annual_Discharge(Future_Discharge_45[run,:], Timeseries_Future_45)
-            max_Discharge_past = mean(max_Discharge_past)
-            max_Discharge_future = mean(max_Discharge_future)
-            Date_max_Discharge_past = mean(Date_max_Discharge_past)
-            Date_max_Discharge_future = mean(Date_max_Discharge_future)
-            error = relative_error(max_Discharge_future, max_Discharge_past)
+            max_Discharge_past, Date_max_Discharge_past = max_Annual_Discharge_7days(Past_Discharge[run,:], Timeseries_Past)
+            max_Discharge_future, Date_max_Discharge_future = max_Annual_Discharge_7days(Future_Discharge[run,:], Timeseries_Future)
+            append!(average_max_Discharge_past, mean(max_Discharge_past))
+            append!(average_max_Discharge_future, mean(max_Discharge_future))
+            timing_average_max_Discharge_past, Concentration_past = average_timing(Date_max_Discharge_past, Timeseries_Past)
+            timing_average_max_Discharge_future, Concentration_future = average_timing(Date_max_Discharge_future, Timeseries_Past)
+            #Date_max_Discharge_past = mean(Date_max_Discharge_past)
+            #Date_max_Discharge_future = mean(Date_max_Discharge_future)
+            #error = relative_error(max_Discharge_future, max_Discharge_past)
             #error_timing = Date_max_Discharge_future - Date_max_Discharge_past)
-            append!(change_all_runs, error)
-            append!(timing_change_all_runs, Date_max_Discharge_future)
-            append!(timing_change_all_runs2, Date_max_Discharge_past)
+            #append!(change_all_runs, error)
+            append!(Timing_max_Discharge_past, timing_average_max_Discharge_past)
+            append!(Timing_max_Discharge_future, timing_average_max_Discharge_future)
+            append!(All_Concentration_past, Concentration_past)
+            append!(All_Concentration_future, Concentration_future)
         end
     end
-    return change_all_runs, timing_change_all_runs, timing_change_all_runs2
+    # scatter([Timing_max_Discharge_past, Timing_max_Discharge_future], label=["blue", "red"])
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/timing_85.png")
+    return average_max_Discharge_past, average_max_Discharge_future, Timing_max_Discharge_past, Timing_max_Discharge_future, All_Concentration_past, All_Concentration_future
 end
+
+function plot_Max_Flows(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, Max_Flows_future85, Timing_Max_Flows_past45, Timing_Max_Flows_future45,  Timing_Max_Flows_past85, Timing_Max_Flows_future85)
+    Farben45=palette(:blues)
+    Farben85=palette(:reds)
+    # plot seasonal low flows of each projection
+    for proj in 1:14
+        boxplot(Max_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
+        boxplot!(Max_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
+        boxplot!(Max_Flows_past85[1+(proj-1)*100: proj*100], color=[Farben85[1]])
+        boxplot!(Max_Flows_future85[1+(proj-1)*100: proj*100], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+        xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+        ylabel!("mean annual maximum daily Discharge [m³/s]")
+        ylims!((40,100))
+        title!("Annual Maximum Discharge")
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/max_yearly_discharge_"*string(Name_Projections_45[proj])*".png")
+    end
+    # plot seasonal low flows of all projections combined
+    boxplot(Max_Flows_past45, color=[Farben45[1]])
+    boxplot!(Max_Flows_future45,color=[Farben45[2]])
+    boxplot!(Max_Flows_past85, color=[Farben85[1]])
+    boxplot!(Max_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    ylabel!("Mean annual maximum yearly Discharge [m³/s]")
+    ylims!((40,100))
+    title!("Annual Maximum Discharge")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/max_yearly_discharge.png")
+
+    #absolute and relative decrease
+    boxplot(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    boxplot!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("absolute change [m³/s]")
+    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    absolute_change = boxplot!()
+    # relative change
+    boxplot(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    boxplot!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("relative change [%]")
+    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    relative_change = boxplot!()
+
+
+    #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    plot(absolute_change, relative_change)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/change_max_yearly_discharge.png")
+
+    violin(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    violin!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("absolute change [m³/s]")
+    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    absolute_change = boxplot!()
+    # relative change
+    violin(relative_error(Max_Flows_future45, Max_Flows_past45),color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    violin!(relative_error(Max_Flows_future85, Max_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("relative change [%]")
+    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    relative_change = boxplot!()
+
+
+    #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    plot(absolute_change, relative_change)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/change_max_yearly_discharge_violin.png")
+
+    # ----------------- TIMING -----------------
+    # plot timing of seasonal low flows of all projections combined
+
+    boxplot(Timing_Max_Flows_past45, color=[Farben45[1]])
+    boxplot!(Timing_Max_Flows_future45,color=[Farben45[2]])
+    boxplot!(Timing_Max_Flows_past85, color=[Farben85[1]])
+    boxplot!(Timing_Max_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    ylabel!("Timing of Maximum Discharge")
+    #ylims!((2,10))
+    yticks!([1,32,60,91,121,152,182,213,244,274,305,335], ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7","1.8", "1.9", "1.10", "1.11", "1.12"])
+    title!("Timing of Maximum Discharge")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/timing_max_yearly_discharge.png")
+
+    # plot timing of seasonal low flows of each projection
+    for proj in 1:14
+        boxplot(Timing_Max_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
+        boxplot!(Timing_Max_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
+        boxplot!(Timing_Max_Flows_past85[1+(proj-1)*100: proj*100], color=[Farben85[1]])
+        boxplot!(Timing_Max_Flows_future85[1+(proj-1)*100: proj*100], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+        xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+        ylabel!("Timing of Maximum Discharge")
+        yticks!([1,32,60,91,121,152,182,213,244,274,305,335], ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7","1.8", "1.9", "1.10", "1.11", "1.12"])
+        title!("Timing of Maximum Discharge")
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/timing_max_yearly_discharge_"*string(Name_Projections_45[proj])*".png")
+    end
+
+    #absolute and relative change in timing of low flows
+    #   dates have to be transformed to circular coordinates
+    Difference_Timing_45 = difference_timing(Timing_Max_Flows_past45, Timing_Max_Flows_future45)
+    Difference_Timing_85 = difference_timing(Timing_Max_Flows_past85, Timing_Max_Flows_future85)
+    boxplot(Difference_Timing_45,color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    boxplot!(Difference_Timing_85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("absolute change [days]")
+    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    absolute_change = boxplot!()
+    # relative change
+    # boxplot(relative_error(Timing_Max_Flows_future45, Timing_Max_Flows_past45),color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(relative_error(Timing_Max_Flows_future85, Timing_Max_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("relative change [%]")
+    # #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # relative_change = boxplot!()
+
+
+    #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    plot(absolute_change)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/change_timing_max_yearly_discharge.png")
+
+    violin(Difference_Timing_45,color=[Farben45[2]])
+    #boxplot!(, color=[Farben85[1]])
+    violin!(Difference_Timing_85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    ylabel!("absolute change [days]")
+    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    absolute_change = boxplot!()
+    plot(absolute_change)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/change_timing_max_yearly_discharge_violin.png")
+    # #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    # plot(absolute_change, relative_change)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_summerlowflows_violins.png")
+end
+
+#max_Discharge_Past_45, Max_Discharge_Future_45, Timing_Max_Discharge_Past45, Timing_Max_Discharge_Future45, concentration_past_45, concentration_future_45 =  change_max_Annual_Discharge(path_45)
+
+#plot_Max_Flows(max_Discharge_Past_45, Max_Discharge_Future_45, max_Discharge_Past_85, Max_Discharge_Future_85, Timing_Max_Discharge_Past45, Timing_Max_Discharge_Future45, Timing_Max_Discharge_Past85, Timing_Max_Discharge_Future85)
+
+
+
+
+
 
 
 #changes = change_max_Annual_Discharge(path_45)

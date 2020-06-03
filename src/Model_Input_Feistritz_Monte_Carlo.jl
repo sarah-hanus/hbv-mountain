@@ -11,26 +11,26 @@ using Distributed
 @everywhere module_dir = "/home/sarah/HBVModel/src/"
 @everywhere push!(LOAD_PATH, $module_dir)
 
-# # load list of structs
-# @everywhere include("structs.jl")
-# # load components of models represented by buckets
-# @everywhere include("processes_buckets.jl")
-# # load functions that combine all components of one HRU
-# @everywhere include("elevations.jl")
-# # load functions for combining all HRUs and for running the model
-# @everywhere include("allHRU.jl")
-# # load function for running model which just returns the necessary output for calibration
-# @everywhere include("run_model.jl")
-# # load functions for preprocessing temperature and precipitation data
-# @everywhere include("Preprocessing.jl")
-# # load functions for calculating the potential evaporation
-# @everywhere include("Potential_Evaporation.jl")
-# # load objective functionsM
-# @everywhere include("ObjectiveFunctions.jl")
-# # load parameterselection
-# @everywhere include("parameterselection.jl")
-# # load running model in several precipitation zones
-# @everywhere include("runmodel_Prec_Zones.jl")
+# load list of structs
+@everywhere include("structs.jl")
+# load components of models represented by buckets
+@everywhere include("processes_buckets.jl")
+# load functions that combine all components of one HRU
+@everywhere include("elevations.jl")
+# load functions for combining all HRUs and for running the model
+@everywhere include("allHRU.jl")
+# load function for running model which just returns the necessary output for calibration
+@everywhere include("run_model.jl")
+# load functions for preprocessing temperature and precipitation data
+@everywhere include("Preprocessing.jl")
+# load functions for calculating the potential evaporation
+@everywhere include("Potential_Evaporation.jl")
+# load objective functionsM
+@everywhere include("ObjectiveFunctions.jl")
+# load parameterselection
+@everywhere include("parameterselection.jl")
+# load running model in several precipitation zones
+@everywhere include("runmodel_Prec_Zones.jl")
 
 
 @everywhere function run_MC(ID, nmax)
@@ -58,7 +58,6 @@ using Distributed
         # timeperiod for which model should be run (look if timeseries of data has same length)
         Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
 
-# stopped heere
         #------------ TEMPERATURE AND POT. EVAPORATION CALCULATIONS ---------------------
         #Temperature is the same in whole catchment
         Temperature = CSV.read(local_path*"HBVModel/Feistritz/prenner_tag_10510.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
@@ -74,78 +73,9 @@ using Distributed
         endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
         Temperature_Daily = Temperature_Array[startindex[1]:endindex[1]]
         Timeseries_Temp = Timeseries_Temp[startindex[1]:endindex[1]]
-        #Timeseries_Temp = Timeseries[startindex[1]:endindex[1]]
-        # Dates_Temperature_Daily = Timeseries_Temp[startindex[1]:endindex[1]]
-        # Dates_missing_Temp = Dates_Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)]
-        #
-        # # --- also more dates missing 16.3.03 - 30.3.03
-        # Dates_missing =  collect(Date(2003,3,17):Day(1):Date(2003,3,30))
-        #
-        # Dates_Temperature_Daily_all = Array{Date,1}(undef, 0)
-        # Temperature_Daily_all = Array{Float64,1}(undef, 0)
-        # # index where Dates are missing
-        # index = findall(x -> x == Date(2003,3,17) - Day(1), Dates_Temperature_Daily)[1]
-        # append!(Dates_Temperature_Daily_all, Dates_Temperature_Daily[1:index])
-        # append!(Dates_Temperature_Daily_all, Dates_missing)
-        # append!(Dates_Temperature_Daily_all, Dates_Temperature_Daily[index+1:end])
-
-
 
         @assert Timeseries_Temp == Timeseries
-        println("works", "\n")
-        # ----------- add Temperature for missing temperature -------------------
-        # station 13120 is 100 m higher than station 9900, so 0.6 °C colder
-        # Temperature_13120 = CSV.read(local_path*"HBVModel/Palten/prenner_tag_13120.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
-        # Temperature_13120 = dropmissing(Temperature_13120)
-        # Temperature_Array_13120 = Temperature_13120.t / 10
-        # Timeseries_13120 = Date.(Temperature_13120.datum, Dates.DateFormat("yyyymmdd"))
-        # index = Int[]
-        # for i in 1:length(Dates_missing_Temp)
-        #         append!(index, findall(x -> x == Dates_missing_Temp[i], Timeseries_13120))
-        # end
-        # Temperature_13120_missing_data = Temperature_Array_13120[index] + ones(length(index))*0.6
-        # Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)] .= Temperature_13120_missing_data
-        #
-        # Temperature_Daily_all = Array{Float64,1}(undef, 0)
-        # # index where Dates are missing
-        # index = findall(x -> x == Date(2003,3,17) - Day(1), Dates_Temperature_Daily)[1]
-        # index_missing_dataset = Int[]
-        # for i in 1:length(Dates_missing)
-        #         append!(index_missing_dataset, findall(x -> x == Dates_missing[i], Timeseries_13120))
-        # end
-        # #Temperature_13120_missing_data = Temperature_Array_13120[index] + ones(length(Temperature_13120_missing_data))*0.6
-        # append!(Temperature_Daily_all, Temperature_Daily[1:index])
-        # append!(Temperature_Daily_all, Temperature_Array_13120[index_missing_dataset] + ones(length(index_missing_dataset))*0.6)
-        # append!(Temperature_Daily_all, Temperature_Daily[index+1:end])
-        #
-        # Temperature_Daily = Temperature_Daily_all
-        # ---------- Precipitation Data for Zone 9900 -------------------
-
-        # Precipitation_9900 = Precipitation_9900[startindex[1]:endindex[1]]
-        # # data is -1 for no precipitation at all
-        # Precipitation_9900[findall(x -> x == -0.1, Precipitation_9900)] .= 0.0
-        # # for the days where there is no precipitation data use the precipitation of the next station (106120)
-        # #Precipitation_9900[findall(x-> x == 999.9, Precipitation_9900)] .= Precipitation_106120[findall(x-> x == 999.9, Precipitation_9900),2]
-        #
-        # Precipitation_9900_all = Array{Float64,1}(undef, 0)
-        #
-        # append!(Precipitation_9900_all, Precipitation_9900[1:index])
-        # append!(Precipitation_9900_all, Precipitation_106120[index+1:index+length(Dates_missing),2])
-        # append!(Precipitation_9900_all, Precipitation_9900[index+1:end])
-        #
-        # Precipitation_9900_all[findall(x-> x == 999.9, Precipitation_9900_all)] .= Precipitation_106120[findall(x-> x == 999.9, Precipitation_9900_all),2]
-        #
-        # Precipitation_9900 = Precipitation_9900_all
-        #Dates_Temperature_Daily, Temperature_Daily = daily_mean(Timeseries, Temperature_Array)
-
-        # Temperature = CSV.read(local_path*"HBVModel/Gailtal/LTkont113597.csv", header=false, skipto = 20, missingstring = "L\xfccke", decimal='.', delim = ';')
-        # Temperature_Array = convert(Matrix, Temperature)
-        # startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00"), Temperature_Array)
-        # endindex = findfirst(isequal("31.12."*string(endyear)*" 23:00:00"), Temperature_Array)
-        # Temperature_Array = Temperature_Array[startindex[1]:endindex[1],:]
-        # Temperature_Array[:,1] = Date.(Temperature_Array[:,1], Dates.DateFormat("d.m.y H:M:S"))
-        # Dates_Temperature_Daily, Temperature_Daily = daily_mean(Temperature_Array)
-        # get the temperature data at each elevation
+        #println("works", "\n")
         Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
         # get the temperature data at the mean elevation to calculate the mean potential evaporation
         Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
@@ -177,7 +107,6 @@ using Distributed
 
         # ------------- LOAD PRECIPITATION DATA OF EACH PRECIPITATION ZONE ----------------------
         # get elevations at which precipitation was measured in each precipitation zone
-        # changed to 1400 in 2003
         Elevations_109967= Elevations(200., 400., 1600., 563.,488.)
         # Elevations_111815 = Elevations(200, 600, 2400, 890., 648.)
         # Elevations_9900 = Elevations(200, 600, 2400, 648., 648.)
@@ -337,8 +266,7 @@ using Distributed
                 writedlm(io, All_Goodness,",")
         end
 end
-#
-nmax = 10
+
 @time begin
 run_MC(1,700)
 #pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
