@@ -1012,3 +1012,236 @@ end
 # ylabel!("Day of Year")
 # title!("RCP 8.5")
 # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/Timing85.png")
+
+"""
+Calculates the aridity and evaporative index for all climate projections with each 100 parameter sets for the given path.
+
+$(SIGNATURES)
+The function returns the past and future aridity index (Array length: Number of climate projections) and past and future evaporative index (Array Length: Number Climate Projections x Number Parameter Sets).
+    It takes as input the path to the projections.
+"""
+function aridity_evaporative_index(path_to_projections, Area_Catchment)
+
+    Name_Projections = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    Evaporative_Index_past_all_runs = Float64[] # will be 100x14
+    Evaporative_Index_future_all_runs = Float64[] # will be 100x14
+    Aridity_Index_past = Float64[] # will be 14 long
+    Aridity_Index_future = Float64[] # will be 14 long
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    for (i, name) in enumerate(Name_Projections)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
+        Past_Precipitation = readdlm(path_to_projections*name*"/Gailtal/results_precipitation_past_2010.csv", ',')
+        Future_Precipitation = readdlm(path_to_projections*name*"/Gailtal/results_precipitation_future_2100.csv", ',')
+        Past_Epot = readdlm(path_to_projections*name*"/Gailtal/results_epot_past_2010.csv", ',')
+        Future_Epot = readdlm(path_to_projections*name*"/Gailtal/results_epot_future_2100.csv", ',')
+
+        Current_Aridity_Index_past = mean(Past_Epot) / mean(Past_Precipitation)
+        Current_Aridity_Index_future = mean(Future_Epot) / mean(Future_Precipitation)
+        append!(Aridity_Index_past, Current_Aridity_Index_past)
+        append!(Aridity_Index_future, Current_Aridity_Index_future)
+
+        for run in 1:100
+            Evaporative_Index_past = 1 - mean(convertDischarge(Past_Discharge[run,:], Area_Catchment)) / mean(Past_Precipitation)
+            Evaporative_Index_future = 1 - mean(convertDischarge(Future_Discharge[run,:], Area_Catchment))/ mean(Future_Precipitation)
+            append!(Evaporative_Index_past_all_runs, Evaporative_Index_past)
+            append!(Evaporative_Index_future_all_runs, Evaporative_Index_future)
+        end
+    end
+    return Aridity_Index_past, Aridity_Index_future, Evaporative_Index_past_all_runs, Evaporative_Index_future_all_runs
+end
+
+function plot_Budyko(Aridity_Index_past_45, Aridity_Index_future_45, Evaporative_Index_past_45, Evaporative_Index_future_45, Aridity_Index_past_85, Aridity_Index_future_85, Evaporative_Index_past_85, Evaporative_Index_future_85, path_to_projections)
+    # plot the water and energy limit
+    # aridity past and future each 14 elements
+    # evaporative index each 1400 elements
+    Name_Projections = readdir(path_to_projections)
+    for proj in 1:14
+        plot(collect(0:1),collect(0:1), color="darkblue", label="Energy Limit")
+        plot!(collect(1:5), ones(5), color="lightblue", label="Water Limit")
+        scatter!([Aridity_Index_past_45[proj], Aridity_Index_past_85[proj]], [mean(Evaporative_Index_past_45[1+(proj-1)*100: 100*proj]), mean(Evaporative_Index_past_85[1+(proj-1)*100: 100*proj])], label="Past", color="black")
+        scatter!([Aridity_Index_future_45[proj]], [mean(Evaporative_Index_future_45[1+(proj-1)*100: 100*proj])], label = "RCP 4.5", color="blue")
+        scatter!([Aridity_Index_future_85[proj]], [mean(Evaporative_Index_future_85[1+(proj-1)*100: 100*proj])], label = "RCP 8.5", color="red")
+        xlabel!("Epot/P")
+        ylabel!("Eact/P")
+        xlims!((0,1))
+        ylims!((0,0.5))
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Budyko/budykoframework"*string(Name_Projections[proj])*".png")
+    end
+end
+
+Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
+Area_Catchment = sum(Area_Zones)
+#aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45 = aridity_evaporative_index(path_45, Area_Catchment)
+
+#plot_Budyko(aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45, aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85, path_45)
+function circleShape(h,k,r)
+    tau = LinRange(0, 2*pi, 500)
+    h .+ r*sin.(tau), k .+ r*cos.(tau)
+end
+
+function plot_changes_Budyko(path_to_projections_45, path_to_projections_85, Area_Catchment)
+    aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45 = aridity_evaporative_index(path_to_projections_45, Area_Catchment)
+    aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85 = aridity_evaporative_index(path_to_projections_85, Area_Catchment)
+
+    #plot aboslute changes in aridity index
+    # scatter(aridity_future_45 - aridity_past45, color="blue")
+    # scatter!(aridity_future_85 - aridity_past85, color="red")
+    # title!("Change in Aridity Index: Future - Past")
+    # ylabel!("Aridity Index (Epot/P)")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Budyko/change_aridity.png")
+    #
+    # boxplot(["RCP 4.5"],evaporative_future_45 - evaporative_past_45, color="blue", legend=false)
+    # boxplot!(["RCP 8.5"],evaporative_future_85 - evaporative_past_85, color="red", legend=false)
+    # title!("Change in Evaporative Index: Future - Past")
+    # ylabel!("Evaporative Index (Eact/P)")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Budyko/change_evaporative.png")
+    #
+    # violin(["RCP 4.5"],evaporative_future_45 - evaporative_past_45, color="blue", legend=false)
+    # violin!(["RCP 8.5"],evaporative_future_85 - evaporative_past_85, color="red", legend=false)
+    # title!("Change in Evaporative Index: Future - Past")
+    # ylabel!("Evaporative Index (Eact/P)")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Budyko/change_evaporative_violin.png")
+
+    # plot changes in Budyko space
+    plot(circleShape(0,0,0.05), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.1), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.15), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.2), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    for proj in 1:14
+        change_vector_x = ones(100) * (aridity_future_45[proj] - aridity_past45[proj])
+        change_vector_y = evaporative_future_45[1+(proj-1)*100: 100*proj] - evaporative_past_45[1+(proj-1)*100: 100*proj]
+        for i in 1:100
+            plot!([0, change_vector_x[i]], [0, change_vector_y[i]], color = "blue", legend=false)
+        end
+    end
+    title!("RCP 4.5")
+    xlabel!("change in Epot/P")
+    ylabel!("change in Eact/P")
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Budyko/change_budyko4.5.png")
+    rcp45 = plot!()
+
+    plot(circleShape(0,0,0.05), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.1), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.15), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.2), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    for proj in 1:14
+        change_vector_x = ones(100) * (aridity_future_85[proj] - aridity_past85[proj])
+        change_vector_y = evaporative_future_85[1+(proj-1)*100: 100*proj] - evaporative_past_85[1+(proj-1)*100: 100*proj]
+        for i in 1:100
+            plot!([0, change_vector_x[i]], [0, change_vector_y[i]], color = "red", legend=false)
+        end
+    end
+    title!("RCP 8.5")
+    xlabel!("change in Epot/P")
+    ylabel!("change in Eact/P")
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Budyko/change_budyko8.5.png")
+    rcp85 = plot!()
+    plot(rcp45, rcp85, size=(1200,600))
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Budyko/change_budyko4.5_8.5.png")
+end
+
+#plot_changes_Budyko(path_45, path_85, Area_Catchment)
+
+
+
+#plot(circleShape(0,0,1), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+#plot!(circleShape(0,0,0.11), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+
+# ---------------- HYDROLOGICAL DROUGHTS --------------------------
+
+function hydrological_drought_statistics(Discharge, Timeseries, Threshold)
+    # get number of days of drought in each year
+    # get number of drought events in each year
+    # get yearly maximum duration of drought events
+    Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
+    Nr_Drought_Days = Float64[]
+    Nr_Drought_Events = Float64[]
+    Max_Drought_Length = Float64[]
+    #Date_max_Annual_Discharge = Float64[]
+    for (i, Current_Year) in enumerate(Years)
+            Dates_Current_Year = filter(Timeseries) do x
+                              Dates.Year(x) == Dates.Year(Current_Year)
+                          end
+
+            Current_Discharge = Discharge[indexin(Dates_Current_Year, Timeseries)]
+            index_drought = findall(x->x < Threshold, Current_Discharge)
+            append!(Nr_Drought_Days, length(index_drought))
+            count = 0
+            startindex = Int64[]
+            endindex = Int64[]
+            length_drought = Float64[]
+            last_daily_discharge = 0.1
+            for (j,daily_discharge) in enumerate(Current_Discharge)
+                if j == 1 && daily_discharge < Threshold
+                    count += 1
+                    append!(startindex, j)
+                elseif j == 1 && daily_discharge >= Threshold
+                    count = 0
+                elseif daily_discharge < Threshold && last_daily_discharge >= Threshold
+                    count+=1
+                    append!(startindex, j)
+                elseif daily_discharge < Threshold && last_daily_discharge < Threshold
+                    count += 1
+                elseif daily_discharge >= Threshold && last_daily_discharge < Threshold
+                    append!(endindex, j-1)
+                    append!(length_drought, count)
+                    count = 0
+                end
+                last_daily_discharge = daily_discharge
+            end
+            append!(Nr_Drought_Events, length(startindex))
+            append!(Max_Drought_Length, maximum(length_drought))
+    end
+    return mean(Nr_Drought_Days), mean(Nr_Drought_Events), mean(Max_Drought_Length)
+end
+
+function compare_hydrological_drought(path_to_projections, Threshold)
+    Name_Projections = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    Nr_Drought_Days_Past = Float64[]
+    Nr_Drought_Days_Future  = Float64[]
+    Nr_Drought_Events_Past = Float64[]
+    Nr_Drought_Events_Future = Float64[]
+    Max_Drought_Length_Past = Float64[]
+    Max_Drought_Length_Future = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    for (i, name) in enumerate(Name_Projections)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
+        for run in 1:100
+            Current_Nr_Drought_Days_Past, Current_Nr_Drought_Events_Past, Current_Max_Drought_Length_Past = hydrological_drought_statistics(Past_Discharge[run,:], Timeseries_Past, Threshold)
+            Current_Nr_Drought_Days_Future, Current_Nr_Drought_Events_Future, Current_Max_Drought_Length_Future = hydrological_drought_statistics(Future_Discharge[run,:], Timeseries_Future, Threshold)
+            append!(Nr_Drought_Days_Past, Current_Nr_Drought_Days_Past)
+            append!(Nr_Drought_Days_Future, Current_Nr_Drought_Days_Future)
+            append!(Nr_Drought_Events_Past, Current_Nr_Drought_Events_Past)
+            append!(Nr_Drought_Events_Future, Current_Nr_Drought_Events_Future)
+            append!(Max_Drought_Length_Past, Current_Max_Drought_Length_Past)
+            append!(Max_Drought_Length_Future, Current_Max_Drought_Length_Future)
+        end
+    end
+    return Nr_Drought_Days_Past, Nr_Drought_Days_Future, Nr_Drought_Events_Past, Nr_Drought_Events_Future, Max_Drought_Length_Past, Max_Drought_Length_Future
+end
+
+Nr_Drought_Days_Past, Nr_Drought_Days_Future, Nr_Drought_Events_Past, Nr_Drought_Events_Future, Max_Drought_Length_Past, Max_Drought_Length_Future = compare_hydrological_drought(path_45, 20)

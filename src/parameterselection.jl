@@ -182,7 +182,7 @@ function parameter_selection_feistritz()
         max_Ks = 0.05
         max_Kf = 0.6
         max_Soilstoaragecapacity_Grass = 200.0
-        max_Soilstoaragecapacity_Rip = 200.0
+        max_Soilstoaragecapacity_Rip = 150.0
         max_Soilstoaragecapacity_Bare = 50.0
 
         precission = 0.001
@@ -211,9 +211,9 @@ function parameter_selection_feistritz()
         # parameter constraints on fast reservoir coefficients
         Kf_Rip = rand(0.2:precission:3.0)
         if Kf_Rip < max_Kf
-                Kf = rand(0.1:precission:Kf_Rip - precission)
+                Kf = rand(0.05:precission:Kf_Rip - precission)
         else
-                Kf = rand(0.1:precission: max_Kf)
+                Kf = rand(0.05:precission: max_Kf)
         end
 
         if Kf < max_Ks
@@ -227,7 +227,7 @@ function parameter_selection_feistritz()
         #Precipitation_Gradient = round(random_parameter(0, 0.0045), precission= 5)
         Ratio_Pref = rand(0.1:precission:0.6)
         # Parameter Constrain SOilstoragecapacity Forest >= Grass >= Rip/Bare
-        Soilstoaragecapacity_Forest = rand(50.0:precission_soilcap:400.0)
+        Soilstoaragecapacity_Forest = rand(50.0:precission_soilcap:250.0)
         if Soilstoaragecapacity_Forest < max_Soilstoaragecapacity_Grass
                 Soilstoaragecapacity_Grass = rand(5.0:precission_soilcap:Soilstoaragecapacity_Forest - precission_soilcap)
         else

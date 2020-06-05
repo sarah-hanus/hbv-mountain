@@ -184,16 +184,16 @@ function checkwaterbalance(Total_Precipitation, Discharge, Potential_Evaporation
         return Waterbalance_Thorn_Daily, Waterbalance_Yearly, Annual_Precipitation, Annual_Pot_Evap_Thorn_Daily
 end
 
-daily_WB, WB, Annual_Prec, Annual_Epot = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
-
-scatter(Annual_Prec)
-xlabel!("Years")
-ylabel!("Yearly Precipitation [mm]")
-title!("Yearly Precipitation Feistritz: Mean= "*string(round(mean(Annual_Prec))))
-savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_precipitation.png")
-
-scatter(Annual_Epot)
-xlabel!("Years")
-ylabel!("Yearly Potential Evporation [mm]")
-title!("Yearly Potential Evaporation Feistritz: Mean= "*string(round(mean(Annual_Epot))))
-savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_evaporation.png")
+# daily_WB, WB, Annual_Prec, Annual_Epot = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
+#
+# scatter(Annual_Prec)
+# xlabel!("Years")
+# ylabel!("Yearly Precipitation [mm]")
+# title!("Yearly Precipitation Feistritz: Mean= "*string(round(mean(Annual_Prec))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_precipitation.png")
+#
+# scatter(Annual_Epot)
+# xlabel!("Years")
+# ylabel!("Yearly Potential Evporation [mm]")
+# title!("Yearly Potential Evaporation Feistritz: Mean= "*string(round(mean(Annual_Epot))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_evaporation.png")
