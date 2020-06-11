@@ -124,7 +124,7 @@ function runmodel_alloutput(Area, Evaporation_Mean::Array{Float64,1}, Precipitat
         Interceptionstorage[t, :]::Array{Float64,1} = [Bare_Interceptionstorage, Forest_Interceptionstorage, Grass_Interceptionstorage, Rip_Interceptionstorage]
         Snowstorage[t] = Bare_Snowstorage * bare_input.Area_HRU + Forest_Snowstorage * forest_input.Area_HRU + Grass_Snowstorage * grass_input.Area_HRU + Rip_Snowstorage * rip_input.Area_HRU
         Soilstorage[t, :]::Array{Float64,1} = [bare_storage.Soil, forest_storage.Soil, grass_storage.Soil, rip_storage.Soil]
-        #Faststorage[t, :]::Array{Float64,1} = [bare_storage.Fast, forest_storage.Fast, grass_storage.Fast, rip_storage.Fast]
+        Faststorage[t, :]::Array{Float64,1} = [bare_storage.Fast, forest_storage.Fast, grass_storage.Fast, rip_storage.Fast]
         GWstorage[t]::Float64 = Slowstorage
         WBtotal[t]::Float64 = WB
         Precipitation_Total[t]::Float64 = Total_Prec
@@ -134,7 +134,7 @@ function runmodel_alloutput(Area, Evaporation_Mean::Array{Float64,1}, Precipitat
     # calculate the water balance at each timestep and sum it at the end for getting waterbalance over all timesteps
     Waterbalance = sum(WBtotal)::Float64
     @assert Waterbalance <= 10^(-10)
-    return Discharge::Array{Float64,1}, Snow_Extend::Array{Float64,2}, GWstorage::Array{Float64,1}, Snowstorage::Array{Float64,1}, Snow_Elevations, Soilstorage::Array{Float64,2}#, Interceptionstorage::Array{Float64,2}, Faststorage::Array{Float64,2},
+    return Discharge::Array{Float64,1}, Snow_Extend::Array{Float64,2}, GWstorage::Array{Float64,1}, Snowstorage::Array{Float64,1}, Snow_Elevations, Soilstorage::Array{Float64,2}, Faststorage::Array{Float64,2} #, Interceptionstorage::Array{Float64,2}, 
 end
 
 function Storage_Total(Storage::Storages, Input::HRU_Input)

@@ -56,15 +56,23 @@ mutable struct Elevations
     Measured_Prec_Elevation:: Float64
     Measured_Temp_Elevation:: Float64
 end
-#
-# mutable struct HRU_Output
-#     Fast_Discharge:: Float64
-#     GWflow:: Float64 #only necessary for hillslope HRU
-#     Soil_Evaporation:: Float64
-#     Total_Interception_Evaporation:: Float64
-#     #storages
-#     Faststorage:: Float64
-#     Interceptionstorage::Array{Float64,1}
-#     Snowstorage::Array{Float64,1}
-#     Soilstorage:: Float64
-# end
+
+mutable struct Drought
+    #inputs (alphabetic order)
+    Nr_Drought_Days_Past::Array{Float64,1}
+    Nr_Drought_Days_Future::Array{Float64,1}
+    Nr_Drought_Events_Past::Array{Float64,1}
+    Nr_Drought_Events_Future::Array{Float64,1}
+    Max_Drought_Length_Past::Array{Float64,1}
+    Max_Drought_Length_Future::Array{Float64,1}
+    Mean_Drought_Length_Past::Array{Float64,1}
+    Mean_Drought_Length_Future::Array{Float64,1}
+    Max_Deficit_Past::Array{Float64,1}
+    Max_Deficit_Future::Array{Float64,1}
+    Mean_Deficit_Past::Array{Float64,1}
+    Mean_Deficit_Future::Array{Float64,1}
+    Max_Intensity_Past::Array{Float64,1}
+    Max_Intensity_Future::Array{Float64,1}
+    Mean_Intensity_Past::Array{Float64,1}
+    Mean_Intensity_Future::Array{Float64,1}
+end

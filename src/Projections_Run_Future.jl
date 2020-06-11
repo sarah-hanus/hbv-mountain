@@ -210,10 +210,12 @@ function run_projections(path_to_projection, path_to_best_parameter, startyear, 
         # save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
         writedlm(path_to_projection*"100_model_results_discharge_"*period*".csv", All_Discharge, ',')
+        writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
+        writedlm(path_to_projection*"results_precipitation_"*period*".csv", Total_Precipitation[index_spinup: index_lastdate], ',')
         return All_Discharge
 end
 
-path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
 # 14 different projections
 Name_Projections = readdir(path)
 # run the model for all projections using the best 100 parameter sets

@@ -243,15 +243,15 @@ end
 
 
 # #----------------- COMBINE RESULTS OF ONE DEVICE-------------
-#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Paltental/", "/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All.csv")
+#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/All/", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All.csv")
 # --------------- STORE BEST PARAMETER SETS ---------------------
-#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All_best_10000.csv", 100)
+#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All.csv", 100020)
 # -------------- GET STATISTICS -------
 
-#calibration_statistics("/home/sarah/Master/Thesis/Results/Calibration/Paltental/Validation/Paltental_Parameterfit_best100_validation.csv", 100)
+#calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_10000.csv", 10000)
 
 
-function EC_calibration(path_to_file, lower_threshold, upper_threshold)
+function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)
     calibration = readdlm(path_to_file, ',')
     # sort the calibration according to the euclidean distance
     calibration_sorted = sortslices(calibration, dims=1)
@@ -259,18 +259,20 @@ function EC_calibration(path_to_file, lower_threshold, upper_threshold)
     #calibration_best = calibration_sorted[1:number_best,:]
     number_values = Float64[]
     threshold_values = collect(lower_threshold:0.001:upper_threshold)
+    print(size(threshold_values))
     for threshold in threshold_values
         all_values_below_threshold = length(findall(x -> x < threshold, calibration_sorted[:,1]))
         append!(number_values, all_values_below_threshold)
     end
-    return threshold_values, number_values
+    print(number_values/nr_runs * 100)
+    scatter(threshold_values, number_values/nr_runs * 100 , size=(1400,800))
+    xlabel!("Euclidean Distance")
+    ylabel!("Percent of Runs below the Euclidean Distance")
+    savefig(path_to_file[1:end-4]* "_compare_ED.png")
 end
 
-thresholds, numbers = EC_calibration("/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All.csv", 0.14, 0.18)
-scatter(thresholds, numbers/3283000 * 100 , size=(1400,800))
-xlabel!("Euclidean Distance")
-ylabel!("Percent of Runs below the Euclidean Distance")
-savefig("/home/sarah/Master/Thesis/Calibrations/Paltental/compare_ED.png")
+EC_calibration("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_100000.csv", 0.17, 0.20, 4200000)
+
 
 
 #projections_statistics("Gailtal/Projections/Gailtal_Parameterfit_best100_projection1.csv")
