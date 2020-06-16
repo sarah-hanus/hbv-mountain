@@ -19,16 +19,18 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     Snow = zeros(hill.Nr_Elevationbands)
     Interception = zeros(hill.Nr_Elevationbands)
     Snow_Cover = zeros(hill.Nr_Elevationbands)
+    Total_Melt_Glacier = 0.0
     # calculate the model components that are height dependend
     for i in 1 : hill.Nr_Elevationbands
         # snow component
-        Melt::Float64, Snow[i]::Float64 = snow(hill.Area_Glacier, hill.Precipitation[i], hill.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
+        Melt_Glacier::Float64, Melt::Float64, Snow[i]::Float64 = snow(hill.Area_Glacier[i], hill.Precipitation[i], hill.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
         #interception component
         Effective_Precipitation::Float64, Interception_Evaporation::Float64, Interception[i]::Float64 = interception(hill.Potential_Evaporation_Mean, hill.Precipitation[i], hill.Temp_Elevation[i], storages.Interception[i], parameters.Interceptionstoragecapacity, parameters.Temp_Thresh)
         # the melt, effective precipitation and evaporation can be summed up over all elevations according to the areal extent
         hill.Total_Effective_Precipitation::Float64 += (Effective_Precipitation + Melt) * hill.Area_Elevations[i]
         #global Total_Melt += (Melt * Area_Elevations[i])
         hill.Total_Interception_Evaporation::Float64 += (Interception_Evaporation * hill.Area_Elevations[i])
+        Total_Melt_Glacier::Float64 += (Melt_Glacier * hill.Area_Elevations[i])
         # get the extend of snow cover, if there is snow in the snow bucket the snow cover is 1
         if Snow[i] > 1
             Snow_Cover[i] = 1
@@ -87,8 +89,8 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
     All_Storages = (hill_storages.Fast - storages.Fast) + (hill_storages.Soil - storages.Soil) + (Snow_Storage_New -Snow_Storage_Old) + (Interception_Storage_New - Interception_Storage_Old)
 
     #assert that water balance closes
-    @assert -0.00000001 <= Precipitation - (Flows + All_Storages) <= 0.00000001
-    @assert -0.00000001 <= Precipitation * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU) <= 0.00000001
+    @assert -0.00000001 <= Precipitation + Total_Melt_Glacier - (Flows + All_Storages) <= 0.00000001
+    @assert -0.00000001 <= (Precipitation + Total_Melt_Glacier)  * hill.Area_HRU - (Flows_Area + All_Storages * hill.Area_HRU) <= 0.00000001
     return hill_out::Outflows, hill_storages::Storages, Precipitation, All_Storages
 
 end
@@ -115,7 +117,9 @@ function riparianHRU(rip::HRU_Input, storages::Storages, parameters::Parameters)
     Snow_Cover = zeros(rip.Nr_Elevationbands)
     for i in 1 : rip.Nr_Elevationbands
         # snow component
-        Melt::Float64, Snow[i]::Float64 = snow(rip.Area_Glacier, rip.Precipitation[i], rip.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
+        @assert rip.Area_Glacier[i] == 0.0
+        Melt_Glacier::Float64, Melt::Float64, Snow[i]::Float64 = snow(rip.Area_Glacier[i], rip.Precipitation[i], rip.Temp_Elevation[i], storages.Snow[i], parameters.Meltfactor, parameters.Mm, parameters.Temp_Thresh)
+        @assert Melt_Glacier == 0.0
         #interception component
         Effective_Precipitation::Float64, Interception_Evaporation::Float64, Interception[i]::Float64 = interception(rip.Potential_Evaporation_Mean, rip.Precipitation[i], rip.Temp_Elevation[i], storages.Interception[i], parameters.Interceptionstoragecapacity, parameters.Temp_Thresh)
         # the melt, effective precipitation and evaporation can be summed up over all elevations according to the areal extent

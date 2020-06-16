@@ -36,7 +36,7 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     Total_Flows = Total_Discharge + Total_Soil_Evaporation + Total_Interception_Evaporation + Riparian_Discharge
     Total_Storages = Bare_Storages * bare_input.Area_HRU + Forest_Storages * forest_input.Area_HRU + Grass_Storages * grass_input.Area_HRU + Rip_Storages * rip_input.Area_HRU + Slowstorage_New - Slowstorage
     Precipitation = Bare_precipitation * bare_input.Area_HRU + Forest_precipitation * forest_input.Area_HRU + Grass_precipitation * grass_input.Area_HRU + Rip_precipitation * rip_input.Area_HRU
-    @assert -0.00000001 <= Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000001
+    #@assert -0.00000001 <= Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000001
     Waterbalance = Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
     return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Precipitation::Float64
 end
@@ -134,7 +134,7 @@ function runmodel_alloutput(Area, Evaporation_Mean::Array{Float64,1}, Precipitat
     # calculate the water balance at each timestep and sum it at the end for getting waterbalance over all timesteps
     Waterbalance = sum(WBtotal)::Float64
     @assert Waterbalance <= 10^(-10)
-    return Discharge::Array{Float64,1}, Snow_Extend::Array{Float64,2}, GWstorage::Array{Float64,1}, Snowstorage::Array{Float64,1}, Snow_Elevations, Soilstorage::Array{Float64,2}, Faststorage::Array{Float64,2} #, Interceptionstorage::Array{Float64,2}, 
+    return Discharge::Array{Float64,1}, Snow_Extend::Array{Float64,2}, GWstorage::Array{Float64,1}, Snowstorage::Array{Float64,1}, Snow_Elevations, Soilstorage::Array{Float64,2}, Faststorage::Array{Float64,2} #, Interceptionstorage::Array{Float64,2},
 end
 
 function Storage_Total(Storage::Storages, Input::HRU_Input)
@@ -203,5 +203,23 @@ function input_timestep(Input::HRU_Input, Evaporation_Mean::Float64, Precipitati
     end
     Input.Precipitation::Array{Float64,1} = Precipitation_HRU
     Input.Temp_Elevation::Array{Float64,1} = Temperature_HRU
+    return Input::HRU_Input
+end
+
+function input_timestep_glacier(Input::HRU_Input, Evaporation_Mean::Float64, Glacier_Area::Array{Float64,1}, Precipitation::Array{Float64,1}, Temperature::Array{Float64,1})
+    #Input.Potential_Evaporation::Array{Float64,1} = Evaporation
+    Input.Potential_Evaporation_Mean::Float64 = Evaporation_Mean
+    # get the precipitation data of the necessary elevations
+    Precipitation_HRU = Float64[]
+    Temperature_HRU = Float64[]
+    Glacier_HRU = Float64[]
+    for i in Input.Elevation_Count
+        push!(Precipitation_HRU, Precipitation[i])
+        push!(Temperature_HRU, Temperature[i])
+        push!(Glacier_HRU, Glacier_Area[i])
+    end
+    Input.Precipitation::Array{Float64,1} = Precipitation_HRU
+    Input.Temp_Elevation::Array{Float64,1} = Temperature_HRU
+    Input.Area_Glacier::Array{Float64,1} = Glacier_HRU
     return Input::HRU_Input
 end

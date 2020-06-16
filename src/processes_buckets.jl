@@ -98,16 +98,18 @@ function snow(Area_Glacier::Float64, Precipitation::Float64, Temp::Float64, Snow
         Melt_Total = Melt_Snow * (1.0 - Area_Glacier) + Melt_Glacier * Area_Glacier
         # the amount of snow stored decreases by amount melted
         Snowstorage = Snowstorage - Melt_Snow
+        Melt_Glacier = Melt * Area_Glacier - Melt_Snow * Area_Glacier
     else
         # the amount of snow stored increases by Precipitation
         Snowstorage = Snowstorage + Precipitation
         # no snow melts
         Melt_Total = 0.0
+        Melt_Glacier = 0.0
     end
     @assert Melt_Total >= 0
     @assert Snowstorage >= 0
 
-    return Melt_Total::Float64, Snowstorage::Float64
+    return Melt_Glacier::Float64, Melt_Total::Float64, Snowstorage::Float64
 end
 
 """
