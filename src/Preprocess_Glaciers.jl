@@ -117,7 +117,7 @@ function linear_interpolation(Glaciers_Pitztal)
         end
         println("compare", lastarea, " ", area[end], "\n")
         @assert firstarea == area[1]
-        @assert lastarea == round(area[end])
+        @assert round(lastarea, digits=8) == round(area[end], digits=8)
         all_areas = hcat(all_areas, area)
     end
     Areas_All_Glaciers_69_97 = convert(Matrix, transpose(all_areas))
@@ -140,13 +140,13 @@ function linear_interpolation(Glaciers_Pitztal)
         print("compare", lastarea, " ", area[end], "\n")
         @assert firstarea == area[1]
 
-        @assert lastarea == round(area[end])
+        @assert lastarea == area[end]
         all_areas = hcat(all_areas, area)
     end
     Areas_All_Glaciers_97_06 = convert(Matrix, transpose(all_areas))
 
     @assert round.(Areas_All_Glaciers_69_97[:,end]) == round.(Areas_All_Glaciers_97_06[:,1])
-    Areas_All_Glaciers = hcat(Areas_69_97[:,1:end-1], Areas_97_06)
+    Areas_All_Glaciers = hcat(Areas_All_Glaciers_69_97[:,1:end-1], Areas_All_Glaciers_97_06)
 
     return Areas_All_Glaciers, sum(Areas_All_Glaciers[2:end,:], dims= 1)
 end
@@ -154,9 +154,11 @@ end
 #Areas_69_06, sum_areas = linear_interpolation(Glaciers_Pitztal)
 #writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Pitztal_69_06.csv", Areas_69_06, ',')
 
-Glaciers_Pitztal = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Pitztal_69_06.csv", ',')
+#Glaciers_Pitztal = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Pitztal_69_06.csv", ',')
 
-
+Glaciers_102046 = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061.csv", ',')
+Areas_102046, sum_areas = linear_interpolation(Glaciers_102046)
+writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061_evolution_69_06.csv", round.(Areas_102046, digits= 6), ',')
 #linear extrapolation
 
 function linear_extrapolation(Glaciers_Pitztal)
@@ -202,7 +204,7 @@ function linear_extrapolation(Glaciers_Pitztal)
     return total_linear_fit, decline
 end
 
-linear_total, decline = linear_extrapolation(Glaciers_Pitztal)
+#linear_total, decline = linear_extrapolation(Glaciers_Pitztal)
 #writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Pitztal_69_15.csv", linear_total, ',')
 # plot()
 # for i in 1:10

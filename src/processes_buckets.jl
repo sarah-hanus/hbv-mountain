@@ -15,7 +15,7 @@ function interception(Potential_Evaporation::Float64, Precipitation::Float64, Te
     @assert Interceptionstorage >= 0
     @assert Interceptionstorage <= Interceptionstoragecapacity
     @assert Interceptionstoragecapacity >= 0
-    @assert - 2 <= Temp_Thresh  <= 2
+    @assert - 2.5 <= Temp_Thresh  <= 2.5
     @assert -60 <= Temp <= 60
 
     # if interception capacity is 0
@@ -85,7 +85,7 @@ function snow(Area_Glacier::Float64, Precipitation::Float64, Temp::Float64, Snow
     @assert Snowstorage >= 0
     @assert Meltfactor >= 0 #within the parameter range
     @assert Mm > 0 #within the parameter range
-    @assert -2 <= Temp_Thresh <= 2 # it should be within the parameter range
+    @assert -2.5 <= Temp_Thresh <= 2.5 # it should be within the parameter range
     @assert -60 <= Temp <= 60
 
     if Temp > Temp_Thresh

@@ -230,7 +230,7 @@ using Distributed
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
                 Current_GWStorage = deepcopy(GWStorage)
-                parameters, slow_parameters, parameters_array = parameter_selection_palten()
+                parameters, slow_parameters, parameters_array = parameter_selection_pitztal()
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
