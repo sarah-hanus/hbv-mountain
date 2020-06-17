@@ -34,6 +34,8 @@ function hillslopeHRU(hill::HRU_Input, storages::Storages, parameters::Parameter
         # get the extend of snow cover, if there is snow in the snow bucket the snow cover is 1
         if Snow[i] > 1
             Snow_Cover[i] = 1
+        else
+            Snow_Cover[i] = hill.Area_Glacier[i]
         end
     end
     #soil storage component
