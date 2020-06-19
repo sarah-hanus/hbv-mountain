@@ -599,10 +599,10 @@ function run_bestparameters_palten(path_to_best_parameter, nmax, startyear, endy
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1], 0.0, Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], 0, Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], 0, Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], 0, Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -829,10 +829,10 @@ function run_bestparameters_feistritz(path_to_best_parameter, nmax, startyear, e
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1], 0.0, Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], 0, Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], 0, Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], 0, Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -854,9 +854,9 @@ function run_bestparameters_feistritz(path_to_best_parameter, nmax, startyear, e
 
         # don't consider spin up time for calculation of Goodness of Fit
         # end of spin up time is 3 years after the start of the calibration and start in the month October
-        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 3, Timeseries)
+        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 2 && Dates.month(x) == 10, Timeseries)
         # evaluations chouls alsways contain whole year
-        index_lastdate = findlast(x -> Dates.year(x) == lastyear, Timeseries)
+        index_lastdate = findfirst(x -> Dates.year(x) == lastyear && Dates.month(x) == 10, Timeseries) - 1
         Timeseries_Obj = Timeseries[index_spinup: index_lastdate]
         Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
         Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
@@ -915,7 +915,7 @@ function run_bestparameters_feistritz(path_to_best_parameter, nmax, startyear, e
 
         end
 
-        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage
+        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage, Total_Precipitation_Obj
 end
 
 function run_bestparameters_pitztal(path_to_best_parameter, nmax, startyear, endyear)
@@ -1161,25 +1161,39 @@ end
 #Catchment_Name = "Gailtal"
 #All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_gailtal("/home/sarah/Master/Thesis/Calibrations/Gailtal/Calibration8-10.5/Gailtal_Parameterfit_best100.csv", 100, 1983, 2009)
 #Catchment_Name = "Paltental"
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_palten("/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All_best_100.csv", 100, 1983, 2009)
-#Catchment_Name = "Feistritz"
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_feistritz("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_100.csv", 100, 1983, 2013)
-Catchment_Name = "Pitztal"
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_pitztal("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1run_best_100.csv", 100, 1983, 2005)
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_palten("/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All_best_100.csv", 100, 1983, 2005)
+Catchment_Name = "Feistritz"
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage, Total_Precipitation = run_bestparameters_feistritz("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_100.csv", 100, 1983, 2005)
+#Catchment_Name = "Pitztal"
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_pitztal("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000_best_100.csv", 100, 1983, 2005)
 
-function plot_hydrographs(All_Discharges, Timeseries, Catchment_Name, Nr_Years)
+function plot_hydrographs(All_Discharges, Timeseries, Catchment_Name, Nr_Years, Area_Catchment)
         for i in 1:Nr_Years
-                current_year = 1985+i
-                indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
-                indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
+                current_year = 1984+i
+                if current_year != 1985 && current_year != 2005
+                        indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
+                        indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
+                elseif current_year == 1985
+                        indexfirstday = 1
+                        indexlasttday = findall(x -> x == Dates.lastdayofyear(Date(current_year,1,1)), Timeseries)[1]
+                elseif current_year == 2005
+                        indexfirstday = findall(x -> x == Dates.firstdayofyear(Date(current_year,1,1)), Timeseries)[1]
+                        indexlasttday = length(Timeseries)
+                end
                 plot()
                 for h in 1:100
-                        plot!(Timeseries[indexfirstday:indexlasttday], All_Discharges[indexfirstday:indexlasttday, h], color = ["black"], legend=false, size=(1800,1000))
+                        plot!(Timeseries[indexfirstday:indexlasttday], convertDischarge(All_Discharges[indexfirstday:indexlasttday, h], Area_Catchment), color = ["black"], legend=false, size=(1800,1000))
                 end
-                plot!(Timeseries[indexfirstday:indexlasttday], Observed_Discharge[indexfirstday:indexlasttday], label="Observed",size=(1800,1000), color = ["red"], linewidth = 3)
-                ylabel!("Discharge [m³/s]")
+                ylabel!("Discharge [mm/d]")
                 xlabel!("Time in Year")
-                savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Discharge/Discharge_All_"*string(current_year)*".png")
+                plot!(Timeseries[indexfirstday:indexlasttday], convertDischarge(Observed_Discharge[indexfirstday:indexlasttday], Area_Catchment), label="Observed",size=(1800,1000), color = ["red"], linewidth = 3)
+                discharge = plot!()#p = twinx()
+                #plot!(p, Timeseries[indexfirstday:indexlasttday], Total_Precipitation[indexfirstday:indexlasttday], label="Observed Rainfall",size=(1800,1000), color = ["blue"], linewidth = 3)
+                plot(Timeseries[indexfirstday:indexlasttday], Total_Precipitation[indexfirstday:indexlasttday], label="Observed Rainfall",size=(1800,1000), color = ["blue"], linewidth = 2)
+                ylabel!("Precipitation [mm/d]")
+                precipitation = plot!()
+                plot(discharge, precipitation, layout= (2,1), legend = false, size=(2000,1200)) #left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
+                savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Discharge/Discharge_All_"*string(current_year)*"_with_Prec.png")
         end
 end
 
@@ -1330,8 +1344,24 @@ end
 #Timeseries = collect(Date(1986,1,1):Day(1):Date(2009,12, 31))
 # change function
 #plot_snowcover(All_Snow_Cover_Modeled, All_Snow_Cover_Observed, 500, 1500, Catchment_Name)
-plot_hydrographs(All_Discharges, Timeseries, Catchment_Name, 19)
+Area_Catchment = 115496400
+plot_hydrographs(All_Discharges, Timeseries, Catchment_Name, 21, Area_Catchment)
 #plot_gwstorage(All_GWstorage, Timeseries, Catchment_Name, 28)
 #plot_snowstorage(ALl_Snowstorage, Timeseries, Catchment_Name, 28)
 #plot_soilstorage(All_Soilstorage, Timeseries, Catchment_Name)
 #plot_faststorage(All_Faststorage, Timeseries, Catchment_Name)
+
+# function timeseries_discharge()
+#         modelled =  Plotly.plot(Timeseries, All_Discharges)#, mode="lines", line_color="gray")
+#         observed =  Plotly.plot(Timeseries, All_Discharges, mode="lines", line_color="red")
+#     Plotly.plot([modelled, observed])
+# end
+# timeseries_discharge()
+
+# function linescatter1()
+#     trace1 = Plotly.scatter(;x=1:4, y=[10, 15, 13, 17], mode="markers")
+#     trace2 = Plotly.scatter(;x=2:5, y=[16, 5, 11, 9], mode="lines")
+#     trace3 = Plotly.scatter(;x=1:4, y=[12, 9, 15, 12], mode="lines+markers")
+#     Plotly.plot([trace1, trace2, trace3])
+# end
+# linescatter1()

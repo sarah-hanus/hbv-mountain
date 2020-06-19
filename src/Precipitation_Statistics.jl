@@ -11,75 +11,121 @@ using DelimitedFiles
 # look at total precipitation, storm duration, interstorm duration and storm intensity pre month
 # date of highest precipitation
 # --------- LOAD HISTORIC DATA ---------
-ID_Prec_Zones = [113589, 113597, 113670, 114538]
-Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
-Area_Catchment = sum(Area_Zones)
-Area_Zones_Percent = Area_Zones / Area_Catchment
-Precipitation_All_Zones = Array{Float64, 1}[]
-local_path = "/home/sarah/"
-Skipto = [24, 22, 22, 22]
-startyear = 1983
-endyear = 2005
-for i in 1: length(ID_Prec_Zones)
-        #print(ID_Prec_Zones)
-        Precipitation = CSV.read(local_path*"HBVModel/Gailtal/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
-        Precipitation_Array = convert(Matrix, Precipitation)
-        startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
-        endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
-        Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
-        Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
-        # find duplicates and remove them
-        df = DataFrame(Precipitation_Array)
-        df = unique!(df)
-        # drop missing values
-        df = dropmissing(df)
-        Precipitation = convert(Vector, df[:,2])
-        push!(Precipitation_All_Zones, Precipitation)
+
+function load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
+        Area_Catchment = sum(Area_Zones)
+        Area_Zones_Percent = Area_Zones / Area_Catchment
+        #Precipitation_All_Zones = Array{Float64, 1}[]
+        local_path = "/home/sarah/"
+        # Skipto = [24, 22, 22, 22]
+        # startyear = 1983
+        # endyear = 2005
+        Timeseries = collect(Date(startyear,1,1):Day(1):Date(endyear,12,31))
+        # get total precipitation
+        Total_Precipitation = zeros(length(Timeseries))
+        for i in 1: length(ID_Prec_Zones)
+                #print(ID_Prec_Zones)
+                Precipitation = CSV.read(local_path*"HBVModel/"*Catchment_Name*paths_to_prec_data[i]*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
+                Precipitation_Array = convert(Matrix, Precipitation)
+                startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
+                endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
+                Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+                Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
+                # find duplicates and remove them
+                df = DataFrame(Precipitation_Array)
+                df = unique!(df)
+                # drop missing values
+                df = dropmissing(df)
+                Precipitation = convert(Vector, df[:,2])
+                #push!(Precipitation_All_Zones, Precipitation)
+                Total_Precipitation += Precipitation .* Area_Zones_Percent[i]
+        end
+
+        #Total_Precipitation = Precipitation_All_Zones[1].*Area_Zones_Percent[1] + Precipitation_All_Zones[2].*Area_Zones_Percent[2] + Precipitation_All_Zones[3].*Area_Zones_Percent[3] + Precipitation_All_Zones[4].*Area_Zones_Percent[4]
+        if Catchment_Name == "Feistritz"
+                Temperature = CSV.read(local_path*"HBVModel/Feistritz/prenner_tag_10510.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+                Temperature = dropmissing(Temperature)
+                Temperature_Array = Temperature.t / 10
+                #Precipitation_9900 = Temperature.nied / 10
+                Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
+                startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
+                endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
+                Temperature_Obs = Temperature_Array[startindex[1]:endindex[1]]
+        elseif Catchment_Name == "Pitztal"
+                Temperature = CSV.read(local_path*"HBVModel/Pitztal/prenner_tag_14621.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+                Temperature = dropmissing(Temperature)
+                Temperature_Array = Temperature.t / 10
+                Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
+                startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
+                endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
+                Temperature_Obs = Temperature_Array[startindex[1]:endindex[1]]
+        else
+                Temperature = CSV.read(local_path*"HBVModel/"*Catchment_Name*"/"*path_to_temp_data*".csv", header=false, skipto = skip_to_temp, missingstring = "L\xfccke", decimal='.', delim = ';')
+                Temperature_Array = convert(Matrix, Temperature)
+                startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00"), Temperature_Array)
+                endindex = findfirst(isequal("31.12."*string(endyear)*" 23:00:00"), Temperature_Array)
+                Temperature_Array = Temperature_Array[startindex[1]:endindex[1],:]
+                Temperature_Array[:,1] = Date.(Temperature_Array[:,1], Dates.DateFormat("d.m.y H:M:S"))
+                Dates_Temperature_Daily, Temperature_Obs = daily_mean(Temperature_Array)
+        end
+
+        return Total_Precipitation, Temperature_Obs, Timeseries
 end
-
-Total_Precipitation = Precipitation_All_Zones[1].*Area_Zones_Percent[1] + Precipitation_All_Zones[2].*Area_Zones_Percent[2] + Precipitation_All_Zones[3].*Area_Zones_Percent[3] + Precipitation_All_Zones[4].*Area_Zones_Percent[4]
-Timeseries = collect(Date(startyear,1,1):Day(1):Date(endyear,12,31))
-
-Temperature = CSV.read(local_path*"HBVModel/Gailtal/LTkont113597.csv", header=false, skipto = 20, missingstring = "L\xfccke", decimal='.', delim = ';')
-Temperature_Array = convert(Matrix, Temperature)
-startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00"), Temperature_Array)
-endindex = findfirst(isequal("31.12."*string(endyear)*" 23:00:00"), Temperature_Array)
-Temperature_Array = Temperature_Array[startindex[1]:endindex[1],:]
-Temperature_Array[:,1] = Date.(Temperature_Array[:,1], Dates.DateFormat("d.m.y H:M:S"))
-Dates_Temperature_Daily, Temperature_Obs = daily_mean(Temperature_Array)
-
 
 #---------------- LOAD PROJECTION DATA -----------------
-path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
-# # 14 different projections
-Name_Projections = readdir(path)
-All_Projections_Precipitation = zeros(8401)
-All_Projections_Temperature = zeros(8401)
-for i in 1:14
-        path_to_projection = path*Name_Projections[i]*"/Gailtal/"
-        Timeseries_Proj = readdlm(path_to_projection*"pr_model_timeseries.txt")
-        Timeseries_Proj = Date.(Timeseries_Proj, Dates.DateFormat("y,m,d"))
-        indexstart_Proj = findfirst(x-> x == startyear, Dates.year.(Timeseries_Proj))[1]
-        indexend_Proj = findlast(x-> x == endyear, Dates.year.(Timeseries_Proj))[1]
-        Projections_Temperature = readdlm(path_to_projection*"tas_113597_sim1.txt", ',')
-        Temperature_Daily = Projections_Temperature[indexstart_Proj:indexend_Proj] ./ 10
-        Temperature_Daily = Temperature_Daily[:,1]
-        global All_Projections_Temperature = hcat(All_Projections_Temperature, Temperature_Daily)
+#path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
 
-        Precipitation_All_Zones = Array{Float64, 1}[]
+#load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", "Gailtal", Area_Zones_Percent_Gailtal, ID_Prec_Zones, 113597, startyear, endyear)
 
-        for j in 1: length(ID_Prec_Zones)
-                # get precipitation projections for the precipitation measurement
-                Precipitation_Zone = readdlm(path_to_projection*"pr_"*string(ID_Prec_Zones[j])*"_sim1.txt", ',')
 
-                Precipitation_Zone = Precipitation_Zone[indexstart_Proj:indexend_Proj] ./ 10
-                push!(Precipitation_All_Zones, Precipitation_Zone)
+"""
+Loads temperature and precipitation data for all projections.
+
+$(SIGNATURES)
+
+The function returns the precipitation and tempearture data for the projections in the time period of interest. The input are the path to projection, Catchment Name,
+        percentage of precipitation zones, IDs of precipitation zones, the ID of the temp station and start and endyear.
+"""
+function load_temp_prec_projections(path, Catchment_Name, Area_Zones_Percent::Array{Float64,1}, ID_Prec_Zones, ID_Temp_Station, startyear, endyear)
+        Name_Projections = readdir(path)
+        Timeseries = collect(Date(startyear,1,1):Day(1):Date(endyear,12,31))
+        All_Projections_Precipitation = zeros(length(Timeseries))
+        All_Projections_Temperature = zeros(length(Timeseries))
+        for i in 1:14
+                path_to_projection = path*Name_Projections[i]*"/"*Catchment_Name*"/"
+                Timeseries_Proj = readdlm(path_to_projection*"pr_model_timeseries.txt")
+                Timeseries_Proj = Date.(Timeseries_Proj, Dates.DateFormat("y,m,d"))
+                indexstart_Proj = findfirst(x-> x == startyear, Dates.year.(Timeseries_Proj))[1]
+                indexend_Proj = findlast(x-> x == endyear, Dates.year.(Timeseries_Proj))[1]
+                Projections_Temperature = readdlm(path_to_projection*"tas_"*string(ID_Temp_Station)*"_sim1.txt", ',')
+                Temperature_Daily = Projections_Temperature[indexstart_Proj:indexend_Proj] ./ 10
+                Temperature_Daily = Temperature_Daily[:,1]
+                if Catchment_Name == "Palten"
+                        Mean_Elevation_Catchment = 1300 # in reality 1314
+                        Elevations_Catchment = Elevations(200.0, 600.0, 2600.0, 1265.0, 1265.0)
+                        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
+                        # get the temperature data at the mean elevation to calculate the mean potential evaporation
+                        Temperature_Daily = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+                end
+                All_Projections_Temperature = hcat(All_Projections_Temperature, Temperature_Daily)
+
+                Precipitation_All_Zones = Array{Float64, 1}[]
+                Total_Precipitation_Proj = zeros(length(Timeseries))
+
+                for j in 1: length(ID_Prec_Zones)
+                        # get precipitation projections for the precipitation measurement
+                        Precipitation_Zone = readdlm(path_to_projection*"pr_"*string(ID_Prec_Zones[j])*"_sim1.txt", ',')
+
+                        Precipitation_Zone = Precipitation_Zone[indexstart_Proj:indexend_Proj] ./ 10
+                        #push!(Precipitation_All_Zones, Precipitation_Zone)
+                        Total_Precipitation_Proj += Precipitation_Zone .* Area_Zones_Percent[j]
+                end
+                #for h in 1:length(ID_Prec_Zones)
+                #Total_Precipitation_Proj = Precipitation_All_Zones[1].*Area_Zones_Percent[1] + Precipitation_All_Zones[2].*Area_Zones_Percent[2] + Precipitation_All_Zones[3].*Area_Zones_Percent[3] + Precipitation_All_Zones[4].*Area_Zones_Percent[4]
+                All_Projections_Precipitation = hcat(All_Projections_Precipitation, Total_Precipitation_Proj)
         end
-        Total_Precipitation_Proj = Precipitation_All_Zones[1].*Area_Zones_Percent[1] + Precipitation_All_Zones[2].*Area_Zones_Percent[2] + Precipitation_All_Zones[3].*Area_Zones_Percent[3] + Precipitation_All_Zones[4].*Area_Zones_Percent[4]
-        global All_Projections_Precipitation = hcat(All_Projections_Precipitation, Total_Precipitation_Proj)
+        return All_Projections_Precipitation[:, 2:end]::Array{Float64,2}, All_Projections_Temperature[:,2:end]::Array{Float64,2}
 end
-All_Projections_Precipitation = All_Projections_Precipitation[:, 2:end]
-All_Projections_Temperature = All_Projections_Temperature[:,2:end]
 
 """
 Computes storm statistics for the storm events.
@@ -211,7 +257,7 @@ function monthly_temp_statistics(Temperature::Array{Float64,1}, Timeseries::Arra
         return transpose(statistics[:, 2:end])
 end
 
-function plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, name_projection)
+function plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, name_projection, Catchment_Name)
 
         statistics_names = ["Mean Storm Length [d]", "Mean Interstorm Length [d]", "Mean Storm Intensity [mm/d]", "Total Precipitation [mm/month]"]
         months = ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -237,10 +283,11 @@ function plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, n
         # xlabel!("Months")
         # ylabel!("Inter-Storm Lengths [d]")
         # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/Gailtal/Precipitation/Precipitation_Statistics_Proj"*string(name_projection)*".png")
+        title!(Catchment_Name)
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Precipitation_Statistics_Proj"*string(name_projection)*".png")
 end
 
-function plot_Temperature_Statistics(temp_statistics, temp_statistics_proj, name_projection)
+function plot_Temperature_Statistics(temp_statistics, temp_statistics_proj, name_projection, Catchment_Name)
         statistics_names = ["Mean Monthly Temp [°C]", "Max Monthly Temp [°C]", "Min Monthly Temp [°C]"]
         months = ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         months_proj = ["Jan Proj", "Feb Proj", "Mar Proj", "Apr Proj", "May Proj","Jun Proj", "Jul Proj", "Aug Proj", "Sep Proj", "Oct Proj", "Nov Proj", "Dec Proj"]
@@ -265,16 +312,9 @@ function plot_Temperature_Statistics(temp_statistics, temp_statistics_proj, name
         # xlabel!("Months")
         # ylabel!("Inter-Storm Lengths [d]")
         # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/Gailtal/Temperature_Statistics_Proj"*string(name_projection)*".png")
+        title!(Catchment_Name)
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Temperature/Temperature_Statistics_Proj"*string(name_projection)*".png")
 end
-
-
-statistics_all_Zones = monthly_temp_statistics(Temperature_Obs, Timeseries)
-for i in 1:14
-        statistics_all_Zones_Proj = monthly_temp_statistics(All_Projections_Temperature[:,i], Timeseries)
-        plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i])
-end
-
 
 function max_Annual_Precipitation(Precipitation, Timeseries)
         Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
@@ -302,24 +342,295 @@ function max_Annual_Precipitation(Precipitation, Timeseries)
         return transpose(statistics[:, 2:end]), transpose(statistics_7days[:, 2:end])
 end
 
-plot()
-timing_amount = 1
-Farben = palette(:tab20)
-for i in 1:14
-        max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
-        print(max_Prec_7[:,1], "\n")
-        violin!(["Proj " *string(i)], max_Prec[:,timing_amount], color=[Farben[i]])
-        boxplot!(["Proj " *string(i)], max_Prec[:,timing_amount], alpha=0.8, color=[Farben[i]])
+function plot_max_Annual_Precipitation(All_Projections_Precipitation, Precipitation_Observed, Timseries, Catchment_Name, RCP)
+        plot()
+        timing_amount = 1
+        Farben = palette(:tab20)
+        for i in 1:14
+                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+                violin!(["Proj " *string(i)], max_Prec[:,timing_amount], color=[Farben[i]])
+                boxplot!(["Proj " *string(i)], max_Prec[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        end
+        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        violin!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        boxplot!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        ylabel!("Amount [mm/d]")
+        title!("Maximum Annual Precipitation RCP "*RCP)
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*".png")
+
+
+        plot()
+        timing_amount = 2
+        Farben = palette(:tab20)
+        for i in 1:14
+                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+                violin!(["Proj " *string(i)], max_Prec[:,timing_amount], color=[Farben[i]])
+                boxplot!(["Proj " *string(i)], max_Prec[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        end
+        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        violin!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        boxplot!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        ylabel!("Timing [month]")
+        title!("Maximum Annual Precipitation RCP "*RCP)
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_Timing.png")
+
+        # --------------- 7 days max -----------------------
+
+        plot()
+        timing_amount = 1
+        Farben = palette(:tab20)
+        for i in 1:14
+                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+                violin!(["Proj " *string(i)], max_Prec_7[:,timing_amount], color=[Farben[i]])
+                boxplot!(["Proj " *string(i)], max_Prec_7[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        end
+        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        violin!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        boxplot!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        ylabel!("Amount [mm/d]")
+        title!("Maximum Annual Precipitation RCP "*RCP)
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_7days.png")
+
+
+        plot()
+        timing_amount = 2
+        Farben = palette(:tab20)
+        for i in 1:14
+                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+                violin!(["Proj " *string(i)], max_Prec_7[:,timing_amount], color=[Farben[i]])
+                boxplot!(["Proj " *string(i)], max_Prec_7[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        end
+        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        violin!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        boxplot!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        ylabel!("Timing [month]")
+        title!("Maximum Annual Precipitation RCP "*RCP)
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_Timing_7days.png")
 end
-# max_Prec, max_Prec_7 = max_Annual_Precipitation(Total_Precipitation, Timeseries)
-# violin!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
-# boxplot!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
-# #plot()
-# #max_Prec, max_Prec_7 = max_Annual_Precipitation(Total_Precipitation, Timeseries)
-# #
-# #boxplot!(max_Prec_7[:,1])
+
+#-------------- Calculations for Gailtal ------------------------
+# ID_Prec_Zones = [113589, 113597, 113670, 114538]
+# Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
+# Area_Catchment = sum(Area_Zones)
+# Area_Zones_Percent_Gailtal = Area_Zones / Area_Catchment
+# local_path = "/home/sarah/"
+# Skipto = [24, 22, 22, 22]
+# startyear = 1983
+# endyear = 2005
+# path_to_temp_data = "LTkont113597"
+# paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1]), "/N-Tagessummen-"*string(ID_Prec_Zones[2]), "/N-Tagessummen-"*string(ID_Prec_Zones[3]), "/N-Tagessummen-"*string(ID_Prec_Zones[4])]
+# skip_to_temp = 20
+# Catchment_Name = "Gailtal"
 #
-# #xlabel!("Precipitation Zones")
-# ylabel!("Amount [mm/d]")
-# title!("Maximum Annual Precipitation RCP 8.5")
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Gailtal/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP8.5.png")
+# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Gailtal, ID_Prec_Zones, 113597, startyear, endyear)
+
+# ------------- Paltental---------------------------------------------
+
+function load_historic_data_palten()
+        ID_Prec_Zones = [106120, 111815, 9900]
+        ID_Temp = 9900
+        Area_Zones = [198175943.0, 56544073.0, 115284451.3]
+        Area_Catchment = sum(Area_Zones)
+        Area_Zones_Percent = Area_Zones / Area_Catchment
+        startyear = 1981
+        endyear = 2010
+        Catchment_Name = "Palten"
+
+        local_path = "/home/sarah/"
+
+        Skipto = [22, 22]
+        # timeperiod for which model should be run (look if timeseries of data has same length)
+        Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
+        Mean_Elevation_Catchment = 1300 # in reality 1314
+        Elevations_Catchment = Elevations(200.0, 600.0, 2600.0, 648.0, 648.0)
+
+        # ----------- PRECIPITATION 106120 --------------
+
+        Precipitation = CSV.read(local_path*"HBVModel/Palten/N-Tagessummen-"*string(ID_Prec_Zones[1])*".csv", header= false, skipto=Skipto[1], missingstring = "L\xfccke", decimal=',', delim = ';')
+        Precipitation_Array = convert(Matrix, Precipitation)
+        startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
+        endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
+        Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+        Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
+        # find duplicates and remove them
+        df = DataFrame(Precipitation_Array)
+        df = unique!(df)
+        # drop missing values
+        df = dropmissing(df)
+        Precipitation_106120 = convert(Matrix, df)
+        #print(Precipitation_Array[1:10,2],"\n")
+
+        #------------ TEMPERATURE AND POT. EVAPORATION CALCULATIONS ---------------------
+        #Temperature is the same in whole catchment
+        Temperature = CSV.read(local_path*"HBVModel/Palten/prenner_tag_9900.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+
+        # get data for 20 years: from 1987 to end of 2006
+        # from 1986 to 2005 13669: 20973
+        #hydrological year 13577:20881
+        Temperature = dropmissing(Temperature)
+        Temperature_Array = Temperature.t / 10
+        Precipitation_9900 = Temperature.nied / 10
+        Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
+        startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
+        endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
+        Temperature_Daily = Temperature_Array[startindex[1]:endindex[1]]
+        #Timeseries_Temp = Timeseries[startindex[1]:endindex[1]]
+        Dates_Temperature_Daily = Timeseries_Temp[startindex[1]:endindex[1]]
+        Dates_missing_Temp = Dates_Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)]
+
+        # --- also more dates missing 16.3.03 - 30.3.03
+        Dates_missing =  collect(Date(2003,3,17):Day(1):Date(2003,3,30))
+
+        Dates_Temperature_Daily_all = Array{Date,1}(undef, 0)
+        Temperature_Daily_all = Array{Float64,1}(undef, 0)
+        # index where Dates are missing
+        index = findall(x -> x == Date(2003,3,17) - Day(1), Dates_Temperature_Daily)[1]
+        append!(Dates_Temperature_Daily_all, Dates_Temperature_Daily[1:index])
+        append!(Dates_Temperature_Daily_all, Dates_missing)
+        append!(Dates_Temperature_Daily_all, Dates_Temperature_Daily[index+1:end])
+
+        @assert Dates_Temperature_Daily_all == Timeseries
+        # ----------- add Temperature for missing temperature -------------------
+        # station 13120 is 100 m higher than station 9900, so 0.6 °C colder
+        Temperature_13120 = CSV.read(local_path*"HBVModel/Palten/prenner_tag_13120.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+        Temperature_13120 = dropmissing(Temperature_13120)
+        Temperature_Array_13120 = Temperature_13120.t / 10
+        Timeseries_13120 = Date.(Temperature_13120.datum, Dates.DateFormat("yyyymmdd"))
+        index = Int[]
+        for i in 1:length(Dates_missing_Temp)
+                append!(index, findall(x -> x == Dates_missing_Temp[i], Timeseries_13120))
+        end
+        Temperature_13120_missing_data = Temperature_Array_13120[index] + ones(length(index))*0.6
+        Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)] .= Temperature_13120_missing_data
+
+        Temperature_Daily_all = Array{Float64,1}(undef, 0)
+        # index where Dates are missing
+        index = findall(x -> x == Date(2003,3,17) - Day(1), Dates_Temperature_Daily)[1]
+        index_missing_dataset = Int[]
+        for i in 1:length(Dates_missing)
+                append!(index_missing_dataset, findall(x -> x == Dates_missing[i], Timeseries_13120))
+        end
+        #Temperature_13120_missing_data = Temperature_Array_13120[index] + ones(length(Temperature_13120_missing_data))*0.6
+        append!(Temperature_Daily_all, Temperature_Daily[1:index])
+        append!(Temperature_Daily_all, Temperature_Array_13120[index_missing_dataset] + ones(length(index_missing_dataset))*0.6)
+        append!(Temperature_Daily_all, Temperature_Daily[index+1:end])
+
+        Temperature_Daily = Temperature_Daily_all
+        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
+        # get the temperature data at the mean elevation to calculate the mean potential evaporation
+        Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+        # ---------- Precipitation Data for Zone 9900 -------------------
+
+        Precipitation_9900 = Precipitation_9900[startindex[1]:endindex[1]]
+        # data is -1 for no precipitation at all
+        Precipitation_9900[findall(x -> x == -0.1, Precipitation_9900)] .= 0.0
+        # for the days where there is no precipitation data use the precipitation of the next station (106120)
+        #Precipitation_9900[findall(x-> x == 999.9, Precipitation_9900)] .= Precipitation_106120[findall(x-> x == 999.9, Precipitation_9900),2]
+
+        Precipitation_9900_all = Array{Float64,1}(undef, 0)
+
+        append!(Precipitation_9900_all, Precipitation_9900[1:index])
+        append!(Precipitation_9900_all, Precipitation_106120[index+1:index+length(Dates_missing),2])
+        append!(Precipitation_9900_all, Precipitation_9900[index+1:end])
+
+        Precipitation_9900_all[findall(x-> x == 999.9, Precipitation_9900_all)] .= Precipitation_106120[findall(x-> x == 999.9, Precipitation_9900_all),2]
+
+        Precipitation_9900 = Precipitation_9900_all
+
+        Total_Precipitation = zeros(length(Timeseries))
+        for i in 1: length(ID_Prec_Zones)
+                if ID_Prec_Zones[i] == 106120 || ID_Prec_Zones[i] == 111815
+                        #print(ID_Prec_Zones[i])
+                        Precipitation = CSV.read(local_path*"HBVModel/Palten/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
+                        Precipitation_Array = convert(Matrix, Precipitation)
+                        startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
+                        endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
+                        Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+                        Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
+                        # find duplicates and remove them
+                        df = DataFrame(Precipitation_Array)
+                        df = unique!(df)
+                        # drop missing values
+                        df = dropmissing(df)
+                        Precipitation = convert(Vector, df[:,2])
+                else
+                        Precipitation = Precipitation_9900
+
+                end
+                print(Area_Zones_Percent[i], typeof(Precipitation), "\n")
+                Total_Precipitation += Precipitation .* Area_Zones_Percent[i]
+        end
+        return Total_Precipitation, Temperature_Mean_Elevation, Timeseries
+end
+
+# ID_Prec_Zones = [106120, 111815, 9900]
+# # for projections temp at 106120 taken instead of 9900
+# ID_Temp = 106120
+# Area_Zones = [198175943.0, 56544073.0, 115284451.3]
+# Area_Catchment = sum(Area_Zones)
+# Area_Zones_Percent_Palten = Area_Zones / Area_Catchment
+# startyear = 1981
+# endyear = 2010
+# Catchment_Name = "Palten"
+Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
+
+#Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten()
+#All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Palten, ID_Prec_Zones, ID_Temp, startyear, endyear)
+
+# ---------------------- Feistritz ------------------
+# ID_Prec_Zones = [109967]
+# # size of the area of precipitation zones
+# Area_Zones = [115496400.]
+# Area_Catchment = sum(Area_Zones)
+# Area_Zones_Percent_Feistritz = Area_Zones / Area_Catchment
+# Catchment_Name = "Feistritz"
+# ID_Temperature = 10510
+# startyear = 1983
+# endyear = 2010
+# Catchment_Name_Proj = "Pitten"
+# path_to_temp_data = "LTkont113597"
+# paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1])]
+# skip_to_temp = 0
+# Skipto = [24]
+#
+# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name_Proj, Area_Zones_Percent_Feistritz, ID_Prec_Zones, ID_Temperature, startyear, endyear)
+#
+
+# ------------------- Pitztal -----------------------------
+
+ID_Prec_Zones = [102061, 102046]
+# size of the area of precipitation zones
+Area_Zones = [20651736.0, 145191864.0]
+Area_Catchment = sum(Area_Zones)
+Area_Zones_Percent_Pitztal = Area_Zones / Area_Catchment
+Catchment_Name = "Pitztal"
+ID_Temperature = 14621
+ID_Temperature_Proj = 14620 # 52 m lower than 14621
+path_to_temp_data = "LTkont113597"
+paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1]), "/N-Tagessummen-"*string(ID_Prec_Zones[2])]
+startyear = 1983
+endyear = 2005
+skip_to_temp = 0
+Skipto = [26, 26]
+
+#Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
+#All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Pitztal, ID_Prec_Zones, ID_Temperature_Proj, startyear, endyear)
+
+#----- PLOT TEMP STATISTICS --------
+
+statistics_all_Zones = monthly_temp_statistics(Temperature_Observed, Timeseries)
+for i in 1:14
+        statistics_all_Zones_Proj = monthly_temp_statistics(All_Projections_Temp[:,i], Timeseries)
+        plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal")
+end
+
+# ------ PLOT PREC STATISTICS --------------
+statistics_all_Zones = monthly_storm_statistics(Precipitation_Observed, Timeseries)
+for i in 1:14
+        statistics_all_Zones_Proj = monthly_storm_statistics(All_Projections_Prec[:,i], Timeseries)
+        plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal")
+end
+
+plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Pitztal", "4.5")

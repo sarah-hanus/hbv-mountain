@@ -421,20 +421,20 @@ function hydrological_drought_statistics(Discharge, Timeseries, Threshold, seaso
     endindex = Int64[]
     length_drought = Float64[]
     last_daily_discharge = 0.1
-    for (j,daily_discharge) in enumerate(Discharge)
+    for (j,daily_discharge) in enumerate(Current_Discharge)
         if j == 1 && daily_discharge < Threshold
             count += 1
             append!(startindex, j)
         elseif j == 1 && daily_discharge >= Threshold
             count = 0
-        elseif j == length(Discharge) && daily_discharge < Threshold && last_daily_discharge < Threshold
+        elseif j == length(Current_Discharge) && daily_discharge < Threshold && last_daily_discharge < Threshold
             count += 1
             append!(endindex, j)
             append!(length_drought, count)
         elseif daily_discharge < Threshold && last_daily_discharge >= Threshold
             count+=1
             append!(startindex, j)
-            if j == length(Discharge)
+            if j == length(Current_Discharge)
                 append!(endindex, j)
                 append!(length_drought, count)
             end
@@ -450,8 +450,9 @@ function hydrological_drought_statistics(Discharge, Timeseries, Threshold, seaso
     end
     # get deficit by calculating the deficit sum over the days of one drought event
     Deficit = Float64[]
+    @assert length(startindex) == length(endindex)
     for index in 1:length(startindex)
-        Current_Deficit = sum(Threshold .- Discharge[startindex[index]:endindex[index]])
+        Current_Deficit = sum(Threshold .- Current_Discharge[startindex[index]:endindex[index]])
         append!(Deficit, Current_Deficit)
     end
 
@@ -460,8 +461,9 @@ function hydrological_drought_statistics(Discharge, Timeseries, Threshold, seaso
         Nr_Drought_Events = length(startindex)
         Max_Deficit = maximum(Deficit)
         Mean_Deficit = mean(Deficit)
-        Max_Intensity = maximum(Deficit / length_drought)
-        Mean_Intensity = mean(Deficit / length_drought)
+        Total_Deficit = sum(Deficit)
+        Max_Intensity = maximum(Deficit ./ length_drought)
+        Mean_Intensity = mean(Deficit ./ length_drought)
     else
         Nr_Drought_Events = 0
         @assert endindex == Int64[]
@@ -477,7 +479,7 @@ function hydrological_drought_statistics(Discharge, Timeseries, Threshold, seaso
 
 
 
-    return Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity
+    return Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Total_Deficit,  Max_Intensity, Mean_Intensity
 end
 """
 Provides statistics for hydrological drought for every climate projection.
@@ -487,7 +489,7 @@ The function returns the mean annual number of drought days, the mean annual num
     As input the path to the projections and a threshold value are needed.
     The season can be set to "none" using whole years or "summer" or "winter"
 """
-function compare_hydrological_drought(path_to_projections, Threshold, season)
+function compare_hydrological_drought(path_to_projections, Threshold, season, Catchment_Name)
     Name_Projections = readdir(path_to_projections)
     Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
     Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
@@ -507,6 +509,8 @@ function compare_hydrological_drought(path_to_projections, Threshold, season)
     Max_Intensity_Future = Float64[]
     Mean_Intensity_Past = Float64[]
     Mean_Intensity_Future = Float64[]
+    Total_Deficit_Past = Float64[]
+    Total_Deficit_Future = Float64[]
     if path_to_projections[end-2:end-1] == "45"
         index = 1
         rcp = "45"
@@ -518,12 +522,12 @@ function compare_hydrological_drought(path_to_projections, Threshold, season)
     end
     for (i, name) in enumerate(Name_Projections)
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/100_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/100_model_results_discharge_future_2100.csv", ',')
         for run in 1:100
             #print(size(Past_Discharge), size(Timeseries_Past), threshold, season, size(Future_Discharge[run,:]), size(Timeseries_Future), "\n")
-            Current_Nr_Drought_Days_Past, Current_Nr_Drought_Events_Past, Current_Max_Drought_Length_Past, Current_Mean_Drought_Length_Past, Current_Max_Deficit_Past, Current_Mean_Deficit_Past, Current_Max_Intensity_Past, Current_Mean_Intensity_Past = hydrological_drought_statistics(Past_Discharge[run,:], Timeseries_Past, Threshold, season)
-            Current_Nr_Drought_Days_Future, Current_Nr_Drought_Events_Future, Current_Max_Drought_Length_Future, Current_Mean_Drought_Length_Future, Current_Max_Deficit_Future, Current_Mean_Deficit_Future, Current_Max_Intensity_Future, Current_Mean_Intensity_Future = hydrological_drought_statistics(Future_Discharge[run,:], Timeseries_Future, Threshold, season)
+            Current_Nr_Drought_Days_Past, Current_Nr_Drought_Events_Past, Current_Max_Drought_Length_Past, Current_Mean_Drought_Length_Past, Current_Max_Deficit_Past, Current_Mean_Deficit_Past, Current_Total_Deficit_Past, Current_Max_Intensity_Past, Current_Mean_Intensity_Past = hydrological_drought_statistics(Past_Discharge[run,:], Timeseries_Past, Threshold, season)
+            Current_Nr_Drought_Days_Future, Current_Nr_Drought_Events_Future, Current_Max_Drought_Length_Future, Current_Mean_Drought_Length_Future, Current_Max_Deficit_Future, Current_Mean_Deficit_Future, Current_Total_Deficit_Future, Current_Max_Intensity_Future, Current_Mean_Intensity_Future = hydrological_drought_statistics(Future_Discharge[run,:], Timeseries_Future, Threshold, season)
             append!(Nr_Drought_Days_Past, Current_Nr_Drought_Days_Past)
             append!(Nr_Drought_Days_Future, Current_Nr_Drought_Days_Future)
             append!(Nr_Drought_Events_Past, Current_Nr_Drought_Events_Past)
@@ -540,9 +544,11 @@ function compare_hydrological_drought(path_to_projections, Threshold, season)
             append!(Max_Intensity_Future, Current_Max_Intensity_Future)
             append!(Mean_Intensity_Past, Current_Mean_Intensity_Past)
             append!(Mean_Intensity_Future, Current_Mean_Intensity_Future)
+            append!(Total_Deficit_Past, Current_Total_Deficit_Past)
+            append!(Total_Deficit_Future, Current_Total_Deficit_Future)
         end
     end
-    Drought_Statistics = Drought(Nr_Drought_Days_Past, Nr_Drought_Days_Future, Nr_Drought_Events_Past, Nr_Drought_Events_Future, Max_Drought_Length_Past, Max_Drought_Length_Future, Mean_Drought_Length_Past, Mean_Drought_Length_Future, Max_Deficit_Past, Max_Deficit_Future, Mean_Deficit_Past, Mean_Deficit_Future,  Max_Intensity_Past, Max_Intensity_Future, Mean_Intensity_Past, Mean_Intensity_Future)
+    Drought_Statistics = Drought(Nr_Drought_Days_Past, Nr_Drought_Days_Future, Nr_Drought_Events_Past, Nr_Drought_Events_Future, Max_Drought_Length_Past, Max_Drought_Length_Future, Mean_Drought_Length_Past, Mean_Drought_Length_Future, Max_Deficit_Past, Max_Deficit_Future, Mean_Deficit_Past, Mean_Deficit_Future,  Total_Deficit_Past, Total_Deficit_Future, Max_Intensity_Past, Max_Intensity_Future, Mean_Intensity_Past, Mean_Intensity_Future)
     return Drought_Statistics
 end
 
@@ -645,9 +651,27 @@ function plot_drought_statistics(Drought_45, Drought_85, Threshold, Catchment_Na
     title!("Change in MeanDeficit "*season*", Threshold= " *string(Threshold))
     ylabel!("Discharge [m³/s]")
     Mean_Deficit = boxplot!()
+
+    # plot change max Intensity
+    boxplot([rcps[1]], Drought_45.Max_Intensity_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Max_Intensity_Future, color=[Farben45[2]])
+    boxplot!([rcps[3]],  Drought_85.Max_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Max_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in Maximum Intensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("Intensity [m³/s/d]")
+    Max_Intensity = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean Intensity
+    boxplot([rcps[1]], Drought_45.Mean_Intensity_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Mean_Intensity_Future, color=[Farben45[2]])
+    boxplot!([rcps[3]], Drought_85.Mean_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Mean_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in MeanIntensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("Intensity [m³/s/d]")
+    Mean_Intensity = boxplot!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_all_years_"*season*".png")
 
-    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, layout= (2,3), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px)
+    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics_comparison"*string(Threshold)*"_all_years_"*season*".png")
     # make violin plots
     # plot change in Number of Drought days in year
@@ -704,9 +728,166 @@ function plot_drought_statistics(Drought_45, Drought_85, Threshold, Catchment_Na
     title!("Change in MeanDeficit "*season*", Threshold= " *string(Threshold))
     ylabel!("Discharge [m³/s]")
     Mean_Deficit = boxplot!()
+
+    # plot change max Intensity
+    violin([rcps[1]], Drought_45.Max_Intensity_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Max_Intensity_Future, color=[Farben45[2]])
+    violin!([rcps[3]],  Drought_85.Max_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Max_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in Maximum Intensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("Intensity [m³/s/d]")
+    Max_Intensity = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean Intensity
+    violin([rcps[1]], Drought_45.Mean_Intensity_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Mean_Intensity_Future, color=[Farben45[2]])
+    violin!([rcps[3]], Drought_85.Mean_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Mean_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in Mean Intensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("Intensity [m³/s/d]")
+    Mean_Intensity = boxplot!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_violin_all_years_"*season*".png")
-    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, layout= (2,3), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px)
+    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics_comparison"*string(Threshold)*"_all_years_"*season*"_violin.png")
+end
+
+function plot_drought_statistics_rel_change(Drought_45, Drought_85, Threshold, Catchment_Name, season)
+    rcps = ["RCP 4.5", "RCP 8.5"]
+    # plot change in Number of Drought days in year
+    boxplot([rcps[1]], relative_error(Drought_45.Nr_Drought_Days_Future, Drought_45.Nr_Drought_Days_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Nr_Drought_Days_Future, Drought_85.Nr_Drought_Days_Past)*100, color="red", size=(1200,800), leg=false)
+    title!("Relative Change in Number of Drought Days "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Nr_Drought_Days = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    #plot change in number of drought events per year
+    boxplot([rcps[1]], relative_error(Drought_45.Nr_Drought_Events_Future, Drought_45.Nr_Drought_Events_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Nr_Drought_Events_Future, Drought_85.Nr_Drought_Events_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Number of Drought Events "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Nr_Drought_Events = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_nr_events_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot cahnge in maximum  drought length per year
+    boxplot([rcps[1]], relative_error(Drought_45.Max_Drought_Length_Future, Drought_45.Max_Drought_Length_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Max_Drought_Length_Future, Drought_85.Max_Drought_Length_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Maximum Drought Length "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Max_Drought_Length = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean drought length
+    boxplot([rcps[1]], relative_error(Drought_45.Mean_Drought_Length_Future,  Drought_45.Mean_Drought_Length_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Mean_Drought_Length_Future, Drought_85.Mean_Drought_Length_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Mean Drought Length "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Mean_Drought_Length = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+
+    # plot change max deficit
+    boxplot([rcps[1]], relative_error(Drought_45.Max_Deficit_Future, Drought_45.Max_Deficit_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Max_Deficit_Future, Drought_85.Max_Deficit_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Maximum Deficit "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Max_Deficit = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_deficit"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean deficit
+    boxplot([rcps[1]], relative_error(Drought_45.Mean_Deficit_Future, Drought_45.Mean_Deficit_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Mean_Deficit_Future, Drought_85.Mean_Deficit_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relativ Change in MeanDeficit "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Mean_Deficit = boxplot!()
+
+    # plot change max Intensity
+    boxplot([rcps[1]], relative_error(Drought_45.Max_Intensity_Future, Drought_45.Max_Intensity_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Max_Intensity_Future, Drought_85.Max_Intensity_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Maximum Intensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    Max_Intensity = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean Intensity
+    boxplot([rcps[1]], relative_error(Drought_45.Mean_Intensity_Future, Drought_45.Mean_Intensity_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Mean_Intensity_Future, Drought_85.Mean_Intensity_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in MeanIntensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Mean_Intensity = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_all_years_"*season*".png")
+
+    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change.png")
+    # make violin plots
+    violin([rcps[1]], relative_error(Drought_45.Nr_Drought_Days_Future, Drought_45.Nr_Drought_Days_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Nr_Drought_Days_Future, Drought_85.Nr_Drought_Days_Past)*100, color="red", size=(1200,800), leg=false)
+    title!("Relative Change in Number of Drought Days "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Nr_Drought_Days = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_length_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
+    #plot change in number of drought events per year
+    violin([rcps[1]], relative_error(Drought_45.Nr_Drought_Events_Future, Drought_45.Nr_Drought_Events_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Nr_Drought_Events_Future, Drought_85.Nr_Drought_Events_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Number of Drought Events "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Nr_Drought_Events = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_nr_events_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
+    # plot cahnge in maximum  drought length per year
+    violin([rcps[1]], relative_error(Drought_45.Max_Drought_Length_Future, Drought_45.Max_Drought_Length_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Max_Drought_Length_Future, Drought_85.Max_Drought_Length_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Maximum Drought Length "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Max_Drought_Length = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
+
+    # plot change mean drought length
+    violin([rcps[1]], relative_error(Drought_45.Mean_Drought_Length_Future, Drought_45.Mean_Drought_Length_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Mean_Drought_Length_Future, Drought_85.Mean_Drought_Length_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Mean Drought Length "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Mean_Drought_Length = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_length_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
+
+    # plot change max deficit
+    violin([rcps[1]], relative_error(Drought_45.Max_Deficit_Future, Drought_45.Max_Deficit_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Max_Deficit_Future, Drought_85.Max_Deficit_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Maximum Deficit "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Max_Deficit = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_deficit"*string(Threshold)*"_violin_all_years_"*season*".png")
+    # plot change mean deficit
+    violin([rcps[1]], relative_error(Drought_45.Mean_Deficit_Future, Drought_45.Mean_Deficit_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Mean_Deficit_Future, Drought_85.Mean_Deficit_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in MeanDeficit "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Mean_Deficit = violin!()
+
+    # plot change max Intensity
+    violin([rcps[1]], relative_error(Drought_45.Max_Intensity_Future, Drought_45.Max_Intensity_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Max_Intensity_Future, Drought_85.Max_Intensity_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in Maximum Intensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Max_Intensity = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_violin_all_years_"*season*".png")
+    # plot change mean Intensity
+    violin([rcps[1]], relative_error(Drought_45.Mean_Intensity_Future, Drought_45.Mean_Intensity_Past)*100, color="blue")
+    violin!([rcps[2]], relative_error(Drought_85.Mean_Intensity_Future, Drought_85.Mean_Intensity_Past)*100, color="red",  size=(1200,800), leg=false)
+    title!("Relative Change in MeanIntensity "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    hline!([0], color=["grey"], linestyle = :dash)
+    Mean_Intensity = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_violin_all_years_"*season*".png")
+    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change_violin.png")
 end
 
 function plot_drought_statistics_change(Drought_45, Drought_85, Threshold, Catchment_Name, season)
@@ -833,7 +1014,33 @@ function plot_drought_statistics_change(Drought_45, Drought_85, Threshold, Catch
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_violin.png")
 end
 
-threshold = get_threshold_hydrological_drought(1981,2010, 0.9)
-#Drought_45 = compare_hydrological_drought(path_45, threshold, "winter")
-#Drought_85 = compare_hydrological_drought(path_85, threshold, "winter")
-plot_drought_statistics_change(Drought_45, Drought_85, threshold, "Gailtal", "winter")
+function plot_drought_total_deficit(Drought_45, Drought_85, Threshold, Catchment_Name, season)
+    rcps = ["RCP 4.5", "RCP 8.5"]
+    # plot change in Number of Drought days in year
+    boxplot([rcps[1]], relative_error(Drought_45.Total_Deficit_Future, Drought_45.Total_Deficit_Past)*100, color="blue")
+    boxplot!([rcps[2]], relative_error(Drought_85.Total_Deficit_Future, Drought_85.Total_Deficit_Past)*100, color="red", size=(1200,800), leg=false)
+    violin!([rcps[1]], relative_error(Drought_45.Total_Deficit_Future, Drought_45.Total_Deficit_Past)*100, color="blue", alpha=0.6)
+    violin!([rcps[2]], relative_error(Drought_85.Total_Deficit_Future, Drought_85.Total_Deficit_Past)*100, color="red", size=(1200,800), leg=false, alpha=0.6)
+    title!("Relative Change in Total Deficit due to Droughts "*season*", Threshold= " *string(Threshold))
+    ylabel!("[%]")
+    relativ_change = boxplot!()
+
+    boxplot([rcps[1]], Drought_45.Total_Deficit_Future - Drought_45.Total_Deficit_Past, color="blue")
+    boxplot!([rcps[2]], Drought_85.Total_Deficit_Future- Drought_85.Total_Deficit_Past, color="red", size=(1200,800), leg=false)
+    violin!([rcps[1]], Drought_45.Total_Deficit_Future- Drought_45.Total_Deficit_Past, color="blue", alpha=0.6)
+    violin!([rcps[2]], Drought_85.Total_Deficit_Future- Drought_85.Total_Deficit_Past, color="red", size=(1200,800), leg=false, alpha=0.6)
+    title!("Change in Total Deficit due to droughts "*season*", Threshold= " *string(Threshold))
+    ylabel!("[m³/s]")
+    absolute_change = boxplot!()
+
+    plot(relativ_change, absolute_change, layout= (1,2), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics_total_deficit"*string(Threshold)*"_all_years_"*season*".png")
+end
+
+
+#threshold = get_threshold_hydrological_drought(1981,2010, 0.9)
+Drought_45 = compare_hydrological_drought(path_45, threshold, "summer", "Gailtal")
+Drought_85 = compare_hydrological_drought(path_85, threshold, "summer", "Gailtal")
+plot_drought_total_deficit(Drought_45, Drought_85, threshold, "Gailtal", "summer")
+plot_drought_statistics_change(Drought_45, Drought_85, threshold, "Gailtal", "summer")
+plot_drought_statistics_rel_change(Drought_45, Drought_85, threshold, "Gailtal", "summer")

@@ -52,7 +52,7 @@ function combine_calibrations(path, path_to_save)
     writedlm(path_to_save, all_calibrations, ',')
 end
 
-function calibration_statistics(path_to_file, number_best)
+function calibration_statistics(path_to_file, number_best, lower_boundary_y_axis)
     max_Obj = Float64[]
     max_NSE = Float64[]
     max_NSElog = Float64[]
@@ -79,6 +79,7 @@ function calibration_statistics(path_to_file, number_best)
         push!(plots_obj, scatter(ED_best, calibration_best[:,i+1], xlabel = "Euclidean Distance", ylabel= names_obj[i]))
     end
     plot(plots_obj[1], plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], layout= (2,4), legend = false, size=(1400,800))
+    #ylims!(lower_boundary_y_axis,1)
     savefig(path_to_file[1:end_file+1]*string(number_best)*"_objective_functions.png")
     #plot the parameter distribution
     plots_par = []
@@ -243,12 +244,12 @@ end
 
 
 # #----------------- COMBINE RESULTS OF ONE DEVICE-------------
-#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/All/", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All.csv")
+#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000.csv")
 # --------------- STORE BEST PARAMETER SETS ---------------------
-#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All.csv", 100020)
+#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000_best_10000.csv", 100)
 # -------------- GET STATISTICS -------
 
-#calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_10000.csv", 10000)
+#calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000_best_10000.csv", 100, 0.7)
 
 
 function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)

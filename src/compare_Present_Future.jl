@@ -367,21 +367,27 @@ function plot_changes_monthly_discharge(Monthly_Discharge_past_45, Monthly_Disch
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Monthly_Discharge/change_monthly_discharge4.5_8.5_new.png")
 end
 
-function plot_change_total_discharge(path_to_projections_45, path_to_projections_85, Name_Catchment)
+function plot_change_total_discharge(path_to_projections_45, path_to_projections_85, Name_Catchment, Area_Catchment)
     Name_Projections_45 = readdir(path_to_projections_45)
     Name_Projections_85 = readdir(path_to_projections_85)
     relative_change_45 = Float64[]
     relative_change_85 = Float64[]
+    Total_Discharge_Past_45 = Float64[]
+    Total_Discharge_Future_45 = Float64[]
+    Total_Discharge_Past_85 = Float64[]
+    Total_Discharge_Future_85 = Float64[]
     for (i, name) in enumerate(Name_Projections_45)
         Past_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/100_model_results_discharge_past_2010.csv", ',')
         Future_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/100_model_results_discharge_future_2100.csv", ',')
         # get FDCs from each discharge
         for run in 1: 100
             # for each run get the total discharge
-            Discharge_Past = sum(Past_Discharge[run,:])
-            Discharge_Future = sum(Future_Discharge[run,:])
+            Discharge_Past = sum(convertDischarge(Past_Discharge[run,:], Area_Catchment))
+            Discharge_Future = sum(convertDischarge(Future_Discharge[run,:], Area_Catchment))
             relative_change = relative_error(Discharge_Future, Discharge_Past)*100
             append!(relative_change_45, relative_change)
+            append!(Total_Discharge_Past_45, Discharge_Past)
+            append!(Total_Discharge_Future_45, Discharge_Future)
         end
     end
     for (i, name) in enumerate(Name_Projections_85)
@@ -390,21 +396,176 @@ function plot_change_total_discharge(path_to_projections_45, path_to_projections
         # get FDCs from each discharge
         for run in 1: 100
             # for each run get the total discharge
-            Discharge_Past = sum(Past_Discharge[run,:])
-            Discharge_Future = sum(Future_Discharge[run,:])
+            Discharge_Past = sum(convertDischarge(Past_Discharge[run,:], Area_Catchment))
+            Discharge_Future = sum(convertDischarge(Future_Discharge[run,:], Area_Catchment))
             relative_change = relative_error(Discharge_Future, Discharge_Past)*100
             append!(relative_change_85, relative_change)
+            append!(Total_Discharge_Past_85, Discharge_Past)
+            append!(Total_Discharge_Future_85, Discharge_Future)
         end
     end
 
-    violin(["RCP 4.5"], relative_change_45, color="blue", size=(1000,600), leg=false)
-    violin!(["RCP 8.5"], relative_change_85, color="red", size=(1000,600), leg=false)
-    title!("Relative Change in Total Discharge")
-    ylabel!("Relative Change [%]")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Name_Catchment*"/PastvsFuture/change_Total_Discharge_violin.png")
+    Farben45=palette(:blues)
+    Farben85=palette(:reds)
+    rcps = ["RCP 4.5", "RCP 8.5"]
+
+    # plot relative change
+    plot()
+    boxplot!([rcps[1]], relative_change_45, size=(2000,800), leg=false, color=[Farben45[2]])
+    boxplot!([rcps[2]], relative_change_85, size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]])
+    violin!([rcps[1]], relative_change_45, size=(2000,800), leg=false, color=[Farben45[2]], alpha=0.6)
+    violin!([rcps[2]], relative_change_85,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]], alpha=0.6)
+    ylabel!("Relative Change in Total Discharge [%]")
+    title!("Relative Change in total Discharge in "*Catchment_Name)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Relative_Change_Total_Discharge.png")
+    #plot absolut change
+    plot()
+    boxplot!([rcps[1]], Total_Discharge_Future_45 - Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[2]])
+    boxplot!([rcps[2]], Total_Discharge_Future_85 - Total_Discharge_Past_85, size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]])
+    violin!([rcps[1]], Total_Discharge_Future_45 - Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[2]], alpha=0.6)
+    violin!([rcps[2]], Total_Discharge_Future_85 - Total_Discharge_Past_85,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]], alpha=0.6)
+    ylabel!("Change in Total Discharge [mm]")
+    title!("Absolute Change in total Discharge in "*Catchment_Name)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Absolute_Change_Total_Discharge.png")
+
+
+    plot()
+    boxplot!([rcps[1]], Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[1]])
+    boxplot!([rcps[2]], Total_Discharge_Future_45, size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben45[2]])
+    violin!([rcps[1]], Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[1]], alpha=0.6)
+    violin!([rcps[2]], Total_Discharge_Future_45,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben45[2]], alpha=0.6)
+    ylabel!("Total Discharge [mm]")
+    title!("Total Discharge over 30 years RCP 4.5 in "*Catchment_Name)
+    ylims!(20000, 35000)
+    rcp45 = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/rel_change_snow_storage.png")
+
+    plot()
+    boxplot!([rcps[1]], Total_Discharge_Past_85, size=(2000,800), leg=false, color=[Farben85[1]])
+    boxplot!([rcps[2]], Total_Discharge_Future_85 ,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]])
+    violin!([rcps[1]], Total_Discharge_Past_85, size=(2000,800), leg=false, color=[Farben85[1]], alpha=0.6)
+    violin!([rcps[2]], Total_Discharge_Future_85,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]], alpha=0.6)
+    ylabel!("Total Discharge [mm]")
+    title!("Total Discharge over 30 years RCP 8.5 in "*Catchment_Name)
+    ylims!(20000, 35000)
+    rcp85 = boxplot!()
+    plot(rcp45, rcp85, size=(2000,800), left_margin = [5mm 0mm])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Total_Discharge_Comparison_Future_Past.png")
 end
 
-#plot_change_total_discharge(path_45, path_85, "Gailtal")
+function average_annual_discharge(Discharge, Timeseries, Area_Catchment)
+    Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
+    Yearly_Discharges = Float64[]
+    Nr_Drought_Events = Float64[]
+    Max_Drought_Length = Float64[]
+    #Date_max_Annual_Discharge = Float64[]
+    for (i, Current_Year) in enumerate(Years)
+            Dates_Current_Year = filter(Timeseries) do x
+                              Dates.Year(x) == Dates.Year(Current_Year)
+                          end
+            Current_Discharge = Discharge[indexin(Dates_Current_Year, Timeseries)]
+            append!(Yearly_Discharges, sum(convertDischarge(Current_Discharge, Area_Catchment)))
+    end
+    Mean_Yearly_Discharge = mean(Yearly_Discharges)
+    return Mean_Yearly_Discharge
+end
+
+function plot_change_annual_discharge(path_to_projections_45, path_to_projections_85, Name_Catchment, Area_Catchment)
+    Name_Projections_45 = readdir(path_to_projections_45)
+    Name_Projections_85 = readdir(path_to_projections_85)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+
+    relative_change_45 = Float64[]
+    relative_change_85 = Float64[]
+    Total_Discharge_Past_45 = Float64[]
+    Total_Discharge_Future_45 = Float64[]
+    Total_Discharge_Past_85 = Float64[]
+    Total_Discharge_Future_85 = Float64[]
+    # ---------- RCP 4.5 --------------
+    for (i, name) in enumerate(Name_Projections_45)
+        Past_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/100_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/100_model_results_discharge_future_2100.csv", ',')
+        Timeseries_Future_45 = collect(Date(Timeseries_End[i,1]-29,1,1):Day(1):Date(Timeseries_End[i,1],12,31))
+        # get FDCs from each discharge
+        for run in 1: 100
+            # for each run get the total discharge
+            Discharge_Past = average_annual_discharge(Past_Discharge[run,:], Timeseries_Past, Area_Catchment)
+            Discharge_Future = average_annual_discharge(Future_Discharge[run,:], Timeseries_Future_45, Area_Catchment)
+            relative_change = relative_error(Discharge_Future, Discharge_Past)*100
+            append!(relative_change_45, relative_change)
+            append!(Total_Discharge_Past_45, Discharge_Past)
+            append!(Total_Discharge_Future_45, Discharge_Future)
+        end
+    end
+    # ---------- RCP 8.5 --------------
+    for (i, name) in enumerate(Name_Projections_85)
+        Past_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"/100_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"/100_model_results_discharge_future_2100.csv", ',')
+        Timeseries_Future_85 = collect(Date(Timeseries_End[i,2]-29,1,1):Day(1):Date(Timeseries_End[i,2],12,31))
+        # get FDCs from each discharge
+        for run in 1: 100
+            # for each run get the total discharge
+            Discharge_Past = average_annual_discharge(Past_Discharge[run,:], Timeseries_Past, Area_Catchment)
+            Discharge_Future = average_annual_discharge(Future_Discharge[run,:], Timeseries_Future_85, Area_Catchment)
+            relative_change = relative_error(Discharge_Future, Discharge_Past)*100
+            append!(relative_change_85, relative_change)
+            append!(Total_Discharge_Past_85, Discharge_Past)
+            append!(Total_Discharge_Future_85, Discharge_Future)
+        end
+    end
+
+    Farben45=palette(:blues)
+    Farben85=palette(:reds)
+    rcps = ["RCP 4.5", "RCP 8.5"]
+
+    # plot relative change
+    plot()
+    boxplot!([rcps[1]], relative_change_45, size=(2000,800), leg=false, color=[Farben45[2]])
+    boxplot!([rcps[2]], relative_change_85, size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]])
+    violin!([rcps[1]], relative_change_45, size=(2000,800), leg=false, color=[Farben45[2]], alpha=0.6)
+    violin!([rcps[2]], relative_change_85,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]], alpha=0.6)
+    ylabel!("Relative Change in Total Discharge [%]")
+    title!("Relative Change in total Discharge in "*Catchment_Name)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Relative_Change_Annual_Discharge.png")
+    #plot absolut change
+    plot()
+    boxplot!([rcps[1]], Total_Discharge_Future_45 - Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[2]])
+    boxplot!([rcps[2]], Total_Discharge_Future_85 - Total_Discharge_Past_85, size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]])
+    violin!([rcps[1]], Total_Discharge_Future_45 - Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[2]], alpha=0.6)
+    violin!([rcps[2]], Total_Discharge_Future_85 - Total_Discharge_Past_85,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]], alpha=0.6)
+    ylabel!("Change in Total Discharge [mm]")
+    title!("Absolute Change in total Discharge in "*Catchment_Name)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Absolute_Change_Annual_Discharge.png")
+
+
+    plot()
+    boxplot!([rcps[1]], Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[1]])
+    boxplot!([rcps[2]], Total_Discharge_Future_45, size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben45[2]])
+    violin!([rcps[1]], Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[1]], alpha=0.6)
+    violin!([rcps[2]], Total_Discharge_Future_45,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben45[2]], alpha=0.6)
+    ylabel!("Total Discharge [mm]")
+    title!("Total Discharge over 30 years RCP 4.5 in "*Catchment_Name)
+    #ylims!(20000, 35000)
+    rcp45 = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/rel_change_snow_storage.png")
+
+    plot()
+    boxplot!([rcps[1]], Total_Discharge_Past_85, size=(2000,800), leg=false, color=[Farben85[1]])
+    boxplot!([rcps[2]], Total_Discharge_Future_85 ,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]])
+    violin!([rcps[1]], Total_Discharge_Past_85, size=(2000,800), leg=false, color=[Farben85[1]], alpha=0.6)
+    violin!([rcps[2]], Total_Discharge_Future_85,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]], alpha=0.6)
+    ylabel!("Total Discharge [mm]")
+    title!("Total Discharge over 30 years RCP 8.5 in "*Catchment_Name)
+    #ylims!(20000, 35000)
+    rcp85 = boxplot!()
+    plot(rcp45, rcp85, size=(2000,800), left_margin = [5mm 0mm])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Discharge_Comparison_Future_Past.png")
+end
+
+Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
+Area_Catchment = sum(Area_Zones)
+plot_change_annual_discharge(path_45, path_85, "Gailtal", Area_Catchment)
 
 
 
@@ -744,10 +905,69 @@ function change_max_Annual_Discharge(path_to_projections)
     return average_max_Discharge_past, average_max_Discharge_future, Timing_max_Discharge_past, Timing_max_Discharge_future, All_Concentration_past, All_Concentration_future
 end
 
+function change_max_Annual_Discharge_Prob_Distribution(path_to_projections)
+    Name_Projections_45 = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    change_all_runs = Float64[]
+    average_max_Discharge_past = Float64[]
+    average_max_Discharge_future = Float64[]
+    Exceedance_Probability = Float64[]
+    Timing_max_Discharge_past = Float64[]
+    Timing_max_Discharge_future = Float64[]
+    All_Concentration_past = Float64[]
+    All_Concentration_future = Float64[]
+    Date_Past = Float64[]
+    Date_Future = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    for (i, name) in enumerate(Name_Projections_45)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
+        #change_all_runs = Float64[]
+        for run in 1:100
+            max_Discharge_past, Date_max_Discharge_past = max_Annual_Discharge(Past_Discharge[run,:], Timeseries_Past)
+            max_Discharge_future, Date_max_Discharge_future = max_Annual_Discharge(Future_Discharge[run,:], Timeseries_Future)
+            # don't take mean of thirty years but probability distirbution
+            max_Discharge_past_sorted, Prob_Dis_past = flowdurationcurve(max_Discharge_past)
+            max_Discharge_future_sorted, Prob_Dis_future = flowdurationcurve(max_Discharge_future)
+            @assert Prob_Dis_past == Prob_Dis_future
+            append!(average_max_Discharge_past, max_Discharge_past_sorted)
+            append!(average_max_Discharge_future, max_Discharge_future_sorted)
+            append!(Exceedance_Probability, Prob_Dis_past)
+            append!(Date_Past, Date_max_Discharge_past)
+            append!(Date_Future, Date_max_Discharge_future)
+            # timing_average_max_Discharge_past, Concentration_past = average_timing(Date_max_Discharge_past, Timeseries_Past)
+            # timing_average_max_Discharge_future, Concentration_future = average_timing(Date_max_Discharge_future, Timeseries_Past)
+            # #Date_max_Discharge_past = mean(Date_max_Discharge_past)
+            # #Date_max_Discharge_future = mean(Date_max_Discharge_future)
+            # #error = relative_error(max_Discharge_future, max_Discharge_past)
+            # #error_timing = Date_max_Discharge_future - Date_max_Discharge_past)
+            # #append!(change_all_runs, error)
+            # append!(Timing_max_Discharge_past, timing_average_max_Discharge_past)
+            # append!(Timing_max_Discharge_future, timing_average_max_Discharge_future)
+            # append!(All_Concentration_past, Concentration_past)
+            # append!(All_Concentration_future, Concentration_future)
+        end
+    end
+    # scatter([Timing_max_Discharge_past, Timing_max_Discharge_future], label=["blue", "red"])
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/timing_85.png")
+    return average_max_Discharge_past, average_max_Discharge_future, Exceedance_Probability, Date_Past, Date_Future #,Timing_max_Discharge_past, Timing_max_Discharge_future, All_Concentration_past, All_Concentration_future
+end
+
+
 function plot_Max_Flows(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, Max_Flows_future85, Timing_Max_Flows_past45, Timing_Max_Flows_future45,  Timing_Max_Flows_past85, Timing_Max_Flows_future85)
     Farben45=palette(:blues)
     Farben85=palette(:reds)
-    # plot seasonal low flows of each projection
+    # plot lows of each projection
     for proj in 1:14
         boxplot(Max_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
         boxplot!(Max_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
@@ -759,7 +979,7 @@ function plot_Max_Flows(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, 
         title!("Annual Maximum Discharge")
         savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/7days/max_yearly_discharge_"*string(Name_Projections_45[proj])*".png")
     end
-    # plot seasonal low flows of all projections combined
+    # plot flows of all projections combined
     boxplot(Max_Flows_past45, color=[Farben45[1]])
     boxplot!(Max_Flows_future45,color=[Farben45[2]])
     boxplot!(Max_Flows_past85, color=[Farben85[1]])
@@ -879,9 +1099,120 @@ function plot_Max_Flows(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, 
     # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_summerlowflows_violins.png")
 end
 
-#max_Discharge_Past_45, Max_Discharge_Future_45, Timing_Max_Discharge_Past45, Timing_Max_Discharge_Future45, concentration_past_45, concentration_future_45 =  change_max_Annual_Discharge(path_45)
+function plot_Max_Flows_Prob_Distribution(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, Max_Flows_future85, Exceedance_Probability, Catchment_Name)
+    plot()
+    Farben45=palette(:blues)
+    Farben85=palette(:reds)
+    for exceedance in collect(5:5:30)
+        index = findall(x->x == Exceedance_Probability[exceedance], Exceedance_Probability)
+        boxplot!(relative_error(Max_Flows_future45[index], Max_Flows_past45[index])*100,color=[Farben45[2]])
+        #boxplot!(, color=[Farben85[1]])
+        boxplot!(relative_error(Max_Flows_future85[index], Max_Flows_past85[index])*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    end
+    xticks!([1.5:2:11.5;], ["5 years", "10 years", "15 years", "20 years", "25 years", "30 years"])
+    ylabel!("relative change in discharge [%]")
+    title!("Relative Change in Maximum Annual Discharge which is exceeded in x years")
+    xlabel!("Years in 30 years")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/probability_Dsitribution_relative_Change.png")
+    plot()
+    for exceedance in collect(5:5:30)
+        index = findall(x->x == Exceedance_Probability[exceedance], Exceedance_Probability)
+        change = relative_error(Max_Flows_future45[index], Max_Flows_past45[index])*100
+        print(mean(change), " ", maximum(change), " ", minimum(change), "\n")
+        violin!(relative_error(Max_Flows_future45[index], Max_Flows_past45[index])*100,color=[Farben45[2]])
+        #boxplot!(, color=[Farben85[1]])
+        violin!(relative_error(Max_Flows_future85[index], Max_Flows_past85[index])*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    end
+    xticks!([1.5:2:11.5;], ["5 years", "10 years", "15 years", "20 years", "25 years", "30 years"])
+    ylabel!("relative change in discharge [%]")
+    xlabel!("Years in 30 years")
+    ylims!(-50,150)
+    title!("Relative Change in Maximum Annual Discharge which is exceeded in x years of the 30 year period")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/probability_Dsitribution_relative_Change_violin.png")
 
+    plot()
+    mean_change = Float64[]
+    max_change = Float64[]
+    min_change = Float64[]
+    mean_change_85 = Float64[]
+    max_change_85 = Float64[]
+    min_change_85 = Float64[]
+    for exceedance in Exceedance_Probability[1:30]
+        index = findall(x->x == exceedance, Exceedance_Probability)
+        change_45 = relative_error(Max_Flows_future45[index], Max_Flows_past45[index])*100
+        change_85 = relative_error(Max_Flows_future85[index], Max_Flows_past85[index])*100
+        append!(mean_change, mean(change_45))
+        append!(max_change, maximum(change_45))
+        append!(min_change, minimum(change_45))
+        append!(mean_change_85, mean(change_85))
+        append!(max_change_85, maximum(change_85))
+        append!(min_change_85, minimum(change_85))
+        #boxplot!(, color=[Farben85[1]])
+        #violin!(relative_error(Max_Flows_future85[index], Max_Flows_past85[index])*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    end
+    plot(collect(1:30), mean_change, color=[Farben45[2]], label="RCP 4.5", ribbon = (mean_change - min_change, max_change - mean_change))
+    plot!(collect(1:30), mean_change_85, color=[Farben85[2]], label="RCP 8.5", ribbon = (mean_change_85 - min_change_85, max_change_85 - mean_change_85), size=(1600,800))
+    #xticks!([1.5:2:11.5;], ["5 years", "10 years", "15 years", "20 years", "25 years", "30 years"])
+    ylabel!("relative change in discharge [%]")
+    ylims!(-50,150)
+    xlabel!("Years in 30 years")
+    title!("Relative Change in Maximum Annual Discharge which is exceeded in x years of the 30 year period")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/probability_Dsitribution_relative_Change_new.png")
+    # plot differences between past and future
+    return mean_change, min_change, max_change
+
+end
+
+#max_Discharge_Past_45, Max_Discharge_Future_45, Exceedance_Prob_45, Date_Past, Date_Future =  change_max_Annual_Discharge_Prob_Distribution(path_45)
+"""
+For each timeseries it calculates the number of times the maximum annual discharge occurs within a timerange (e.g. 15days)
+
+$(SIGNATURES)
+
+The function returns probability of occurence of AMF within a certain timerange of the year, and an array of this timerange
+"""
+function get_distributed_dates(Date_Past, Timerange)
+    nr_yearly_max_period_15_days = Float64[]
+    day_range = Float64[]
+    for i in 1:1400
+        Current_Date_Past = Date_Past[1+(i-1)*30:30*i]
+        for days in 1:Timerange:366
+            current_days = filter(Current_Date_Past) do x
+                x >= days && x < days +Timerange
+            end
+            append!(day_range, days-1)
+            if current_days == Float64[]
+                append!(nr_yearly_max_period_15_days, 0)
+            else
+                append!(nr_yearly_max_period_15_days, length(current_days)/30)
+            end
+        end
+    end
+    return nr_yearly_max_period_15_days, day_range
+end
+
+function plot_change_timing_AMF_over_year(Date_Past, Date_Future, Timerange)
+    period_15_days_past, day_range_past = get_distributed_dates(Date_Past_85)
+    period_15_days_future, day_range_future = get_distributed_dates(Date_Future_85)
+    #change = period_15_days_future - period_15_days_past
+    plot()
+    Catchment_Name = "Gailtal"
+    for i in collect(0:15:366)
+        current_past = period_15_days_past[findall(x->x==i, day_range_future)]
+        current_future = period_15_days_future[findall(x->x==i, day_range_future)]
+        boxplot!(current_past*100, leg=false, size=(1500,800), color="blue")
+        boxplot!(current_future*100, leg=false, size=(1500,800), color="red", left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
+    end
+    ylabel!("Probability of Occurence in Timeseries [%]")
+    xlabel!("15 days timesteps in year")
+    title!("Timing of Maximum Annual Discharge,Blue=Past Red=Future")
+    xticks!([1.5:2:48.5;],["Begin Jan", "End Jan", "Begin Feb", "End Feb", "Begin Mar", "End Mar", "Begin Apr", "End Apr", "Begin May", "End May", "Begin June", "End June","Begin Jul", "End Jul", "Begin Aug", "Eng Aug", "Begin Sep", "End Sep", "Begin Oct", "End Oct", "Begin Nov", "End Nov", "Begin Dec", "End Dec"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/probability_Dsitribution_timing_85.png")
+end
+#max_Discharge_Past_85, Max_Discharge_Future_85, Exceedance_Probability_85, Date_Past_85, Date_Future_85 =  change_max_Annual_Discharge_Prob_Distribution(path_85)
 #plot_Max_Flows(max_Discharge_Past_45, Max_Discharge_Future_45, max_Discharge_Past_85, Max_Discharge_Future_85, Timing_Max_Discharge_Past45, Timing_Max_Discharge_Future45, Timing_Max_Discharge_Past85, Timing_Max_Discharge_Future85)
+
+#mean_change, min_change, max_change = plot_Max_Flows_Prob_Distribution(max_Discharge_Past_45, Max_Discharge_Future_45, max_Discharge_Past_85, Max_Discharge_Future_85, Exceedance_Prob_45, "Gailtal")
 
 #changes = change_max_Annual_Discharge(path_45)
 #changes85, timing_changes85_future, timing_changes85_past = change_max_Annual_Discharge(path_85)
@@ -891,6 +1222,8 @@ end
 # title!("RCP 8.5")
 # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/Timing85.png")
 
+
+# ------------------- BUDYKO ------------------------------
 """
 Calculates the aridity and evaporative index for all climate projections with each 100 parameter sets for the given path.
 

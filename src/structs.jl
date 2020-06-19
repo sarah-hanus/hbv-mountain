@@ -71,6 +71,8 @@ mutable struct Drought
     Max_Deficit_Future::Array{Float64,1}
     Mean_Deficit_Past::Array{Float64,1}
     Mean_Deficit_Future::Array{Float64,1}
+    Total_Deficit_Past::Array{Float64,1}
+    Total_Deficit_Future::Array{Float64,1}
     Max_Intensity_Past::Array{Float64,1}
     Max_Intensity_Future::Array{Float64,1}
     Mean_Intensity_Past::Array{Float64,1}

@@ -41,6 +41,49 @@ function allHRU(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU
     return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Precipitation::Float64
 end
 
+"""
+Computes the fluxes of all components in the model per timestep (all HRUs combined + slow component)
+
+$(SIGNATURES)
+
+The function returns the fluxes leaving the model (evaporation, discharge). It also returns the amount of water stored in each model component.
+"""
+function allHRU_future(bare_input::HRU_Input, forest_input::HRU_Input, grass_input::HRU_Input, rip_input::HRU_Input,
+                bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages,
+                bare_parameters::Parameters, forest_parameters::Parameters, grass_parameters::Parameters, rip_parameters::Parameters,
+                Slowstorage::Float64, slow_parameters::Slow_Paramters)
+    #this function runs thy model for different HRUs
+    #bare rock HRU
+    bare_outflow::Outflows, bare_storage::Storages, Bare_precipitation::Float64, Bare_Storages::Float64, Bare_Melt::Float64 = hillslopeHRU_future(bare_input, bare_storage, bare_parameters)
+    # forest HRU
+    forest_outflow::Outflows, forest_storage::Storages, Forest_precipitation::Float64, Forest_Storages::Float64, Forest_Melt::Float64 = hillslopeHRU_future(forest_input, forest_storage, forest_parameters)
+    # Grassland HRU
+    grass_outflow::Outflows, grass_storage::Storages, Grass_precipitation::Float64, Grass_Storages::Float64, Grass_Melt::Float64 = hillslopeHRU_future(grass_input, grass_storage, grass_parameters)
+    # riparian HRU
+    rip_outflow::Outflows, rip_storage::Storages, Rip_precipitation::Float64, Rip_Storages::Float64, Rip_Melt::Float64 = riparianHRU_future(rip_input, rip_storage, rip_parameters)
+    # total flow into groundwater is the weighted sum of the HRUs according to areal extent (this was already done in hillslopeHRU)
+    Total_GWflow = bare_outflow.GWflow + forest_outflow.GWflow  + grass_outflow.GWflow
+    # Groundwater storage
+    Riparian_Discharge::Float64, Slow_Discharge::Float64, Slowstorage_New::Float64 = slowstorage(Total_GWflow, Slowstorage, rip_input.Area_HRU, slow_parameters.Ks, slow_parameters.Ratio_Riparian)
+    #return all storage values, all evaporation values, Fast_Discharge and Slow_Discharge
+    # calculate total discharge of the timestep using weighted sum of each HRU
+    Total_Discharge::Float64 = bare_outflow.Fast_Discharge  + forest_outflow.Fast_Discharge + grass_outflow.Fast_Discharge  + rip_outflow.Fast_Discharge  + Slow_Discharge
+    Total_Soil_Evaporation::Float64 = bare_outflow.Soil_Evaporation + forest_outflow.Soil_Evaporation + grass_outflow.Soil_Evaporation  + rip_outflow.Soil_Evaporation
+    Total_Interception_Evaporation::Float64 = bare_outflow.Interception_Evaporation  + forest_outflow.Interception_Evaporation + grass_outflow.Interception_Evaporation + rip_outflow.Interception_Evaporation
+    @assert Riparian_Discharge >= 0
+    @assert Total_Discharge >= 0
+    @assert Total_Interception_Evaporation >= 0
+    @assert Total_Soil_Evaporation >= 0
+    @assert Slowstorage_New >= 0
+    Total_Flows = Total_Discharge + Total_Soil_Evaporation + Total_Interception_Evaporation + Riparian_Discharge
+    Total_Melt = Bare_Melt + Forest_Melt + Grass_Melt + Rip_Melt
+    Total_Storages = Bare_Storages * bare_input.Area_HRU + Forest_Storages * forest_input.Area_HRU + Grass_Storages * grass_input.Area_HRU + Rip_Storages * rip_input.Area_HRU + Slowstorage_New - Slowstorage
+    Precipitation = Bare_precipitation * bare_input.Area_HRU + Forest_precipitation * forest_input.Area_HRU + Grass_precipitation * grass_input.Area_HRU + Rip_precipitation * rip_input.Area_HRU
+    #@assert -0.00000001 <= Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages) <= 0.00000001
+    Waterbalance = Precipitation + rip_input.Riparian_Discharge - (Total_Flows + Total_Storages)
+    return Riparian_Discharge::Float64, Total_Discharge::Float64, Total_Interception_Evaporation::Float64, Total_Soil_Evaporation::Float64, bare_storage::Storages, forest_storage::Storages, grass_storage::Storages, rip_storage::Storages, Slowstorage_New::Float64, Waterbalance::Float64, Precipitation::Float64, Total_Melt::Float64
+end
+
 
 """
 Runs the semi-distributed bucket model for a given area with one precipitation and temperature input.

@@ -98,8 +98,8 @@ end
 
 ID_Prec_Zones = [106120, 111815, 9900]
 
-startyear = 2011
-endyear = 2019
+startyear = 2000
+endyear = 2015
 Timeseries = Date(startyear,01, 01):Day(1):Date(endyear,12,31)
 Timeseries = collect(Timeseries)
 Dayofyear = Int64[]
@@ -111,11 +111,11 @@ end
 # get the snow_cover for each precipitation zone
 
 for i in 1:1
-    snow_cover = readdlm("Feistritz/snow_cover_11_19.csv", ';')
+    snow_cover = readdlm("Pitztal/snow_cover_102046.csv", ';')
     snow_cover_fixed = fixmissingsnowcover(snow_cover, startyear, endyear)
     print(snow_cover_fixed[57,:])
     snow_cover_fixed = [Years Dayofyear snow_cover_fixed]
-    writedlm( "Feistritz/snow_cover_fixed_Zone109967_11_19.csv",  snow_cover_fixed, ',')
+    writedlm( "Pitztal/snow_cover_fixed_Zone102046.csv",  snow_cover_fixed, ',')
     #CSV.write("Gailtal/snow_cover_fixed_"*string(ID_Prec_Zones[i])*".csv", DataFrame(snow_cover_fixed), delim = ';')
 end
 

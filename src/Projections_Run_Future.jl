@@ -1,7 +1,7 @@
 using CSV
 using DelimitedFiles
 using Plots
-function run_projections(path_to_projection, path_to_best_parameter, startyear, endyear, period)
+function run_projections_gailtal(path_to_projection, path_to_best_parameter, startyear, endyear, period)
 
         local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
@@ -137,10 +137,10 @@ function run_projections(path_to_projection, path_to_best_parameter, startyear, 
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1], 0.0, Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], 0, Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], 0, Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], 0, Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 push!(Inputs_All_Zones, all_inputs)
@@ -175,12 +175,14 @@ function run_projections(path_to_projection, path_to_best_parameter, startyear, 
         # ---------------- START CALCULATING OBJECTIVE FUNCTIONS FOR THE PROJECTIONS ------------------------
         #All_Goodness = zeros(29)
         All_Discharge = zeros(length(Timeseries_Obj))
+        All_Snowstorage = zeros(length(Timeseries_Obj))
+        All_Snowmelt = zeros(length(Timeseries_Obj))
         GWStorage = 40.0
         # get the parameter sets of the calibrations
         best_calibrations = readdlm(path_to_best_parameter, ',')
         parameters_best_calibrations = best_calibrations[:,10:29]
 
-        All_discharge = Array{Any, 1}[]
+        All_Snow_Cover = transpose(length(Elevation_Zone_Catchment))
         for n in 1 : 1:size(parameters_best_calibrations)[1]
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
@@ -196,32 +198,42 @@ function run_projections(path_to_projection, path_to_best_parameter, startyear, 
                 parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
                 parameters_array = parameters_best_calibrations[n, :]
 
-                Discharge = runmodelprecipitationzones_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones)
+                Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
                 # Goodness_Fit, ObjFunctions = objectivefunctions_projections(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 # Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
                 # Goodness = collect(Iterators.flatten(Goodness))
                 # All_Goodness = hcat(All_Goodness, Goodness)
-                All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
+                #print(size(Discharge[index_spinup:index_lastdate]), size(All_Discharge))
+                #All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
+                #All_Snowstorage = hcat(All_Snowstorage, Snow_Storage[index_spinup:index_lastdate])
+                All_Snowmelt = hcat(All_Snowmelt, Snow_Melt[index_spinup:index_lastdate])
+                #All_Snow_Cover = vcat(All_Snow_Cover, Snow_Cover[:,index_spinup:index_lastdate])
         end
         #All_Goodness = transpose(All_Goodness[:, 2:end])
-        All_Discharge = transpose(All_Discharge[:, 2:end])
+        #All_Discharge = transpose(All_Discharge[:, 2:end])
+        #All_Snowstorage = transpose(All_Snowstorage[:,2:end])
+        All_Snowmelt = transpose(All_Snowmelt[:,2:end])
+        #All_Snow_Cover = All_Snow_Cover[2:end,:]
         # save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
-        writedlm(path_to_projection*"100_model_results_discharge_"*period*".csv", All_Discharge, ',')
-        writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
-        writedlm(path_to_projection*"results_precipitation_"*period*".csv", Total_Precipitation[index_spinup: index_lastdate], ',')
+        # writedlm(path_to_projection*"100_model_results_discharge_"*period*".csv", All_Discharge, ',')
+        #writedlm(path_to_projection*"100_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
+        writedlm(path_to_projection*"100_model_results_snow_melt_"*period*".csv", All_Snowmelt, ',')
+        #writedlm(path_to_projection*"100_model_results_snow_cover_"*period*".csv", All_Snow_Cover, ',')
+        # writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
+        # writedlm(path_to_projection*"results_precipitation_"*period*".csv", Total_Precipitation[index_spinup: index_lastdate], ',')
         return All_Discharge
 end
 
-path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
 # 14 different projections
 Name_Projections = readdir(path)
 # run the model for all projections using the best 100 parameter sets
 for (i, name) in enumerate(Name_Projections)
         name = Name_Projections[i]
-        Discharge_present = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1978, 2010, "past_2010")
-        Discharge_future = run_projections(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 2068, 2100, "future_2100")
+        Discharge_present = run_projections_gailtal(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1978, 2010, "past_2010")
+        Discharge_future = run_projections_gailtal(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 2068, 2100, "future_2100")
         #print(size(Discharge_present))
 end

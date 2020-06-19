@@ -1,7 +1,7 @@
 using DataFrames
 using Plots
-using GLM
-
+#using GLM
+using DocStringExtensions
 # Discharge = CSV.read(local_path*"HBVModel/Feistritz/Q-Tagesmittel-214353.csv", header= false, skipto=388, decimal=',', delim = ';', types=[String, Float64])
 # Discharge = convert(Matrix, Discharge)
 # startindex = findfirst(isequal("01.01.1994 00:00:00"), Discharge)
@@ -125,10 +125,12 @@ function plot_recessioncurve(Area_Zones, Observed_Discharge, Precipitation, Time
                 plot!(Timespan, Current_Observed_Discharge)
                 xlabel!("Days")
                 ylabel!("Discharge")
-                #savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/recessioncurves.png")
+                savefig("/home/sarah/Master/Thesis/Results/Calibration/Pitztal/recessioncurves.png")
 
         end
-
+        index_useful = findall(x->x <=0, kvalue)
+        kvalue = kvalue[index_useful]
+        Interception = Interception[index_useful]
         GWstorage = Interception ./ kvalue
         GWstorage = GWstorage[findall(x -> x < 0, GWstorage)]
         print("mean GW Storage", round(mean(GWstorage)), " min ", round(minimum(GWstorage)), " max ",round(maximum(GWstorage)),"\n")
@@ -136,7 +138,7 @@ function plot_recessioncurve(Area_Zones, Observed_Discharge, Precipitation, Time
         print(mean(kvalue))
         mean_GW = abs(mean(GWstorage))
         title!("Mean GW: "*string(round(mean_GW))* " ks: "*string(round(mean(kvalue), digits=3)))
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/recessioncurves_Dryspelllength_"*string(Length_Dryspell)*"_"*string(Omit_Days)*".png")
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/Pitztal/recessioncurves_Dryspelllength_"*string(Length_Dryspell)*"_"*string(Omit_Days)*".png")
 end
 
 
@@ -181,19 +183,28 @@ function checkwaterbalance(Total_Precipitation, Discharge, Potential_Evaporation
         #Average_Annual_Pot_Evap_Hagreaves = mean(Annual_Pot_Evap_Hagreaves)
         Waterbalance_Thorn_Daily = Average_Annual_Precipitation - Average_Annual_Discharge - Average_Annual_Pot_Evap_Thorn_Daily
         Waterbalance_Yearly = Annual_Precipitation - Annual_Discharge - Annual_Pot_Evap_Thorn_Daily
-        return Waterbalance_Thorn_Daily, Waterbalance_Yearly, Annual_Precipitation, Annual_Pot_Evap_Thorn_Daily
+        Total_Waterbalance = sum(Annual_Precipitation) - sum(Annual_Discharge) - sum(Annual_Pot_Evap_Thorn_Daily)
+        return Waterbalance_Thorn_Daily, Waterbalance_Yearly, Total_Waterbalance, Annual_Precipitation, Annual_Pot_Evap_Thorn_Daily
 end
 
-# daily_WB, WB, Annual_Prec, Annual_Epot = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
-#
+#plot_recessioncurve(Area_Zones, Observed_Discharge, Total_Precipitation, Timeseries, 5,2)
+
+# daily_WB, WB, Total_WB, Annual_Prec, Annual_Epot = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
+# #
 # scatter(Annual_Prec)
 # xlabel!("Years")
 # ylabel!("Yearly Precipitation [mm]")
-# title!("Yearly Precipitation Feistritz: Mean= "*string(round(mean(Annual_Prec))))
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_precipitation.png")
-#
+# title!("Yearly Precipitation Pitztal: Mean= "*string(round(mean(Annual_Prec))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Pitztal/check_precipitation.png")
+# #
 # scatter(Annual_Epot)
 # xlabel!("Years")
 # ylabel!("Yearly Potential Evporation [mm]")
-# title!("Yearly Potential Evaporation Feistritz: Mean= "*string(round(mean(Annual_Epot))))
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_evaporation.png")
+# title!("Yearly Potential Evaporation Pitztal: Mean= "*string(round(mean(Annual_Epot))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Pitztal/check_evaporation.png")
+#
+# scatter(WB)
+# xlabel!("Years")
+# ylabel!("Yearly Waterbalance [mm]")
+# title!("Yearly Waterbalance Pitztal: Mean= "*string(round(mean(WB))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Pitztal/check_waterbalance.png")
