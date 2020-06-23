@@ -230,9 +230,9 @@ using Distributed
         print("worker ", ID, " preparation finished", "\n")
         count = 1
         number_Files = 0
-        best_calibrations = readdlm("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_1400000_1.csv", ',')
-        index = round(size(best_calibrations)[1]/7)
-        parameters_best_calibrations = best_calibrations[1+(ID-1 * index):ID*index,10:29]
+        # best_calibrations = readdlm("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_1400000_1.csv", ',')
+        # index = round(size(best_calibrations)[1]/7)
+        # parameters_best_calibrations = best_calibrations[1+(ID-1 * index):ID*index,10:29]
 
         for n in 1 : nmax
                 #print(n,"\n")
@@ -240,15 +240,16 @@ using Distributed
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
                 Current_GWStorage = deepcopy(GWStorage)
 
-                beta_Bare, beta_Forest, beta_Grass, beta_Rip, Ce, Interceptioncapacity_Forest, Interceptioncapacity_Grass, Interceptioncapacity_Rip, Kf_Rip, Kf, Ks, Meltfactor, Mm, Ratio_Pref, Ratio_Riparian, Soilstoaragecapacity_Bare, Soilstoaragecapacity_Forest, Soilstoaragecapacity_Grass, Soilstoaragecapacity_Rip, Temp_Thresh = parameters_best_calibrations[n, :]
-                bare_parameters = Parameters(beta_Bare, Ce, 0, 0.0, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Bare, Temp_Thresh)
-                forest_parameters = Parameters(beta_Forest, Ce, 0, Interceptioncapacity_Forest, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Forest, Temp_Thresh)
-                grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Grass, Temp_Thresh)
-                rip_parameters = Parameters(beta_Rip, Ce, 0.0, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Rip, Temp_Thresh)
-                slow_parameters = Slow_Paramters(Ks, Ratio_Riparian)
-
-                parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
-                parameters_array = parameters_best_calibrations[n, :]
+                # beta_Bare, beta_Forest, beta_Grass, beta_Rip, Ce, Interceptioncapacity_Forest, Interceptioncapacity_Grass, Interceptioncapacity_Rip, Kf_Rip, Kf, Ks, Meltfactor, Mm, Ratio_Pref, Ratio_Riparian, Soilstoaragecapacity_Bare, Soilstoaragecapacity_Forest, Soilstoaragecapacity_Grass, Soilstoaragecapacity_Rip, Temp_Thresh = parameters_best_calibrations[n, :]
+                # bare_parameters = Parameters(beta_Bare, Ce, 0, 0.0, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Bare, Temp_Thresh)
+                # forest_parameters = Parameters(beta_Forest, Ce, 0, Interceptioncapacity_Forest, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Forest, Temp_Thresh)
+                # grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Grass, Temp_Thresh)
+                # rip_parameters = Parameters(beta_Rip, Ce, 0.0, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Rip, Temp_Thresh)
+                # slow_parameters = Slow_Paramters(Ks, Ratio_Riparian)
+                #
+                # parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
+                # parameters_array = parameters_best_calibrations[n, :]
+                parameters, slow_parameters, parameters_array = parameter_selection_feistritz()
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
@@ -257,7 +258,7 @@ using Distributed
                 # don't calculate the goodness of fit for the spinup time!
                 Discharge_Obj = Discharge[index_spinup:index_lastdate]
                 deleteat!(Discharge_Obj, delete_days)
-                Goodness_Fit, ObjFunctions = objectivefunctions(Discharge_Obj, Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
+                Goodness_Fit, ObjFunctions = objectivefunctions_delete_days(Discharge[index_spinup:index_lastdate], Discharge_Obj, Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
                 if Goodness_Fit != -9999
                         Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
@@ -292,8 +293,8 @@ using Distributed
         end
 end
 
-nmax = 100
+nmax = 200000
 @time begin
 #run_MC(1,700)
-pmap(ID -> run_MC(ID, nmax) , [1,2])
+pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
 end

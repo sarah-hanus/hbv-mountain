@@ -225,7 +225,7 @@ function parameter_selection_feistritz()
         Mm = rand(0.001:precission * 0.1:1.0)
         Precipitation_Gradient = 0.0
         #Precipitation_Gradient = round(random_parameter(0, 0.0045), precission= 5)
-        Ratio_Pref = rand(0.1:precission:0.6)
+        Ratio_Pref = rand(0.1:precission:0.7)
         # Parameter Constrain SOilstoragecapacity Forest >= Grass >= Rip/Bare
         Soilstoaragecapacity_Forest = rand(50.0:precission_soilcap:250.0)
         if Soilstoaragecapacity_Forest < max_Soilstoaragecapacity_Grass
