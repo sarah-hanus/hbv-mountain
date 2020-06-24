@@ -104,7 +104,7 @@ function monthlyrunoff(Area, Precipitation::Array{Float64, 1}, Discharge::Array{
     # function calculates the monthly runoff coefficient of each month in the timeseries
     # discharge is given in m3/s and precipitation in mm/d
     # convert Discharge to mm/d
-    Discharge = Discharge / Area * (1000 * 3600 * 24)
+    #Discharge = Discharge / Area * (1000 * 3600 * 24)
     sum_Precipitation = 0
     sum_Discharge = 0
     monthly_Runoff = Float64[]
