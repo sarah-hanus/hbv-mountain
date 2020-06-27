@@ -206,7 +206,7 @@ using Distributed
 
 
         # delet days
-        delete_days = readdlm(local_path*"HBVModel//Feistritz/Delete_Days.csv", ',', Int)
+        delete_days = readdlm(local_path*"HBVModel/Feistritz/Delete_Days.csv", ',', Int)
         Timeseries_Obj = Timeseries[index_spinup: index_lastdate]
         deleteat!(Timeseries_Obj, delete_days)
         Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
@@ -293,7 +293,7 @@ using Distributed
         end
 end
 
-nmax = 200000
+nmax = 150000
 @time begin
 #run_MC(1,700)
 pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])

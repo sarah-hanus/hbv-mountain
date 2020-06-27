@@ -267,8 +267,8 @@ using Distributed
         end
 end
 #
-nmax = 300
+nmax = 150000
 @time begin
 #run_MC(1,100)
-pmap(ID -> run_MC(ID, nmax) , [1,2])
+pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
 end

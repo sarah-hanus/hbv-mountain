@@ -124,9 +124,9 @@ function parameter_selection_palten()
         # parameter constraints on fast reservoir coefficients
         Kf_Rip = rand(0.2:precission:3.0)
         if Kf_Rip < max_Kf
-                Kf = rand(0.1:precission:Kf_Rip - precission)
+                Kf = rand(0.05:precission:Kf_Rip - precission)
         else
-                Kf = rand(0.1:precission: max_Kf)
+                Kf = rand(0.05:precission: max_Kf)
         end
 
         if Kf < max_Ks
