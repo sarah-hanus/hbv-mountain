@@ -827,15 +827,16 @@ function plot_validation(path_to_Calibration, path_to_Validation, path_to_Calibr
             box =boxplot!(["Calibration 1000 "],Calibration_1000[:,obj],leg = false, color="lightgreen")
             box =boxplot!(["Validation 1000 "],Validation_1000[:,obj],leg = false, color="darkgreen")
             ylabel!(Objective_Functions[obj])
+            ylims!(0.6,1)
             push!(plots_obj, box)
             #savefig("Gailtal/Calibration_8.05/Validation"*string(Objective_Functions[obj])*"_new.png")
         end
 
         plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(1800,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig(path_to_save * "obj_Calibration_Validation_new.png")
+        savefig(path_to_save * "obj_Calibration_Validation_new_limits.png")
 
         plot(plots_obj[1], left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig(path_to_save*"ED_Calibration_Validation_new.png")
+        savefig(path_to_save*"ED_Calibration_Validation_new_limits.png")
 
         plots_obj = []
         for obj in 1:size(Objective_Functions)[1]
@@ -863,4 +864,4 @@ end
 #writedlm("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_Parameterfit_best100_validation_5years.csv", All_Goodness,',')
 
 
-#plot_validation("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_Parameterfit_best100_validation_5years.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_Parameterfit_best1000_validation_5years.csv", "/home/sarah/Master/Thesis/Results/Calibration/Feistritz/Validation/")
+plot_validation("/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_best100_validation.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_best1000_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Paltental/Validation/")

@@ -89,6 +89,8 @@ using Distributed
         Observed_Discharge = Array{Float64,1}[]
         push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
         Observed_Discharge = Observed_Discharge[1]
+        # transfer Observed Discharge to mm/d
+        Observed_Discharge = Observed_Discharge * 1000 / Area_Catchment * (3600 * 24)
         # ------------ LOAD TIMESERIES DATA AS DATES ------------------
         #Timeseries = Date.(Discharge[startindex[1]:endindex[1],1], Dates.DateFormat("d.m.y H:M:S"))
         firstyear = Dates.year(Timeseries[1])
@@ -255,6 +257,7 @@ using Distributed
                 #parameters, parameters_array = parameter_selection()
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
+                Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
                 # don't calculate the goodness of fit for the spinup time!
                 Discharge_Obj = Discharge[index_spinup:index_lastdate]
                 deleteat!(Discharge_Obj, delete_days)

@@ -13,7 +13,7 @@ path_85 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rc
 Name_Projections_85 = readdir(path_85)
 
 findnearest(A::Array{Float64,1},t::Float64) = findmin(abs.(A-t*ones(length(A))))[2]
-
+relative_error(future, initial) = (future - initial) ./ initial
 # ---------------------  LOW FLOWS ---------------------
 """
 Calculates the minimum X day moving average of daily discharge (mm/d) of the months to analyse.
@@ -100,7 +100,7 @@ function analyse_low_flows(path_to_projections, Months_Low_Flow_Summer)
     return average_Low_Flows_past, average_Low_Flows_future, average_Low_Flows_past_Timing, average_Low_Flows_future_Timing
 end
 # @time begin
-# Summer_Low_Flows_past45, Summer_Low_Flows_future45, Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45 = analyse_low_flows(path_45, [5,6,7,8,9,10])
+#Summer_Low_Flows_past85, Summer_Low_Flows_future85, Timing_Summer_Low_Flows_Past_85, Timing_Summer_Low_Flows_Future_85 = analyse_low_flows(path_85, [5,6,7,8,9,10])
 # end
 
 # --------- TOTAL LOW FLOWS PLOTS ---------------------
@@ -112,74 +112,74 @@ function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, 
     Farben45=palette(:blues)
     Farben85=palette(:reds)
     # plot seasonal low flows of each projection
-    for proj in 1:14
-        boxplot(Seasonal_Low_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
-        boxplot!(Seasonal_Low_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
-        boxplot!(Seasonal_Low_Flows_past85[1+(proj-1)*100: proj*100], color=[Farben85[1]])
-        boxplot!(Seasonal_Low_Flows_future85[1+(proj-1)*100: proj*100], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-        xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
-        ylabel!("minimum 7 day moving average of daily runoff [m³/s]")
-        ylims!((2,10))
-        title!("Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
-        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/summerlowflows_"*string(Name_Projections_45[proj])*".png")
-    end
-    # plot seasonal low flows of all projections combined
-    boxplot(Seasonal_Low_Flows_past45, color=[Farben45[1]])
-    boxplot!(Seasonal_Low_Flows_future45,color=[Farben45[2]])
-    boxplot!(Seasonal_Low_Flows_past85, color=[Farben85[1]])
-    boxplot!(Seasonal_Low_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
-    ylabel!("minimum 7 day moving average of daily runoff [m³/s]")
-    ylims!((2,10))
-    title!("Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/summerlowflows.png")
+    # for proj in 1:14
+    #     boxplot(Seasonal_Low_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
+    #     boxplot!(Seasonal_Low_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
+    #     boxplot!(Seasonal_Low_Flows_past85[1+(proj-1)*100: proj*100], color=[Farben85[1]])
+    #     boxplot!(Seasonal_Low_Flows_future85[1+(proj-1)*100: proj*100], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    #     xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    #     ylabel!("minimum 7 day moving average of daily runoff [m³/s]")
+    #     ylims!((2,10))
+    #     title!("Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    #     savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/summerlowflows_"*string(Name_Projections_45[proj])*".png")
+    # end
+    # # plot seasonal low flows of all projections combined
+    # boxplot(Seasonal_Low_Flows_past45, color=[Farben45[1]])
+    # boxplot!(Seasonal_Low_Flows_future45,color=[Farben45[2]])
+    # boxplot!(Seasonal_Low_Flows_past85, color=[Farben85[1]])
+    # boxplot!(Seasonal_Low_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    # ylabel!("minimum 7 day moving average of daily runoff [m³/s]")
+    # ylims!((2,10))
+    # title!("Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/summerlowflows.png")
+    #
+    # # plot timing of seasonal low flows of all projections combined
+    # boxplot(Timing_Seasonal_Low_Flows_past45, color=[Farben45[1]])
+    # boxplot!(Timing_Seasonal_Low_Flows_future45,color=[Farben45[2]])
+    # boxplot!(Timing_Seasonal_Low_Flows_past85, color=[Farben85[1]])
+    # boxplot!(Timing_Seasonal_Low_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    # ylabel!("Timing of minimum 7 day moving average of daily runoff")
+    # #ylims!((2,10))
+    # yticks!([213, 227, 244, 258, 274], ["1.8", "15.8", "1.9", "15.9", "1.10"])
+    # title!("Timing of Summer Low Flows 30 year average of lowest 7 day runoff from May - Nov")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/timing_summerlowflows.png")
+    #
+    # # plot timing of seasonal low flows of each projection
+    # for proj in 1:14
+    #     boxplot(Timing_Seasonal_Low_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
+    #     boxplot!(Timing_Seasonal_Low_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
+    #     boxplot!(Timing_Seasonal_Low_Flows_past85[1+(proj-1)*100: proj*100], color=[Farben85[1]])
+    #     boxplot!(Timing_Seasonal_Low_Flows_future85[1+(proj-1)*100: proj*100], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    #     xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    #     ylabel!("Timing of minimum 7 day moving average of daily runoff")
+    #     yticks!([213, 227, 244, 258, 274], ["1.8", "15.8", "1.9", "15.9", "1.10"])
+    #     title!("Timing of Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    #     savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/timing_summerlowflows_"*string(Name_Projections_45[proj])*".png")
+    # end
 
-    # plot timing of seasonal low flows of all projections combined
-    boxplot(Timing_Seasonal_Low_Flows_past45, color=[Farben45[1]])
-    boxplot!(Timing_Seasonal_Low_Flows_future45,color=[Farben45[2]])
-    boxplot!(Timing_Seasonal_Low_Flows_past85, color=[Farben85[1]])
-    boxplot!(Timing_Seasonal_Low_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
-    ylabel!("Timing of minimum 7 day moving average of daily runoff")
-    #ylims!((2,10))
-    yticks!([213, 227, 244, 258, 274], ["1.8", "15.8", "1.9", "15.9", "1.10"])
-    title!("Timing of Summer Low Flows 30 year average of lowest 7 day runoff from May - Nov")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/timing_summerlowflows.png")
-
-    # plot timing of seasonal low flows of each projection
-    for proj in 1:14
-        boxplot(Timing_Seasonal_Low_Flows_past45[1+(proj-1)*100: proj*100], color=[Farben45[1]])
-        boxplot!(Timing_Seasonal_Low_Flows_future45[1+(proj-1)*100: proj*100],color=[Farben45[2]])
-        boxplot!(Timing_Seasonal_Low_Flows_past85[1+(proj-1)*100: proj*100], color=[Farben85[1]])
-        boxplot!(Timing_Seasonal_Low_Flows_future85[1+(proj-1)*100: proj*100], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-        xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
-        ylabel!("Timing of minimum 7 day moving average of daily runoff")
-        yticks!([213, 227, 244, 258, 274], ["1.8", "15.8", "1.9", "15.9", "1.10"])
-        title!("Timing of Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
-        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/timing_summerlowflows_"*string(Name_Projections_45[proj])*".png")
-    end
-
-    #absolute and relative decrease
-    boxplot(Seasonal_Low_Flows_future45 - Seasonal_Low_Flows_past45,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(Seasonal_Low_Flows_future85 - Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [m³/s]")
-    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    absolute_change = boxplot!()
-    # relative change
-    boxplot(relative_error(Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past45),color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(relative_error(Seasonal_Low_Flows_future85, Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("relative change [%]")
-    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    relative_change = boxplot!()
-
-
-    #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
-    plot(absolute_change, relative_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_summerlowflows.png")
+    # #absolute and relative decrease
+    # boxplot(Seasonal_Low_Flows_future45 - Seasonal_Low_Flows_past45,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(Seasonal_Low_Flows_future85 - Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [m³/s]")
+    # #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # absolute_change = boxplot!()
+    # # relative change
+    # boxplot(relative_error(Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past45)*100,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(relative_error(Seasonal_Low_Flows_future85, Seasonal_Low_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("relative change [%]")
+    # #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # relative_change = boxplot!()
+    #
+    #
+    # #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    # plot(absolute_change, relative_change)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_summerlowflows.png")
 
     violin(Seasonal_Low_Flows_future45 - Seasonal_Low_Flows_past45,color=[Farben45[2]])
     #boxplot!(, color=[Farben85[1]])
@@ -189,62 +189,65 @@ function plot_low_flows(Seasonal_Low_Flows_past45, Seasonal_Low_Flows_future45, 
     #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
     absolute_change = boxplot!()
     # relative change
-    violin(relative_error(Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past45),color=[Farben45[2]])
+    violin(relative_error(Seasonal_Low_Flows_future45, Seasonal_Low_Flows_past45)*100,color=[Farben45[2]])
     #boxplot!(, color=[Farben85[1]])
-    violin!(relative_error(Seasonal_Low_Flows_future85, Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    violin!(relative_error(Seasonal_Low_Flows_future85, Seasonal_Low_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
     xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
     ylabel!("relative change [%]")
+    title!("Magnitude of Low Flows")
     #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
     relative_change = boxplot!()
 
 
     #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
     plot(absolute_change, relative_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_summerlowflows_violins.png")
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_summerlowflows_violins.png")
 
-
-    #absolute and relative change in timing of low flows
-    boxplot(Timing_Seasonal_Low_Flows_future45 - Timing_Seasonal_Low_Flows_past45,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(Timing_Seasonal_Low_Flows_future85 - Timing_Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [days]")
-    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    absolute_change = boxplot!()
-    # relative change
-    boxplot(relative_error(Timing_Seasonal_Low_Flows_future45, Timing_Seasonal_Low_Flows_past45),color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(relative_error(Timing_Seasonal_Low_Flows_future85, Timing_Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("relative change [%]")
-    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    relative_change = boxplot!()
-
-
-    #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
-    plot(absolute_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_summerlowflows.png")
+    #
+    # #absolute and relative change in timing of low flows
+    # boxplot(Timing_Seasonal_Low_Flows_future45 - Timing_Seasonal_Low_Flows_past45,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(Timing_Seasonal_Low_Flows_future85 - Timing_Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [days]")
+    # #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # absolute_change_timing = boxplot!()
+    # # relative change
+    # boxplot(relative_error(Timing_Seasonal_Low_Flows_future45, Timing_Seasonal_Low_Flows_past45),color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(relative_error(Timing_Seasonal_Low_Flows_future85, Timing_Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("relative change [%]")
+    # #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # relative_change_timing = boxplot!()
+    #
+    #
+    # #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
+    # plot(absolute_change_timing)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_summerlowflows.png")
 
     violin(Timing_Seasonal_Low_Flows_future45 - Timing_Seasonal_Low_Flows_past45,color=[Farben45[2]])
     #boxplot!(, color=[Farben85[1]])
     violin!(Timing_Seasonal_Low_Flows_future85 - Timing_Seasonal_Low_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
     xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
     ylabel!("absolute change [days]")
+    title!("Timing of Low Flows")
     #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    absolute_change = boxplot!()
+    absolute_change_timing = boxplot!()
     # relative change
     violin(relative_error(Timing_Seasonal_Low_Flows_future45, Timing_Seasonal_Low_Flows_past45),color=[Farben45[2]])
     #boxplot!(, color=[Farben85[1]])
     violin!(relative_error(Timing_Seasonal_Low_Flows_future85, Timing_Seasonal_Low_Flows_past85), size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
     xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
     ylabel!("relative change [%]")
+
     #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    relative_change = boxplot!()
+    relative_change_timing = boxplot!()
 
 
     #PyPlot.suptitle("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov")
-    plot(absolute_change, relative_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_summerlowflows_violins.png")
+    plot(relative_change, absolute_change_timing)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/LowFlows/change_timing_magnitude_summerlowflows_violins.png")
 end
 
 #plot_low_flows(Summer_Low_Flows_past45, Summer_Low_Flows_future45, Summer_Low_Flows_past85, Summer_Low_Flows_future85,  Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45,  Timing_Summer_Low_Flows_Past_85, Timing_Summer_Low_Flows_Future_85)
@@ -489,10 +492,11 @@ The function returns the mean annual number of drought days, the mean annual num
     As input the path to the projections and a threshold value are needed.
     The season can be set to "none" using whole years or "summer" or "winter"
 """
-function compare_hydrological_drought(path_to_projections, Threshold, season, Catchment_Name)
+function compare_hydrological_drought(path_to_projections, Threshold, season, Area_Catchment, Catchment_Name)
     Name_Projections = readdir(path_to_projections)
     Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
     Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    Threshold = convertDischarge(Threshold, Area_Catchment)
     Nr_Drought_Days_Past = Float64[]
     Nr_Drought_Days_Future  = Float64[]
     Nr_Drought_Events_Past = Float64[]
@@ -526,8 +530,8 @@ function compare_hydrological_drought(path_to_projections, Threshold, season, Ca
         Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/100_model_results_discharge_future_2100.csv", ',')
         for run in 1:100
             #print(size(Past_Discharge), size(Timeseries_Past), threshold, season, size(Future_Discharge[run,:]), size(Timeseries_Future), "\n")
-            Current_Nr_Drought_Days_Past, Current_Nr_Drought_Events_Past, Current_Max_Drought_Length_Past, Current_Mean_Drought_Length_Past, Current_Max_Deficit_Past, Current_Mean_Deficit_Past, Current_Total_Deficit_Past, Current_Max_Intensity_Past, Current_Mean_Intensity_Past = hydrological_drought_statistics(Past_Discharge[run,:], Timeseries_Past, Threshold, season)
-            Current_Nr_Drought_Days_Future, Current_Nr_Drought_Events_Future, Current_Max_Drought_Length_Future, Current_Mean_Drought_Length_Future, Current_Max_Deficit_Future, Current_Mean_Deficit_Future, Current_Total_Deficit_Future, Current_Max_Intensity_Future, Current_Mean_Intensity_Future = hydrological_drought_statistics(Future_Discharge[run,:], Timeseries_Future, Threshold, season)
+            Current_Nr_Drought_Days_Past, Current_Nr_Drought_Events_Past, Current_Max_Drought_Length_Past, Current_Mean_Drought_Length_Past, Current_Max_Deficit_Past, Current_Mean_Deficit_Past, Current_Total_Deficit_Past, Current_Max_Intensity_Past, Current_Mean_Intensity_Past = hydrological_drought_statistics(convertDischarge(Past_Discharge[run,:], Area_Catchment), Timeseries_Past, Threshold, season)
+            Current_Nr_Drought_Days_Future, Current_Nr_Drought_Events_Future, Current_Max_Drought_Length_Future, Current_Mean_Drought_Length_Future, Current_Max_Deficit_Future, Current_Mean_Deficit_Future, Current_Total_Deficit_Future, Current_Max_Intensity_Future, Current_Mean_Intensity_Future = hydrological_drought_statistics(convertDischarge(Future_Discharge[run,:], Area_Catchment), Timeseries_Future, Threshold, season)
             append!(Nr_Drought_Days_Past, Current_Nr_Drought_Days_Past)
             append!(Nr_Drought_Days_Future, Current_Nr_Drought_Days_Future)
             append!(Nr_Drought_Events_Past, Current_Nr_Drought_Events_Past)
@@ -747,8 +751,8 @@ function plot_drought_statistics(Drought_45, Drought_85, Threshold, Catchment_Na
     ylabel!("Intensity [m³/s/d]")
     Mean_Intensity = boxplot!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_violin_all_years_"*season*".png")
-    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics_comparison"*string(Threshold)*"_all_years_"*season*"_violin.png")
+    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px, yguidefontsize=20, xtickfont = font(20), ytickfont = font(20), guidefontsize=20)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics_comparison"*string(Threshold)*"_all_years_"*season*"_violin_font.png")
 end
 
 function plot_drought_statistics_rel_change(Drought_45, Drought_85, Threshold, Catchment_Name, season)
@@ -817,13 +821,14 @@ function plot_drought_statistics_rel_change(Drought_45, Drought_85, Threshold, C
     hline!([0], color=["grey"], linestyle = :dash)
     Mean_Intensity = boxplot!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_all_years_"*season*".png")
-
-    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change.png")
+    plot(Nr_Drought_Days, Mean_Drought_Length, Mean_Deficit, Mean_Intensity, layout= (2,2), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change_4metrics.png")
+    # plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change.png")
     # make violin plots
     violin([rcps[1]], relative_error(Drought_45.Nr_Drought_Days_Future, Drought_45.Nr_Drought_Days_Past)*100, color="blue")
     violin!([rcps[2]], relative_error(Drought_85.Nr_Drought_Days_Future, Drought_85.Nr_Drought_Days_Past)*100, color="red", size=(1200,800), leg=false)
-    title!("Relative Change in Number of Drought Days "*season*", Threshold= " *string(Threshold))
+    title!("Relative Change in Number of Drought Days")# "*season*", Threshold= " *string(Threshold))
     ylabel!("[%]")
     hline!([0], color=["grey"], linestyle = :dash)
     Nr_Drought_Days = violin!()
@@ -848,7 +853,7 @@ function plot_drought_statistics_rel_change(Drought_45, Drought_85, Threshold, C
     # plot change mean drought length
     violin([rcps[1]], relative_error(Drought_45.Mean_Drought_Length_Future, Drought_45.Mean_Drought_Length_Past)*100, color="blue")
     violin!([rcps[2]], relative_error(Drought_85.Mean_Drought_Length_Future, Drought_85.Mean_Drought_Length_Past)*100, color="red",  size=(1200,800), leg=false)
-    title!("Relative Change in Mean Drought Length "*season*", Threshold= " *string(Threshold))
+    title!("Relative Change in Mean Drought Length")# "*season*", Threshold= " *string(Threshold))
     ylabel!("[%]")
     hline!([0], color=["grey"], linestyle = :dash)
     Mean_Drought_Length = violin!()
@@ -865,7 +870,7 @@ function plot_drought_statistics_rel_change(Drought_45, Drought_85, Threshold, C
     # plot change mean deficit
     violin([rcps[1]], relative_error(Drought_45.Mean_Deficit_Future, Drought_45.Mean_Deficit_Past)*100, color="blue")
     violin!([rcps[2]], relative_error(Drought_85.Mean_Deficit_Future, Drought_85.Mean_Deficit_Past)*100, color="red",  size=(1200,800), leg=false)
-    title!("Relative Change in MeanDeficit "*season*", Threshold= " *string(Threshold))
+    title!("Relative Change in Mean Deficit")# "*season*", Threshold= " *string(Threshold))
     ylabel!("[%]")
     hline!([0], color=["grey"], linestyle = :dash)
     Mean_Deficit = violin!()
@@ -881,13 +886,15 @@ function plot_drought_statistics_rel_change(Drought_45, Drought_85, Threshold, C
     # plot change mean Intensity
     violin([rcps[1]], relative_error(Drought_45.Mean_Intensity_Future, Drought_45.Mean_Intensity_Past)*100, color="blue")
     violin!([rcps[2]], relative_error(Drought_85.Mean_Intensity_Future, Drought_85.Mean_Intensity_Past)*100, color="red",  size=(1200,800), leg=false)
-    title!("Relative Change in MeanIntensity "*season*", Threshold= " *string(Threshold))
+    title!("Relative Change in Mean Intensity", guidefontsize=(20))# "*season*", Threshold= " *string(Threshold))
     ylabel!("[%]")
     hline!([0], color=["grey"], linestyle = :dash)
     Mean_Intensity = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_violin_all_years_"*season*".png")
-    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change_violin.png")
+    plot(Nr_Drought_Days, Mean_Drought_Length, Mean_Deficit, Mean_Intensity, layout= (2,2), legend = false, size=(2000,1200), left_margin = [5mm 0mm], bottom_margin = 20px, yguidefontsize=20, xtickfont = font(20), ytickfont = font(20))
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change_violin_4metrics_font.png")
+    # plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_rel_change_violin.png")
 end
 
 function plot_drought_statistics_change(Drought_45, Drought_85, Threshold, Catchment_Name, season)
@@ -925,38 +932,40 @@ function plot_drought_statistics_change(Drought_45, Drought_85, Threshold, Catch
     boxplot([rcps[1]], Drought_45.Max_Deficit_Future - Drought_45.Max_Deficit_Past, color="blue")
     boxplot!([rcps[2]], Drought_85.Max_Deficit_Future - Drought_85.Max_Deficit_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in Maximum Deficit "*season*", Threshold= " *string(Threshold))
-    ylabel!("Discharge [m³/s]")
+    ylabel!("Deficit [mm]")
     Max_Deficit = boxplot!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_deficit"*string(Threshold)*"_all_years_"*season*".png")
     # plot change mean deficit
     boxplot([rcps[1]], Drought_45.Mean_Deficit_Future - Drought_45.Mean_Deficit_Past, color="blue")
     boxplot!([rcps[2]], Drought_85.Mean_Deficit_Future - Drought_85.Mean_Deficit_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in MeanDeficit "*season*", Threshold= " *string(Threshold))
-    ylabel!("Discharge [m³/s]")
+    ylabel!("Deficit [mm]")
     Mean_Deficit = boxplot!()
 
     # plot change max Intensity
     boxplot([rcps[1]], Drought_45.Max_Intensity_Future - Drought_45.Max_Intensity_Past, color="blue")
     boxplot!([rcps[2]], Drought_85.Max_Intensity_Future - Drought_85.Max_Intensity_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in Maximum Intensity "*season*", Threshold= " *string(Threshold))
-    ylabel!("Intensity [m³/s/d]")
+    ylabel!("Intensity [mm/d]")
     Max_Intensity = boxplot!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_all_years_"*season*".png")
     # plot change mean Intensity
     boxplot([rcps[1]], Drought_45.Mean_Intensity_Future - Drought_45.Mean_Intensity_Past, color="blue")
     boxplot!([rcps[2]], Drought_85.Mean_Intensity_Future - Drought_85.Mean_Intensity_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in MeanIntensity "*season*", Threshold= " *string(Threshold))
-    ylabel!("Intensity [m³/s/d]")
+    ylabel!("Intensity [mm/d]")
     Mean_Intensity = boxplot!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_all_years_"*season*".png")
-
-    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*".png")
+    plot(Nr_Drought_Days, Mean_Drought_Length, Mean_Deficit, Mean_Intensity, layout= (2,2), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_4metrics.png")
+    # plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*".png")
     # make violin plots
     violin([rcps[1]], Drought_45.Nr_Drought_Days_Future - Drought_45.Nr_Drought_Days_Past, color="blue")
     violin!([rcps[2]], Drought_85.Nr_Drought_Days_Future - Drought_85.Nr_Drought_Days_Past, color="red", size=(1200,800), leg=false)
-    title!("Change in Number of Drought Days "*season*", Threshold= " *string(Threshold))
+    title!("Change in Number of Drought Days")# "*season*", Threshold= " *string(Threshold))
     ylabel!("Days")
+    hline!([0], color=["grey"], linestyle = :dash)
     Nr_Drought_Days = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_length_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
     #plot change in number of drought events per year
@@ -964,6 +973,7 @@ function plot_drought_statistics_change(Drought_45, Drought_85, Threshold, Catch
     violin!([rcps[2]], Drought_85.Nr_Drought_Events_Future - Drought_85.Nr_Drought_Events_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in Number of Drought Events "*season*", Threshold= " *string(Threshold))
     ylabel!("Nr. of Events")
+    hline!([0], color=["grey"], linestyle = :dash)
     Nr_Drought_Events = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_nr_events_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
     # plot cahnge in maximum  drought length per year
@@ -971,14 +981,16 @@ function plot_drought_statistics_change(Drought_45, Drought_85, Threshold, Catch
     violin!([rcps[2]], Drought_85.Max_Drought_Length_Future - Drought_85.Max_Drought_Length_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in Maximum Drought Length "*season*", Threshold= " *string(Threshold))
     ylabel!("Days")
+    hline!([0], color=["grey"], linestyle = :dash)
     Max_Drought_Length = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
 
     # plot change mean drought length
     violin([rcps[1]], Drought_45.Mean_Drought_Length_Future - Drought_45.Mean_Drought_Length_Past, color="blue")
     violin!([rcps[2]], Drought_85.Mean_Drought_Length_Future - Drought_85.Mean_Drought_Length_Past, color="red",  size=(1200,800), leg=false)
-    title!("Change in Mean Drought Length "*season*", Threshold= " *string(Threshold))
+    title!("Change in Mean Drought Length")# "*season*", Threshold= " *string(Threshold))
     ylabel!("Days")
+    hline!([0], color=["grey"], linestyle = :dash)
     Mean_Drought_Length = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_length_Threshold"*string(Threshold)*"_violin_all_years_"*season*".png")
 
@@ -986,32 +998,37 @@ function plot_drought_statistics_change(Drought_45, Drought_85, Threshold, Catch
     violin([rcps[1]], Drought_45.Max_Deficit_Future - Drought_45.Max_Deficit_Past, color="blue")
     violin!([rcps[2]], Drought_85.Max_Deficit_Future - Drought_85.Max_Deficit_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in Maximum Deficit "*season*", Threshold= " *string(Threshold))
-    ylabel!("Discharge [m³/s]")
+    ylabel!("Deficit [mm]")
     Max_Deficit = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_deficit"*string(Threshold)*"_violin_all_years_"*season*".png")
     # plot change mean deficit
     violin([rcps[1]], Drought_45.Mean_Deficit_Future - Drought_45.Mean_Deficit_Past, color="blue")
     violin!([rcps[2]], Drought_85.Mean_Deficit_Future - Drought_85.Mean_Deficit_Past, color="red",  size=(1200,800), leg=false)
-    title!("Change in MeanDeficit "*season*", Threshold= " *string(Threshold))
-    ylabel!("Discharge [m³/s]")
+    title!("Change in Mean Deficit")# "*season*", Threshold= " *string(Threshold))
+    ylabel!("Deficit [mm]")
+    hline!([0], color=["grey"], linestyle = :dash)
     Mean_Deficit = violin!()
 
     # plot change max Intensity
     violin([rcps[1]], Drought_45.Max_Intensity_Future - Drought_45.Max_Intensity_Past, color="blue")
     violin!([rcps[2]], Drought_85.Max_Intensity_Future - Drought_85.Max_Intensity_Past, color="red",  size=(1200,800), leg=false)
     title!("Change in Maximum Intensity "*season*", Threshold= " *string(Threshold))
-    ylabel!("Intensity [m³/s/Intensity]")
+    ylabel!("Intensity [mm/d]")
+    hline!([0], color=["grey"], linestyle = :dash)
     Max_Intensity = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_violin_all_years_"*season*".png")
     # plot change mean Intensity
     violin([rcps[1]], Drought_45.Mean_Intensity_Future - Drought_45.Mean_Intensity_Past, color="blue")
     violin!([rcps[2]], Drought_85.Mean_Intensity_Future - Drought_85.Mean_Intensity_Past, color="red",  size=(1200,800), leg=false)
-    title!("Change in MeanIntensity "*season*", Threshold= " *string(Threshold))
-    ylabel!("Intensity [m³/s/d]")
+    title!("Change in Mean Intensity")# "*season*", Threshold= " *string(Threshold))
+    ylabel!("Intensity [mm/d]")
+    hline!([0], color=["grey"], linestyle = :dash)
     Mean_Intensity = violin!()
     #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_violin_all_years_"*season*".png")
-    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_violin.png")
+    plot(Nr_Drought_Days, Mean_Drought_Length, Mean_Deficit, Mean_Intensity, layout= (2,2), legend = false, size=(2000,1200), left_margin = [5mm 0mm], bottom_margin = 20px, yguidefontsize=20, xtickfont = font(20), ytickfont = font(20), titlefontsize=20)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_violin_4metrics_font.png")
+    # plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Max_Intensity, Mean_Intensity, layout= (2,4), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics"*string(Threshold)*"_all_years_"*season*"_violin.png")
 end
 
 function plot_drought_total_deficit(Drought_45, Drought_85, Threshold, Catchment_Name, season)
@@ -1037,10 +1054,11 @@ function plot_drought_total_deficit(Drought_45, Drought_85, Threshold, Catchment
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_statistics_total_deficit"*string(Threshold)*"_all_years_"*season*".png")
 end
 
-
-#threshold = get_threshold_hydrological_drought(1981,2010, 0.9)
-Drought_45 = compare_hydrological_drought(path_45, threshold, "summer", "Gailtal")
-Drought_85 = compare_hydrological_drought(path_85, threshold, "summer", "Gailtal")
-plot_drought_total_deficit(Drought_45, Drought_85, threshold, "Gailtal", "summer")
+Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
+Area_Catchment = sum(Area_Zones)
+threshold = get_threshold_hydrological_drought(1981,2010, 0.9)
+#Drought_45 = compare_hydrological_drought(path_45, threshold, "summer", Area_Catchment, "Gailtal")
+#Drought_85 = compare_hydrological_drought(path_85, threshold, "summer", Area_Catchment, "Gailtal")
+# #plot_drought_total_deficit(Drought_45, Drought_85, threshold, "Gailtal", "summer")
 plot_drought_statistics_change(Drought_45, Drought_85, threshold, "Gailtal", "summer")
-plot_drought_statistics_rel_change(Drought_45, Drought_85, threshold, "Gailtal", "summer")
+#plot_drought_statistics_rel_change(Drought_45, Drought_85, threshold, "Gailtal", "summer")

@@ -273,13 +273,14 @@ function plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, n
                         current_month_statistics = statistics_all_Zones[findall(x-> x == i, statistics_all_Zones[:,1]),:]
                         current_month_statistics_proj = statistics_all_Zones_Proj[findall(x-> x == i, statistics_all_Zones_Proj[:,1]),:]
                         #print(current_month_statistics)
-                        box = boxplot!([months[i]],current_month_statistics[:,ID], color = [Farben[i]], leg=false, outliers=false)
-                        box = boxplot!([months_proj[i]],current_month_statistics_proj[:,ID],  color = [Farben[i]], leg=false, outliers=false)
+                        box = boxplot!(current_month_statistics[:,ID], color = [Farben[i]], leg=false, outliers=false)
+                        box = boxplot!(current_month_statistics_proj[:,ID],  color = [Farben[i]], leg=false, outliers=false)
                 end
                 ylabel!(statistics_names[j])
+                xticks!([1:1:24;], ["Jan", "Jan Proj", "Feb", "Feb Proj", "Mar","Mar Proj", "Apr", "Apr Proj", "May","May Proj","Jun", "Jun Proj" ,"Jul","Jul Proj", "Aug","Aug Proj", "Sep", "Sep Proj", "Oct","Oct Proj", "Nov","Nov Proj", "Dec", "Dec Proj"])
                 push!(all_boxplots, box)
         end
-        plot(all_boxplots[1], all_boxplots[2], all_boxplots[3], all_boxplots[4], layout= (2,2), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
+        plot(all_boxplots[1], all_boxplots[2], all_boxplots[3], all_boxplots[4], layout= (2,2), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60,yguidefontsize=14, xtickfont = font(14), ytickfont = font(14))
         # xlabel!("Months")
         # ylabel!("Inter-Storm Lengths [d]")
         # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
@@ -424,6 +425,32 @@ end
 #
 # Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
 # All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Gailtal, ID_Prec_Zones, 113597, startyear, endyear)
+
+# -------------------------- Defreggental -----------------
+
+# Catchment_Name = "Defreggental"
+# ID_Prec_Zones =  [17700, 114926]
+# Area_Zones = [235811198.0, 31497403.0]
+# ID_Temp = 17700
+# Area_Catchment = sum(Area_Zones)
+# Area_Zones_Percent_Defreggen = Area_Zones / Area_Catchment
+# startyear = 1986
+# endyear = 2005
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Defreggen, ID_Prec_Zones, ID_Temp, startyear, endyear)
+
+# --------------------------- Montafon -------------------------
+
+Catchment_Name = "IllSugadin"
+ID_Prec_Zones = [100206]
+# size of the area of precipitation zones
+Area_Zones = [102000000]
+Area_Catchment = sum(Area_Zones)
+ID_Temp = 14200
+Area_Zones_Percent_Silbertal = Area_Zones / Area_Catchment
+startyear = 1986
+endyear = 2005
+All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Silbertal, ID_Prec_Zones, ID_Temp, startyear, endyear)
+
 
 # ------------- Paltental---------------------------------------------
 
@@ -573,7 +600,7 @@ end
 # startyear = 1981
 # endyear = 2010
 # Catchment_Name = "Palten"
-Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
+# Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
 
 #Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten()
 #All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Palten, ID_Prec_Zones, ID_Temp, startyear, endyear)
@@ -600,37 +627,37 @@ Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_stat
 
 # ------------------- Pitztal -----------------------------
 
-ID_Prec_Zones = [102061, 102046]
-# size of the area of precipitation zones
-Area_Zones = [20651736.0, 145191864.0]
-Area_Catchment = sum(Area_Zones)
-Area_Zones_Percent_Pitztal = Area_Zones / Area_Catchment
-Catchment_Name = "Pitztal"
-ID_Temperature = 14621
-ID_Temperature_Proj = 14620 # 52 m lower than 14621
-path_to_temp_data = "LTkont113597"
-paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1]), "/N-Tagessummen-"*string(ID_Prec_Zones[2])]
-startyear = 1983
-endyear = 2005
-skip_to_temp = 0
-Skipto = [26, 26]
+# ID_Prec_Zones = [102061, 102046]
+# # size of the area of precipitation zones
+# Area_Zones = [20651736.0, 145191864.0]
+# Area_Catchment = sum(Area_Zones)
+# Area_Zones_Percent_Pitztal = Area_Zones / Area_Catchment
+# Catchment_Name = "Pitztal"
+# ID_Temperature = 14621
+# ID_Temperature_Proj = 14620 # 52 m lower than 14621
+# path_to_temp_data = "LTkont113597"
+# paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1]), "/N-Tagessummen-"*string(ID_Prec_Zones[2])]
+# startyear = 1983
+# endyear = 2005
+# skip_to_temp = 0
+# Skipto = [26, 26]
 
 #Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
 #All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Pitztal, ID_Prec_Zones, ID_Temperature_Proj, startyear, endyear)
 
 #----- PLOT TEMP STATISTICS --------
-
-statistics_all_Zones = monthly_temp_statistics(Temperature_Observed, Timeseries)
-for i in 1:14
-        statistics_all_Zones_Proj = monthly_temp_statistics(All_Projections_Temp[:,i], Timeseries)
-        plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal")
-end
+#
+# statistics_all_Zones = monthly_temp_statistics(Temperature_Observed, Timeseries)
+# for i in 1:14
+#         statistics_all_Zones_Proj = monthly_temp_statistics(All_Projections_Temp[:,i], Timeseries)
+#         plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal")
+# end
 
 # ------ PLOT PREC STATISTICS --------------
-statistics_all_Zones = monthly_storm_statistics(Precipitation_Observed, Timeseries)
-for i in 1:14
-        statistics_all_Zones_Proj = monthly_storm_statistics(All_Projections_Prec[:,i], Timeseries)
-        plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal")
-end
+# statistics_all_Zones = monthly_storm_statistics(Precipitation_Observed, Timeseries)
+# for i in 1:14
+#         statistics_all_Zones_Proj = monthly_storm_statistics(All_Projections_Prec[:,i], Timeseries)
+#         plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Paltental")
+# end
 
-plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Pitztal", "4.5")
+#plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Pitztal", "4.5")

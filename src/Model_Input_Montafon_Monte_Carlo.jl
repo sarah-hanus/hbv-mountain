@@ -44,10 +44,10 @@ using Distributed
         Area_Zones_Percent = Area_Zones / Area_Catchment
 
         Mean_Elevation_Catchment = 1900 # in reality 1842.413038
-        Elevations_Catchment = Elevations(200.0, 400.0, 3400.0, 681.0, 681.0) # take Tschagunns for temp 681
+        Elevations_Catchment = Elevations(200.0, 400.0, 3400.0, 670.0, 670.0) # take Vadans for temp 670
         Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
         # where to skip to in data file of precipitation measurements
-        Skipto = [24, 22, 22, 22]
+        Skipto = [24, 22, 22, 22, 26]
         # get the areal percentage of all elevation zones in the HRUs in the precipitation zones
         Areas_HRUs =  CSV.read(local_path*"HBVModel/Montafon/HBV_Area_Elevation_round.csv", skipto=2, decimal='.', delim = ',')
         # get the percentage of each HRU of the precipitation zone
@@ -74,28 +74,86 @@ using Distributed
         # Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
         # break
 
-        Temperature = CSV.read(local_path*"HBVModel/Montafon/prenner_tag_16910.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+        Temperature = CSV.read(local_path*"HBVModel/Montafon/prenner_tag_14200.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
 
         # get data for 20 years: from 1987 to end of 2006
         # from 1986 to 2005 13669: 20973
         #hydrological year 13577:20881
         Temperature = dropmissing(Temperature)
         Temperature_Array = Temperature.t / 10
-        Precipitation_16910 = Temperature.nied / 10
         Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
         startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
         endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
         Temperature_Daily = Temperature_Array[startindex[1]:endindex[1]]
-        Precipitation_16910 = Precipitation_16910[startindex[1]:endindex[1]]
-        #
-        # Dates_Temperature_Daily = Timeseries_Temp[startindex[1]:endindex[1]]
-        # Dates_missing_Temp = Dates_Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)]
-        # # get the temperature data at each elevation
-        # Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
-        # # get the temperature data at the mean elevation to calculate the mean potential evaporation
-        # Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==1500, Elevation_Zone_Catchment)]
-        # Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
+        Dates_Temperature_Daily = Timeseries_Temp[startindex[1]:endindex[1]]
+        Dates_missing_Temp = Dates_Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)]
+        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
+        # get the temperature data at the mean elevation to calculate the mean potential evaporation
+        Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+        Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
 
+        #get precipitation data for 16910
+        # Data_16910 = CSV.read(local_path*"HBVModel/Montafon/prenner_tag_16910.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+        # Data_16910 = dropmissing(Data_16910)
+        # Timeseries_16910 = Date.(Data_16910.datum, Dates.DateFormat("yyyymmdd"))
+        # startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_16910)
+        # endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_16910)
+        # Dates_Precipitation_Daily = Timeseries_16910[startindex[1]:endindex[1]]
+        # Precipitation_16910 = Data_16910.nied / 10
+        # Precipitation_16910 = Precipitation_16910[startindex[1]:endindex[1]]
+        # Precipitation_16910[findall(x -> x == -0.1, Precipitation_16910)] .= 0.0
+        #
+        # days_missing_prec= Int64[]
+        #
+        # for (i,days) in enumerate(Timeseries)
+        #         index = findall(x->x==days, Dates_Precipitation_Daily)
+        #         if index == []
+        #                 append!(days_missing_prec, i)
+        #         end
+        # end
+        # Timeseries_missing_prec = Timeseries[days_missing_prec]
+        #
+        #
+        # Precipitation  = CSV.read("Montafon/NTag100115.dat", header = false, delim= ' ', ignorerepeated = true, types=[String, Time, Float64])
+        # Precipitation_Array = convert(Matrix, Precipitation)
+        # println(size(Precipitation_Array), "\n")
+        # startindex = findfirst(isequal("01.01."*string(startyear)), Precipitation_Array)
+        # endindex = findfirst(isequal("31.12."*string(endyear)), Precipitation_Array)
+        # Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+        # Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y"))
+        # df = DataFrame(Precipitation_Array)
+        # df = unique!(df)
+        # # drop missing values
+        # df = dropmissing(df)
+        # Precipitation_Array_100115 = convert(Vector, df[:,3])
+        # Precipitation_Array_add_missing_100115 = Precipitation_Array_100115[days_missing_prec,:]
+        #
+        # Precipitation  = CSV.read("Montafon/NTag100073.dat", header = false, delim= ' ', ignorerepeated = true, types=[String, Time, Float64])
+        # Precipitation_Array = convert(Matrix, Precipitation)
+        # println(size(Precipitation_Array), "\n")
+        # startindex = findfirst(isequal("01.01."*string(startyear)), Precipitation_Array)
+        # endindex = findfirst(isequal("31.12."*string(endyear)), Precipitation_Array)
+        # Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+        # Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y"))
+        # df = DataFrame(Precipitation_Array)
+        # df = unique!(df)
+        # # drop missing values
+        # df = dropmissing(df)
+        # Precipitation_Array_100073 = convert(Vector, df[:,3])
+        # Precipitation_Array_add_missing_100073 = Precipitation_Array_100073[days_missing_prec,:]
+        #
+        # Precipitation_Array_add_missing = (Precipitation_Array_add_missing_100115 + Precipitation_Array_add_missing_100073) ./ 2
+        # index_add_missing = 1
+        # Precipitation_16910_new = Float64[]
+        # for (i,days) in enumerate(Timeseries)
+        #         index = findall(x->x==days, Dates_Precipitation_Daily)
+        #         if index != []
+        #         append!(Precipitation_16910_new, Precipitation_16910[index])
+        #         elseif index == []
+        #                 append!(Precipitation_16910_new, Precipitation_Array_add_missing[index_add_missing])
+        #                 global index_add_missing += 1
+        #         end
+        # end
         # ------------ LOAD OBSERVED DISCHARGE DATA ----------------
         Discharge = CSV.read(local_path*"HBVModel/Montafon/Q-Tagesmittel-231662.csv", header= false, skipto=21, decimal=',', delim = ';', types=[String, Float64])
         Discharge = convert(Matrix, Discharge)
@@ -124,11 +182,12 @@ using Distributed
         # # ------------- LOAD PRECIPITATION DATA OF EACH PRECIPITATION ZONE ----------------------
         # # get elevations at which precipitation was measured in each precipitation zone
         # # changed to 1400 in 2003
-        # Elevations_113589 = Elevations(200., 1000., 2600., 1430.,1140)
-        # Elevations_113597 = Elevations(200, 800, 2800, 1140, 1140)
-        # Elevations_113670 = Elevations(200, 400, 2400, 635, 1140)
-        # Elevations_114538 = Elevations(200, 600, 2400, 705, 1140)
-        # Elevations_All_Zones = [Elevations_113589, Elevations_113597, Elevations_113670, Elevations_114538]
+        Elevations_100123 = Elevations(200., 600., 2800., 866.,1140)
+        Elevations_16910 = Elevations(200, 800, 3000, 1028, 1140)
+        Elevations_100057 = Elevations(200, 1600, 3400, 2000, 1140)
+        Elevations_100180 = Elevations(200, 400, 3000, 681, 1140)
+        Elevations_100206 = Elevations(200, 600, 2800, 897, 1140)
+        Elevations_All_Zones = [Elevations_100123, Elevations_16910, Elevations_100057, Elevations_100180, Elevations_100206]
 
         #get the total discharge
         Total_Discharge = zeros(length(Temperature_Daily))
@@ -139,11 +198,11 @@ using Distributed
         Elevation_Percentage = Array{Float64, 1}[]
         Nr_Elevationbands_All_Zones = Int64[]
         Elevations_Each_Precipitation_Zone = Array{Float64, 1}[]
-        ID_Prec_Zones = 100115
+        #D_Prec_Zones = 100115
 
-        #for i in 1: length(ID_Prec_Zones)
-                if ID_Prec_Zones == 100057 || ID_Prec_Zones == 100123 || ID_Prec_Zones == 100115
-                        Precipitation  = CSV.read("Montafon/NTag"*string(ID_Prec_Zones)*".dat", header = false, delim= ' ', ignorerepeated = true, types=[String, Time, Float64])
+        for i in 1: length(ID_Prec_Zones)
+                if ID_Prec_Zones[i] == 100057 || ID_Prec_Zones[i] == 100123
+                        Precipitation  = CSV.read("Montafon/NTag"*string(ID_Prec_Zones[i])*".dat", header = false, delim= ' ', ignorerepeated = true, types=[String, Time, Float64])
                         Precipitation_Array = convert(Matrix, Precipitation)
                         println(size(Precipitation_Array), "\n")
                         startindex = findfirst(isequal("01.01."*string(startyear)), Precipitation_Array)
@@ -156,29 +215,36 @@ using Distributed
                         # drop missing values
                         df = dropmissing(df)
                         Precipitation_Array = convert(Vector, df[:,3])
-                        println("works /n")
+                        Elevation_HRUs, Precipitation, Nr_Elevationbands = getprecipitationatelevation(Elevations_All_Zones[i], Precipitation_Gradient, Precipitation_Array)
+                        push!(Precipitation_All_Zones, Precipitation)
+                        push!(Nr_Elevationbands_All_Zones, Nr_Elevationbands)
+                        push!(Elevations_Each_Precipitation_Zone, Elevation_HRUs)
+                elseif ID_Prec_Zones[i] == 100180 || ID_Prec_Zones[i] == 100206
+                        Precipitation = CSV.read(local_path*"HBVModel/Montafon/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
+                        Precipitation_Array = convert(Matrix, Precipitation)
+                        startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
+                        endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
+                        Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+                        Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
+                        # find duplicates and remove them
+                        df = DataFrame(Precipitation_Array)
+                        df = unique!(df)
+                        # drop missing values
+                        df = dropmissing(df)
+                        Precipitation_Array = convert(Matrix, df)
+                        Elevation_HRUs, Precipitation, Nr_Elevationbands = getprecipitationatelevation(Elevations_All_Zones[i], Precipitation_Gradient, Precipitation_Array[:,2])
+                        push!(Precipitation_All_Zones, Precipitation)
+                        push!(Nr_Elevationbands_All_Zones, Nr_Elevationbands)
+                        push!(Elevations_Each_Precipitation_Zone, Elevation_HRUs)
+                elseif ID_Prec_Zones[i] == 16910
+                        Precipitation = readdlm(local_path*"HBVModel/Montafon/Precipitation_16910_added.csv", ',')
+                        Elevation_HRUs, Precipitation, Nr_Elevationbands = getprecipitationatelevation(Elevations_All_Zones[i], Precipitation_Gradient, Precipitation)
+                        push!(Precipitation_All_Zones, Precipitation)
+                        push!(Nr_Elevationbands_All_Zones, Nr_Elevationbands)
+                        push!(Elevations_Each_Precipitation_Zone, Elevation_HRUs)
                 end
-                break
-                #print(ID_Prec_Zones)
-                Precipitation = CSV.read(local_path*"HBVModel/Montafon/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
-                Precipitation_Array = convert(Matrix, Precipitation)
-                startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
-                endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
-                Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
-                Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
-                # find duplicates and remove them
-                df = DataFrame(Precipitation_Array)
-                df = unique!(df)
-                # drop missing values
-                df = dropmissing(df)
-                Precipitation_Array = convert(Matrix, df)
-                print(size(df))
-                break
 
-                Elevation_HRUs, Precipitation, Nr_Elevationbands = getprecipitationatelevation(Elevations_All_Zones[i], Precipitation_Gradient, Precipitation_Array[:,2])
-                push!(Precipitation_All_Zones, Precipitation)
-                push!(Nr_Elevationbands_All_Zones, Nr_Elevationbands)
-                push!(Elevations_Each_Precipitation_Zone, Elevation_HRUs)
+                #print(ID_Prec_Zones)
 
                 index_HRU = (findall(x -> x==ID_Prec_Zones[i], Areas_HRUs[1,2:end]))
                 # for each precipitation zone get the relevant areal extentd
@@ -226,8 +292,8 @@ using Distributed
         end
         # ---------------- CALCULATE OBSERVED OBJECTIVE FUNCTIONS -------------------------------------
         # calculate the sum of precipitation of all precipitation zones to calculate objective functions
-        Total_Precipitation = Precipitation_All_Zones[1][:,1]*Area_Zones_Percent[1] + Precipitation_All_Zones[2][:,1]*Area_Zones_Percent[2] + Precipitation_All_Zones[3][:,1]*Area_Zones_Percent[3] + Precipitation_All_Zones[4][:,1]*Area_Zones_Percent[4]
-        # don't consider spin up time for calculation of Goodness of Fit
+        Total_Precipitation = Precipitation_All_Zones[1][:,1]*Area_Zones_Percent[1] + Precipitation_All_Zones[2][:,1]*Area_Zones_Percent[2] + Precipitation_All_Zones[3][:,1]*Area_Zones_Percent[3] + Precipitation_All_Zones[4][:,1]*Area_Zones_Percent[4] + Precipitation_All_Zones[5][:,1]*Area_Zones_Percent[5]
+        break# don't consider spin up time for calculation of Goodness of Fit
         # end of spin up time is 3 years after the start of the calibration and start in the month October
         index_spinup = findfirst(x -> Dates.year(x) == firstyear + 2 && Dates.month(x) == 10, Timeseries)
         # evaluations chouls alsways contain whole year

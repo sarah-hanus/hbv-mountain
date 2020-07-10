@@ -3,6 +3,7 @@ using DelimitedFiles
 using Statistics
 using DataFrames
 using Plots
+using Plots.PlotMeasures
 
 function runmodelprecipitationzones(Potential_Evaporation::Array{Float64,1}, Precipitation_All_Zones::Array{Array{Float64,2},1}, Temperature_Elevation_Catchment::Array{Float64,2}, Inputs_All_Zones::Array{Array{HRU_Input,1},1}, Storages_All_Zones::Array{Array{Storages,1},1}, SlowStorage::Float64, parameters::Array{Parameters,1}, slow_parameters::Slow_Paramters, Area_Zones::Array{Float64,1}, Area_Zones_Percent::Array{Float64,1}, Elevation_Percentage::Array{Array{Float64,1},1}, Elevation_Zone_Catchment::Array{Float64,1}, ID_Prec_Zones::Array{Int64,1}, Nr_Elevationbands_All_Zones::Array{Int64,1}, observed_snow_cover::Array{Array{Float64,2},1}, year_snow_observations::Int64, Elevations_Each_Precipitation_Zone)
         Total_Discharge = zeros(length(Precipitation_All_Zones[1][:,1]))
@@ -283,10 +284,10 @@ function run_bestparameters_gailtal(path_to_best_parameter, nmax, startyear, end
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1], 0.0, Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], 0, Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], 0, Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], 0, Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -305,9 +306,9 @@ function run_bestparameters_gailtal(path_to_best_parameter, nmax, startyear, end
         Total_Precipitation = Precipitation_All_Zones[1][:,1]*Area_Zones_Percent[1] + Precipitation_All_Zones[2][:,1]*Area_Zones_Percent[2] + Precipitation_All_Zones[3][:,1]*Area_Zones_Percent[3] + Precipitation_All_Zones[4][:,1]*Area_Zones_Percent[4]
         # don't consider spin up time for calculation of Goodness of Fit
         # end of spin up time is 3 years after the start of the calibration and start in the month October
-        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 3, Timeseries)
+        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 2 && Dates.month(x) == 10, Timeseries)
         # evaluations chouls alsways contain whole year
-        index_lastdate = findlast(x -> Dates.year(x) == lastyear, Timeseries)
+        index_lastdate = findfirst(x -> Dates.year(x) == lastyear && Dates.month(x) == 10, Timeseries) - 1
         Timeseries_Obj = Timeseries[index_spinup: index_lastdate]
         Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
         Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
@@ -356,17 +357,17 @@ function run_bestparameters_gailtal(path_to_best_parameter, nmax, startyear, end
                 Discharge, Snow_Extend, GWstorage, Snowstorage, Snow_Elevations, Soilstorage, Snow_Extend_Modeled, Snow_Extend_Observed, Faststorage = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000, Elevations_Each_Precipitation_Zone)
 
                 All_Discharges = hcat(All_Discharges, Discharge[index_spinup: index_lastdate])
-                All_GWstorage = hcat(All_GWstorage, GWstorage[index_spinup: index_lastdate])
-                All_Snowstorage = hcat(All_Snowstorage, Snowstorage[index_spinup: index_lastdate])
-                push!(All_Snow_Elevations, Snow_Elevations[index_spinup: index_lastdate, :])
-                push!(All_Soilstorage, Soilstorage[index_spinup: index_lastdate,:])
-                push!(All_Faststorage, Faststorage[index_spinup: index_lastdate,:])
-                push!(All_Snow_Extend_Modeled, Snow_Extend_Modeled)
-                push!(All_Snow_Extend_Observed, Snow_Extend_Observed)
+                # All_GWstorage = hcat(All_GWstorage, GWstorage[index_spinup: index_lastdate])
+                # All_Snowstorage = hcat(All_Snowstorage, Snowstorage[index_spinup: index_lastdate])
+                # push!(All_Snow_Elevations, Snow_Elevations[index_spinup: index_lastdate, :])
+                # push!(All_Soilstorage, Soilstorage[index_spinup: index_lastdate,:])
+                # push!(All_Faststorage, Faststorage[index_spinup: index_lastdate,:])
+                # push!(All_Snow_Extend_Modeled, Snow_Extend_Modeled)
+                # push!(All_Snow_Extend_Observed, Snow_Extend_Observed)
 
         end
 
-        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage
+        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage, Total_Precipitation_Obj, Temperature_Mean_Elevation[index_spinup: index_lastdate]
 end
 
 function run_bestparameters_palten(path_to_best_parameter, nmax, startyear, endyear)
@@ -624,9 +625,9 @@ function run_bestparameters_palten(path_to_best_parameter, nmax, startyear, endy
 
         # don't consider spin up time for calculation of Goodness of Fit
         # end of spin up time is 3 years after the start of the calibration and start in the month October
-        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 3, Timeseries)
+        index_spinup = findfirst(x -> Dates.year(x) == firstyear + 2 && Dates.month(x) == 10, Timeseries)
         # evaluations chouls alsways contain whole year
-        index_lastdate = findlast(x -> Dates.year(x) == lastyear, Timeseries)
+        index_lastdate = findfirst(x -> Dates.year(x) == lastyear && Dates.month(x) == 10, Timeseries) - 1
         Timeseries_Obj = Timeseries[index_spinup: index_lastdate]
         Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
         Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
@@ -686,7 +687,7 @@ function run_bestparameters_palten(path_to_best_parameter, nmax, startyear, endy
 
         end
 
-        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage
+        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage, Total_Precipitation_Obj, Temperature_Mean_Elevation[index_spinup: index_lastdate]
 end
 
 function run_bestparameters_feistritz(path_to_best_parameter, nmax, startyear, endyear)
@@ -915,7 +916,7 @@ function run_bestparameters_feistritz(path_to_best_parameter, nmax, startyear, e
 
         end
 
-        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage, Total_Precipitation_Obj
+        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage, Total_Precipitation_Obj, Temperature_Mean_Elevation[index_spinup: index_lastdate]
 end
 
 function run_bestparameters_pitztal(path_to_best_parameter, nmax, startyear, endyear)
@@ -1154,20 +1155,20 @@ function run_bestparameters_pitztal(path_to_best_parameter, nmax, startyear, end
 
         end
 
-        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage
+        return All_Discharges[:, 2:end], All_GWstorage[:, 2:end], All_Snowstorage[:, 2:end], All_Snow_Elevations, All_Soilstorage, All_Snow_Extend_Modeled, All_Snow_Extend_Observed, Observed_Discharge_Obj, Timeseries_Obj, All_Faststorage, Total_Precipitation_Obj, Temperature_Mean_Elevation[index_spinup: index_lastdate]
 end
 
 # ---------- RUN MODEL TO GET DISCHARGE, GW, SNOW AND SOIL DATA
-#Catchment_Name = "Gailtal"
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_gailtal("/home/sarah/Master/Thesis/Calibrations/Gailtal/Calibration8-10.5/Gailtal_Parameterfit_best100.csv", 100, 1983, 2009)
+Catchment_Name = "Gailtal"
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage, Total_Precipitation, Temperature_Mean_Elevation = run_bestparameters_gailtal("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_1run_best_100.csv", 100, 1983, 2005)
 #Catchment_Name = "Paltental"
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_palten("/home/sarah/Master/Thesis/Calibrations/Paltental/Paltental_Parameterfit_All_best_100.csv", 100, 1983, 2005)
-Catchment_Name = "Feistritz"
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage, Total_Precipitation = run_bestparameters_feistritz("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_100.csv", 100, 1983, 2005)
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage, Total_Precipitation, Temperature_Mean_Elevation = run_bestparameters_palten("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_1run_best_100.csv", 100, 1983, 2005)
+#Catchment_Name = "Feistritz"
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage, Total_Precipitation, Temperature_Mean_Elevation = run_bestparameters_feistritz("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_1run_best_10000.csv", 100, 1983, 2005)
 #Catchment_Name = "Pitztal"
-#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage = run_bestparameters_pitztal("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000_best_100.csv", 100, 1983, 2005)
+#All_Discharges, All_GWstorage, ALl_Snowstorage, All_Snow_Elevations, All_Soilstorage, All_Snow_Cover_Modeled, All_Snow_Cover_Observed, Observed_Discharge, Timeseries, All_Faststorage, Total_Precipitation, Temperature_Mean_Elevation  = run_bestparameters_pitztal("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000_best_100.csv", 100, 1983, 2005)
 
-function plot_hydrographs(All_Discharges, Timeseries, Catchment_Name, Nr_Years, Area_Catchment)
+function plot_hydrographs(All_Discharges, Total_Precipitation, Temperature_Mean_Elevation, Timeseries, Catchment_Name, Nr_Years, Area_Catchment)
         for i in 1:Nr_Years
                 current_year = 1984+i
                 if current_year != 1985 && current_year != 2005
@@ -1192,8 +1193,14 @@ function plot_hydrographs(All_Discharges, Timeseries, Catchment_Name, Nr_Years, 
                 plot(Timeseries[indexfirstday:indexlasttday], Total_Precipitation[indexfirstday:indexlasttday], label="Observed Rainfall",size=(1800,1000), color = ["blue"], linewidth = 2)
                 ylabel!("Precipitation [mm/d]")
                 precipitation = plot!()
-                plot(discharge, precipitation, layout= (2,1), legend = false, size=(2000,1200)) #left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-                savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Discharge/Discharge_All_"*string(current_year)*"_with_Prec.png")
+                # plot Temperature
+                plot(Timeseries[indexfirstday:indexlasttday], Temperature_Mean_Elevation[indexfirstday:indexlasttday], label="Observed Temperature Mean Elevation",size=(1800,1000), color = ["red"], linewidth = 2)
+                ylabel!("Temperature [°C]")
+                hline!([0], color="black")
+                temperature = plot!()
+                plot(discharge, precipitation, temperature, layout= (3,1), legend = false, size=(3000,1800), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
+                #savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Discharge/Discharge_All_"*string(current_year)*"_with_Prec.png")
+                savefig("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Discharges/Discharge_All_"*string(current_year)*"_with_Prec.png")
         end
 end
 
@@ -1344,19 +1351,28 @@ end
 #Timeseries = collect(Date(1986,1,1):Day(1):Date(2009,12, 31))
 # change function
 #plot_snowcover(All_Snow_Cover_Modeled, All_Snow_Cover_Observed, 500, 1500, Catchment_Name)
-Area_Catchment = 115496400
-plot_hydrographs(All_Discharges, Timeseries, Catchment_Name, 21, Area_Catchment)
+#Area_Zones = [20651736.0, 145191864.0]
+#Area_Catchment = 115496400.
+Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
+#Area_Catchment = sum(Area_Zones)
+#plot_hydrographs(All_Discharges, Total_Precipitation, Temperature_Mean_Elevation, Timeseries, Catchment_Name, 21, Area_Catchment)
 #plot_gwstorage(All_GWstorage, Timeseries, Catchment_Name, 28)
 #plot_snowstorage(ALl_Snowstorage, Timeseries, Catchment_Name, 28)
 #plot_soilstorage(All_Soilstorage, Timeseries, Catchment_Name)
 #plot_faststorage(All_Faststorage, Timeseries, Catchment_Name)
+#using Plotly
 
-# function timeseries_discharge()
-#         modelled =  Plotly.plot(Timeseries, All_Discharges)#, mode="lines", line_color="gray")
-#         observed =  Plotly.plot(Timeseries, All_Discharges, mode="lines", line_color="red")
-#     Plotly.plot([modelled, observed])
-# end
-# timeseries_discharge()
+#plotly()
+#Plots.PlotlyBackend()
+#Plots.plot(Timeseries, convertDischarge(Observed_Discharge, 115496400.))
+
+
+function timeseries_discharge()
+        modelled =  Plotly.plot(Timeseries, All_Discharges)#, mode="lines", line_color="gray")
+        observed =  Plotly.plot(Timeseries, All_Discharges, mode="lines", line_color="red")
+        Plots.plot([modelled, observed])
+end
+#timeseries_discharge()
 
 # function linescatter1()
 #     trace1 = Plotly.scatter(;x=1:4, y=[10, 15, 13, 17], mode="markers")
