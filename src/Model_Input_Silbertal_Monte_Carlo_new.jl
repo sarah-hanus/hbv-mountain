@@ -56,7 +56,7 @@ using Distributed
         Elevation_Catchment = convert(Vector, Areas_HRUs[2:end,1])
         startyear = 1983
         endyear = 2005
-        scale_factor_Discharge = 0.9
+        scale_factor_Discharge = 0.7
         # timeperiod for which model should be run (look if timeseries of data has same length)
         Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
         #------------ TEMPERATURE AND POT. EVAPORATION CALCULATIONS ---------------------
@@ -252,6 +252,7 @@ using Distributed
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
+                Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
                 Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
                 if Goodness_Fit != -9999
@@ -289,7 +290,7 @@ using Distributed
         end
 end
 #
-nmax = 50000
+nmax = 300000
 @time begin
 #run_MC(1,100)
 pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])

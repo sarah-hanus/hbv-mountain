@@ -37,11 +37,9 @@ function combine_calibrations(path, path_to_save)
     all_calibrations = Array{Float64,2}[]
     total_saved = 0
     all_calibrations = zeros((1,29))
-    print(size(all_calibrations))
     #files = readdir(path)
     files = filter(name -> endswith(name, ".csv"), readdir(path))
     for i in 1: length(files)
-        print(files[i],"\n")
         calibration = readdlm(path*files[i], ',')
         #adds the new array to former array
         all_calibrations = vcat(all_calibrations, calibration)
@@ -244,12 +242,12 @@ end
 
 
 # #----------------- COMBINE RESULTS OF ONE DEVICE-------------
-#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000.csv")
+#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Silbertal/6run_2041000/", "/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_6run.csv")
 # --------------- STORE BEST PARAMETER SETS ---------------------
-#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000_best_10000.csv", 100)
+#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_6run.csv", 10001)
 # -------------- GET STATISTICS -------
 
-#calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Pitztal/Pitztal_Parameterfit_1230000_best_10000.csv", 100, 0.7)
+calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_6run_best_10000.csv", 100, 0.7)
 
 
 function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)
@@ -269,10 +267,10 @@ function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)
     scatter(threshold_values, number_values/nr_runs * 100 , size=(1400,800))
     xlabel!("Euclidean Distance")
     ylabel!("Percent of Runs below the Euclidean Distance")
-    savefig(path_to_file[1:end-4]* "_compare_ED.png")
+    savefig(path_to_file[1:end-4]* "_compare_ED_small.png")
 end
 
-EC_calibration("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_100000.csv", 0.17, 0.20, 4200000)
+#EC_calibration("/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_2_3run.csv", 0.16, 0.3, 2326000)
 
 
 

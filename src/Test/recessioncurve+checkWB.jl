@@ -118,13 +118,17 @@ function plot_recessioncurve(Area_Zones, Observed_Discharge, Precipitation, Time
                 # predicts values of dependend variables
                 linearRegressor = lm(@formula(Discharge ~ Days), Data)
                 #print(linearRegressor)
-                append!(Interception, coeftable(linearRegressor).cols[1][1])
-                append!(kvalue, coeftable(linearRegressor).cols[1][2])
+
+
                 linearFit = predict(linearRegressor)
-                plot!(Timespan, linearFit)
-                plot!(Timespan, Current_Observed_Discharge)
-                xlabel!("Days")
-                ylabel!("Discharge")
+                if linearFit[1] >= linearFIt[2]
+                        plot!(Timespan, linearFit)
+                        plot!(Timespan, Current_Observed_Discharge)
+                        xlabel!("Days")
+                        ylabel!("Discharge")
+                        append!(Interception, coeftable(linearRegressor).cols[1][1])
+                        append!(kvalue, coeftable(linearRegressor).cols[1][2])
+                end
                 #savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/recessioncurves.png")
 
         end
@@ -136,9 +140,10 @@ function plot_recessioncurve(Area_Zones, Observed_Discharge, Precipitation, Time
         print("mean GW Storage", round(mean(GWstorage)), " min ", round(minimum(GWstorage)), " max ",round(maximum(GWstorage)),"\n")
         kvalue = kvalue[findall(x -> x < 0, kvalue)]
         print(mean(kvalue))
+        println(kvalue)
         mean_GW = abs(mean(GWstorage))
         title!("Mean GW: "*string(round(mean_GW))* " ks: "*string(round(mean(kvalue), digits=3)))
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/recessioncurves_Dryspelllength_"*string(Length_Dryspell)*"_"*string(Omit_Days)*".png")
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/recessioncurves_Dryspelllength_"*string(Length_Dryspell)*"_"*string(Omit_Days)*".png")
 end
 
 
@@ -158,14 +163,14 @@ function checkwaterbalance(Total_Precipitation, Discharge, Potential_Evaporation
         Annual_Discharge = Float64[]
         Annual_Precipitation = Float64[]
         Observed_Discharge_mm = Discharge
-        #Observed_Discharge_mm = convertDischarge(Discharge, Area)
+        Observed_Discharge_mm = convertDischarge(Discharge, Area)
         print(sum(Observed_Discharge_mm))
-        for i in 3:23
+        for i in 1:6
                 year = 1985 + i
                 if i > 1
                         startday = 1 + total_days
                 else
-                        startday = 300
+                        startday = 1
                 end
                 #days = Dates.daysinyear(year)
                 days = 365
@@ -192,37 +197,37 @@ function checkwaterbalance(Total_Precipitation, Discharge, Potential_Evaporation
         return Waterbalance_Thorn_Daily, Waterbalance_Yearly, Total_Waterbalance, Annual_Precipitation, Annual_Pot_Evap_Thorn_Daily, Annual_Discharge
 end
 
-plot_recessioncurve(Area_Zones, Observed_Discharge, Total_Precipitation, Timeseries, 9,2)
+plot_recessioncurve(Area_Zones, Observed_Discharge, Total_Precipitation, Timeseries, 11,1)
 
-# daily_WB, WB, Total_WB, Annual_Prec, Annual_Epot, Annual_Discharge = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
+#daily_WB, WB, Total_WB, Annual_Prec, Annual_Epot, Annual_Discharge = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
 # # #
 # scatter(Annual_Prec, size=(1000,700), markersize=6)
 # xlabel!("Years")
 # ylabel!("Yearly Precipitation [mm]")
-# title!("Yearly Precipitation Silbertal: Mean= "*string(round(mean(Annual_Prec))))
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/check_precipitation_20_years_1prec_zone.png")
+# title!("Yearly Precipitation Defreggental: Mean= "*string(round(mean(Annual_Prec))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/check_precipitation_6_years_ohnegletscher.png")
 # #
 # scatter(Annual_Epot, size=(1000,700), markersize=6)
 # xlabel!("Years")
 # ylabel!("Yearly Potential Evporation [mm]")
-# title!("Yearly Potential Evaporation Silbertal: Mean= "*string(round(mean(Annual_Epot))))
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/check_evaporation_20_years_1prec_zone.png")
+# title!("Yearly Potential Evaporation Defreggental: Mean= "*string(round(mean(Annual_Epot))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/check_evaporation_6_years_ohnegletscher.png")
 #
 # scatter(WB, size=(1000,700), markersize=6)
 # xlabel!("Years")
 # ylabel!("Yearly Waterbalance [mm]")
-# title!("Yearly Waterbalance Silbertal: Mean= "*string(round(mean(WB))))
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/check_waterbalance_20_years_1prec_zone.png")
+# title!("Yearly Waterbalance Defreggental: Mean= "*string(round(mean(WB))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/check_waterbalance_6_years_ohnegletscher.png")
 #
 # scatter(Annual_Discharge, size=(1000,700), markersize=6)
 # xlabel!("Years")
 # ylabel!("Yearly Discharge [mm]")
-# title!("Yearly Discharge Silbertal: Mean= "*string(round(mean(Annual_Discharge))))
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/check_discharge_20_years_1prec_zone.png")
+# title!("Yearly Discharge Defreggental: Mean= "*string(round(mean(Annual_Discharge))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/check_discharge_6_years_ohnegletscher.png")
 #
 # scatter(Annual_Discharge, label="Discharge", markersize=6)
 # scatter!(Annual_Prec, label="Precipitation", size=(1000,700), markersize=6)
 # xlabel!("Years")
 # ylabel!("[mm]")
-# title!("Yearly Discharge Silbertal: Mean= "*string(round(mean(Annual_Discharge))))
-# savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/check_discharge_prec_20_years_1prec_zone.png")
+# title!("Yearly Discharge Defreggental: Mean= "*string(round(mean(Annual_Discharge))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/check_discharge_prec_6_years_ohnegletscher.png")

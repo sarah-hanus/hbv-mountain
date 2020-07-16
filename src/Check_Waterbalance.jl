@@ -3,6 +3,7 @@ using DataFrames
 using Statistics
 using Plots
 using CSV
+using DocStringExtensions
 # Area_Zones = [98227533, 184294158, 83478138, 220613195]
 # Elevations_Catchment = Elevations(200, 400, 2800,1140, 1140)
 # Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
@@ -125,55 +126,55 @@ function convertDischarge(Discharge, Area)
 end
 
 
-function checkwaterbalance(Total_Precipitation, Discharge, Potential_Evaporation, Area)
-        total_days = 0
-        Annual_Pot_Evap = Float64[]
-        Annual_Pot_Evap_Thorn_Daily = Float64[]
-        Annual_Pot_Evap_Hagreaves = Float64[]
-        Annual_Discharge = Float64[]
-        Annual_Precipitation = Float64[]
-        Observed_Discharge_mm = convertDischarge(Discharge, Area)
-        for i in 1:20
-                year = 1985 + i
-                if i > 1
-                        startday = 1 + total_days
-                else
-                        startday = 300
-                end
-                #days = Dates.daysinyear(year)
-                days = 365
-                endday = startday + days - 1
-                Current_Annual_Discharge = sum(Observed_Discharge_mm[startday : endday])
-                Current_Annual_Precipitation = sum(Total_Precipitation[startday : endday])
-                Current_Annual_Pot_Evap_Daily = sum(Potential_Evaporation[startday : endday])
-                #Current_Annual_Pot_Evap_Hag = sum(Evaporation_Hagreaves[startday : endday])
-                append!(Annual_Pot_Evap_Thorn_Daily, Current_Annual_Pot_Evap_Daily)
-                append!(Annual_Discharge, Current_Annual_Discharge)
-                append!(Annual_Precipitation, Current_Annual_Precipitation)
-                total_days += days
-        end
-        Average_Annual_Precipitation = mean(Annual_Precipitation)
-        Average_Annual_Discharge = mean(Annual_Discharge)
-        Average_Annual_Pot_Evap_Thorn_Daily = mean(Annual_Pot_Evap_Thorn_Daily)
-        #Average_Annual_Pot_Evap_Hagreaves = mean(Annual_Pot_Evap_Hagreaves)
-        Waterbalance_Thorn_Daily = Average_Annual_Precipitation - Average_Annual_Discharge - Average_Annual_Pot_Evap_Thorn_Daily
-        Waterbalance_Yearly = Annual_Precipitation - Annual_Discharge - Annual_Pot_Evap_Thorn_Daily
-        return Waterbalance_Thorn_Daily, Waterbalance_Yearly, Annual_Precipitation, Annual_Pot_Evap_Thorn_Daily
-end
-
-daily_WB, WB, Annual_Prec, Annual_Epot = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
-
-scatter(Annual_Prec)
-xlabel!("Years")
-ylabel!("Yearly Precipitation [mm]")
-title!("Yearly Precipitation Feistritz: Mean= "*string(round(mean(Annual_Prec))))
-savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_precipitation.png")
-
-scatter(Annual_Epot)
-xlabel!("Years")
-ylabel!("Yearly Potential Evporation [mm]")
-title!("Yearly Potential Evaporation Feistritz: Mean= "*string(round(mean(Annual_Epot))))
-savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_evaporation.png")
+# function checkwaterbalance(Total_Precipitation, Discharge, Potential_Evaporation, Area)
+#         total_days = 0
+#         Annual_Pot_Evap = Float64[]
+#         Annual_Pot_Evap_Thorn_Daily = Float64[]
+#         Annual_Pot_Evap_Hagreaves = Float64[]
+#         Annual_Discharge = Float64[]
+#         Annual_Precipitation = Float64[]
+#         Observed_Discharge_mm = convertDischarge(Discharge, Area)
+#         for i in 1:20
+#                 year = 1985 + i
+#                 if i > 1
+#                         startday = 1 + total_days
+#                 else
+#                         startday = 300
+#                 end
+#                 #days = Dates.daysinyear(year)
+#                 days = 365
+#                 endday = startday + days - 1
+#                 Current_Annual_Discharge = sum(Observed_Discharge_mm[startday : endday])
+#                 Current_Annual_Precipitation = sum(Total_Precipitation[startday : endday])
+#                 Current_Annual_Pot_Evap_Daily = sum(Potential_Evaporation[startday : endday])
+#                 #Current_Annual_Pot_Evap_Hag = sum(Evaporation_Hagreaves[startday : endday])
+#                 append!(Annual_Pot_Evap_Thorn_Daily, Current_Annual_Pot_Evap_Daily)
+#                 append!(Annual_Discharge, Current_Annual_Discharge)
+#                 append!(Annual_Precipitation, Current_Annual_Precipitation)
+#                 total_days += days
+#         end
+#         Average_Annual_Precipitation = mean(Annual_Precipitation)
+#         Average_Annual_Discharge = mean(Annual_Discharge)
+#         Average_Annual_Pot_Evap_Thorn_Daily = mean(Annual_Pot_Evap_Thorn_Daily)
+#         #Average_Annual_Pot_Evap_Hagreaves = mean(Annual_Pot_Evap_Hagreaves)
+#         Waterbalance_Thorn_Daily = Average_Annual_Precipitation - Average_Annual_Discharge - Average_Annual_Pot_Evap_Thorn_Daily
+#         Waterbalance_Yearly = Annual_Precipitation - Annual_Discharge - Annual_Pot_Evap_Thorn_Daily
+#         return Waterbalance_Thorn_Daily, Waterbalance_Yearly, Annual_Precipitation, Annual_Pot_Evap_Thorn_Daily
+# end
+#
+# daily_WB, WB, Annual_Prec, Annual_Epot = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
+#
+# scatter(Annual_Prec)
+# xlabel!("Years")
+# ylabel!("Yearly Precipitation [mm]")
+# title!("Yearly Precipitation Feistritz: Mean= "*string(round(mean(Annual_Prec))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_precipitation.png")
+#
+# scatter(Annual_Epot)
+# xlabel!("Years")
+# ylabel!("Yearly Potential Evporation [mm]")
+# title!("Yearly Potential Evaporation Feistritz: Mean= "*string(round(mean(Annual_Epot))))
+# savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_evaporation.png")
 
 
 # Waterbalance: Inflow - Outflow = 0
@@ -198,24 +199,65 @@ savefig("/home/sarah/Master/Thesis/Results/Calibration/Feistritz/check_evaporati
 # Epot_Prec_Gailtal_Thorn_Daily = Average_Annual_Pot_Evap_Thorn_Daily / Average_Annual_Precipitation
 # Epot_Prec_Gailtal_Hagreaves = Average_Annual_Pot_Evap_Hagreaves / Average_Annual_Precipitation
 # # in order to calculate the actual evaporation according to Budyko
+"""
+Computes the discharge based on the Budyko formula
+
+$(SIGNATURES)
+
+The function returns the yearly average discharge [mm] based on the potential evaporation and precipitation and the Budyko formula.
+"""
+function budyko_discharge(Potential_Evaporation, Precipitation)
+        Epot_Prec = Potential_Evaporation ./ Precipitation
+        Eact_Prec = (Epot_Prec * tanh(1/Epot_Prec)* (1 - exp(-Epot_Prec)))^0.5
+        Discharge1 = (1 - Eact_Prec)
+        Eact_Prec = Epot_Prec * tanh(1/Epot_Prec)
+        Discharge2 = (1 - Eact_Prec)
+        Eact_Prec = (1 - exp(-Epot_Prec))
+        Discharge3 = (1 - Eact_Prec)
+        Eact_Prec = 1 ./ ((0.9+(1/Epot_Prec).^2).^0.5)
+        Discharge4 = (1 - Eact_Prec)
+        return Discharge1, Discharge2, Discharge3, Discharge4
+end
 # Budyko_Eact_P_Gailtal = ( Epot_Prec_Gailtal * tanh(1/Epot_Prec_Gailtal)* (1 - exp(-Epot_Prec_Gailtal)))^0.5
 # Budyko_Eact_Gailtal = Budyko_Eact_P_Gailtal * Average_Annual_Precipitation
 # #Budyko_Eact_P_Gailtal_Hagreaves = ( Epot_Prec_Gailtal_Hagreaves * tanh(1/Epot_Prec_Gailtal_Hagreaves)* (1 - exp(-Epot_Prec_Gailtal_Hagreaves)))^0.5
 # #Budyko_Eact_Gailtal_Hagreaves = Budyko_Eact_P_Gailtal * Average_Annual_Precipitation
 #
-# # plot(collect(0:1),collect(0:1), color="blue", label="Energy Limit")
-# # plot!(collect(1:5), ones(5), color="lightblue", label="Water Limit")
-# # Epot_Prec = collect(0:0.1:5)
-# # Budyko_Eact_P = ( Epot_Prec .* tanh.(1 ./Epot_Prec) .* (ones(length(Epot_Prec)) - exp.(-Epot_Prec))).^0.5
-# # part = ones(length(Epot_Prec)) - exp.(-Epot_Prec)
-# # plot!(Epot_Prec, Budyko_Eact_P, label="Budyko")
-# # #scatter!([Epot_Prec_Gailtal], [Budyko_Eact_P_Gailtal], markershape= :xcross, color = "black", label="Thornthwaite, Budyko")
+# plot(collect(0:1),collect(0:1), color="blue", label="Energy Limit")
+# plot!(collect(1:5), ones(5), color="lightblue", label="Water Limit")
+# Epot_Prec = collect(0:0.1:5)
+# Budyko_Eact_P = ( Epot_Prec .* tanh.(1 ./Epot_Prec) .* (ones(length(Epot_Prec)) - exp.(-Epot_Prec))).^0.5
+# Budyko_Eact_P_2 = ( Epot_Prec .* tanh.(1 ./Epot_Prec))
+# Budyko_Eact_P_3 = (ones(length(Epot_Prec)) - exp.(-Epot_Prec))
+# Budyko_Eact_P_4 =  ones(length(Epot_Prec)) ./ ((0.9.*ones(length(Epot_Prec)).+(ones(length(Epot_Prec))./Epot_Prec).^2).^0.5)
+# #part = ones(length(Epot_Prec)) - exp.(-Epot_Prec)
+# plot!(Epot_Prec, Budyko_Eact_P, color="grey")
+# plot!(Epot_Prec, Budyko_Eact_P_2, color="grey")
+# plot!(Epot_Prec, Budyko_Eact_P_3, color="grey")
+# plot!(Epot_Prec, Budyko_Eact_P_4, color="grey")
+# Silbertal_Q_P = budyko_discharge(474, 1435)
+# Defreggental_Q_P = budyko_discharge(379, 914)
+# Silbertal_Eact_P = [1,1,1,1] .- Silbertal_Q_P
+#Gailtal, Palten, Feistritz
+# Potential_Evaporation = [463, 501, 574]
+# Precipitation = [1306, 1189, 840]
+# Discharge = [957, 792, 342]
+# Farben = ["green", "red", "black"]
+# Catchment_Name = ["Gailtal", "Paltental", "Feistrtztal"]
+# for i in 1:3
+#         Epot_Prec = Potential_Evaporation[i]/Precipitation[i]
+#         Eact_Prec = 1 - Discharge[i]/Precipitation[i]
+#         scatter!([Epot_Prec], [Eact_Prec], markershape= :xcross, color = Farben[i], size=(1000,800), label=Catchment_Name[i])
+# end
+# xlabel!("Epot/P")
+# ylabel!("Eact/P")
+
+#savefig("/home/sarah/Master/Thesis/Results/Calibration/Budyko_Catchments.png")
 # # scatter!([Epot_Prec_Gailtal], [Average_Actual_Evaporation / Average_Annual_Precipitation], markershape= :xcross, color = "black", label="Thornthwaite")
 # # scatter!([Epot_Prec_Gailtal_Thorn_Daily], [Average_Actual_Evaporation / Average_Annual_Precipitation], markershape= :xcross, color = "green", label="Thornthwaite Daily")
 # # #scatter!([Epot_Prec_Gailtal_Hagreaves], [Budyko_Eact_P_Gailtal_Hagreaves], markershape= :xcross, color = "red", label="Hagreaves, Budyko")
 # # scatter!([Epot_Prec_Gailtal_Hagreaves], [Average_Actual_Evaporation / Average_Annual_Precipitation], markershape= :xcross, color = "red", label="Hagreaves")
-# # xlabel!("Epot/P")
-# # ylabel!("Eact/P")
+
 # #savefig("Budyko.png")
 #
 # years = collect(1986:2005)
