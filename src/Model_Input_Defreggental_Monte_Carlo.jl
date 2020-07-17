@@ -124,6 +124,7 @@ using Distributed
         Elevation_Percentage = Array{Float64, 1}[]
         Nr_Elevationbands_All_Zones = Int64[]
         Elevations_Each_Precipitation_Zone = Array{Float64, 1}[]
+        Glacier_All_Zones = Array{Float64, 2}[]
 
         for i in 1: length(ID_Prec_Zones)
                 if ID_Prec_Zones[i] == 114926
@@ -284,6 +285,6 @@ end
 #
 nmax = 200000
 @time begin
-run_MC(1,100)
-#pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
+#run_MC(1,100)
+pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
 end

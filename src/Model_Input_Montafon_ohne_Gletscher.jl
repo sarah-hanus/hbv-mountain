@@ -33,7 +33,8 @@ using Distributed
 # @everywhere include("runmodel_Prec_Zones.jl")
 #
 #
-# @everywhere function run_MC(ID, nmax)
+path_to_best_parameter = "/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_7run_best_100.csv"
+function run_Montafon_parameters(path_to_best_parameter)
 
         local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
@@ -58,27 +59,7 @@ using Distributed
         # timeperiod for which model should be run (look if timeseries of data has same length)
         Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
         #------------ TEMPERATURE AND POT. EVAPORATION CALCULATIONS ---------------------
-        #Temperature is the same in whole catchment
-        # Temperature = CSV.read(local_path*"HBVModel/Montafon/LTkont100180.dat" , header = false, delim = ' ', ignorerepeated = true, type = String)
-        # Temperature_Array = convert(Matrix, Temperature)
-        # startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00"), Temperature_Array)
-        # endindex = findfirst(isequal("31.12."*string(endyear)*" 23:45:00"), Temperature_Array)
-        # Temperature_Array = Temperature_Array[startindex[1]:endindex[1],:]
-        # Temperature_Array[:,1] = Date.(Temperature_Array[:,1], Dates.DateFormat("d.m.y H:M:S"))
-        # Dates_Temperature_Daily, Temperature_Daily = daily_mean(Temperature_Array)
-        # # get the temperature data at each elevation
-        #
-        # Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
-        # # get the temperature data at the mean elevation to calculate the mean potential evaporation
-        # Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==1500, Elevation_Zone_Catchment)]
-        # Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
-        # break
-
         Temperature = CSV.read(local_path*"HBVModel/Montafon/prenner_tag_14200.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
-
-        # get data for 20 years: from 1987 to end of 2006
-        # from 1986 to 2005 13669: 20973
-        #hydrological year 13577:20881
         Temperature = dropmissing(Temperature)
         Temperature_Array = Temperature.t / 10
         Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
@@ -92,68 +73,6 @@ using Distributed
         Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
         Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
 
-        #get precipitation data for 16910
-        # Data_16910 = CSV.read(local_path*"HBVModel/Montafon/prenner_tag_16910.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
-        # Data_16910 = dropmissing(Data_16910)
-        # Timeseries_16910 = Date.(Data_16910.datum, Dates.DateFormat("yyyymmdd"))
-        # startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_16910)
-        # endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_16910)
-        # Dates_Precipitation_Daily = Timeseries_16910[startindex[1]:endindex[1]]
-        # Precipitation_16910 = Data_16910.nied / 10
-        # Precipitation_16910 = Precipitation_16910[startindex[1]:endindex[1]]
-        # Precipitation_16910[findall(x -> x == -0.1, Precipitation_16910)] .= 0.0
-        #
-        # days_missing_prec= Int64[]
-        #
-        # for (i,days) in enumerate(Timeseries)
-        #         index = findall(x->x==days, Dates_Precipitation_Daily)
-        #         if index == []
-        #                 append!(days_missing_prec, i)
-        #         end
-        # end
-        # Timeseries_missing_prec = Timeseries[days_missing_prec]
-        #
-        #
-        # Precipitation  = CSV.read("Montafon/NTag100115.dat", header = false, delim= ' ', ignorerepeated = true, types=[String, Time, Float64])
-        # Precipitation_Array = convert(Matrix, Precipitation)
-        # println(size(Precipitation_Array), "\n")
-        # startindex = findfirst(isequal("01.01."*string(startyear)), Precipitation_Array)
-        # endindex = findfirst(isequal("31.12."*string(endyear)), Precipitation_Array)
-        # Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
-        # Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y"))
-        # df = DataFrame(Precipitation_Array)
-        # df = unique!(df)
-        # # drop missing values
-        # df = dropmissing(df)
-        # Precipitation_Array_100115 = convert(Vector, df[:,3])
-        # Precipitation_Array_add_missing_100115 = Precipitation_Array_100115[days_missing_prec,:]
-        #
-        # Precipitation  = CSV.read("Montafon/NTag100073.dat", header = false, delim= ' ', ignorerepeated = true, types=[String, Time, Float64])
-        # Precipitation_Array = convert(Matrix, Precipitation)
-        # println(size(Precipitation_Array), "\n")
-        # startindex = findfirst(isequal("01.01."*string(startyear)), Precipitation_Array)
-        # endindex = findfirst(isequal("31.12."*string(endyear)), Precipitation_Array)
-        # Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
-        # Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y"))
-        # df = DataFrame(Precipitation_Array)
-        # df = unique!(df)
-        # # drop missing values
-        # df = dropmissing(df)
-        # Precipitation_Array_100073 = convert(Vector, df[:,3])
-        # Precipitation_Array_add_missing_100073 = Precipitation_Array_100073[days_missing_prec,:]
-        #
-        # Precipitation_Array_add_missing = (Precipitation_Array_add_missing_100115 + Precipitation_Array_add_missing_100073) ./ 2
-        # index_add_missing = 1
-        # Precipitation_16910_new = Float64[]
-        # for (i,days) in enumerate(Timeseries)
-        #         index = findall(x->x==days, Dates_Precipitation_Daily)
-        #         if index != []
-        #         append!(Precipitation_16910_new, Precipitation_16910[index])
-        #         elseif index == []
-        #                 append!(Precipitation_16910_new, Precipitation_Array_add_missing[index_add_missing])
-        #                 global index_add_missing += 1
-        #         end
-        # end
         # ------------ LOAD OBSERVED DISCHARGE DATA ----------------
         Discharge = CSV.read(local_path*"HBVModel/Montafon/Q-Tagesmittel-231662.csv", header= false, skipto=21, decimal=',', delim = ';', types=[String, Float64])
         Discharge = convert(Matrix, Discharge)
@@ -162,6 +81,7 @@ using Distributed
         Observed_Discharge = Array{Float64,1}[]
         push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
         Observed_Discharge = Observed_Discharge[1]
+        Observed_Discharge = Observed_Discharge * 1000 / Area_Catchment * (3600 * 24)
 
         # ------------ LOAD TIMESERIES DATA AS DATES ------------------
         #Timeseries = Date.(Discharge[startindex[1]:endindex[1],1], Dates.DateFormat("d.m.y H:M:S"))
@@ -169,16 +89,21 @@ using Distributed
         lastyear = Dates.year(Timeseries[end])
 
         # ------------- LOAD OBSERVED SNOW COVER DATA PER PRECIPITATION ZONE ------------
-        # # find day wehere 2000 starts for snow cover calculations
-        # start2000 = findfirst(x -> x == Date(2000, 01, 01), Timeseries)
-        # length_2000_end = length(Observed_Discharge) - start2000 + 1
-        # observed_snow_cover = Array{Float64,2}[]
-        # for ID in ID_Prec_Zones
-        #         current_observed_snow = readdlm(local_path*"HBVModel/Gailtal/snow_cover_fixed_"*string(ID)*".csv",',', Float64)
-        #         current_observed_snow = current_observed_snow[1:length_2000_end,3: end]
-        #         push!(observed_snow_cover, current_observed_snow)
-        # end
-        #
+        # find day where 2000 starts for snow cover calculations
+        if Dates.year(Timeseries[1]) < 2000
+                start2000 = findfirst(x -> x == Date(2000, 01, 01), Timeseries)
+                length_2000_end = length(Observed_Discharge) - start2000 + 1
+        else
+                start2000 = 1
+                length_2000_end = length(Observed_Discharge)
+        end
+        print(start2000, " ", length_2000_end, "\n")
+        observed_snow_cover = Array{Float64,2}[]
+        for ID in ID_Prec_Zones
+                current_observed_snow = readdlm(local_path*"HBVModel/Montafon/snow_cover_fixed_Zone"*string(ID)*".csv",',', Float64)
+                current_observed_snow = current_observed_snow[1:length_2000_end,3: end]
+                push!(observed_snow_cover, current_observed_snow)
+        end
         # # ------------- LOAD PRECIPITATION DATA OF EACH PRECIPITATION ZONE ----------------------
         # # get elevations at which precipitation was measured in each precipitation zone
         # # changed to 1400 in 2003
@@ -293,7 +218,7 @@ using Distributed
         # ---------------- CALCULATE OBSERVED OBJECTIVE FUNCTIONS -------------------------------------
         # calculate the sum of precipitation of all precipitation zones to calculate objective functions
         Total_Precipitation = Precipitation_All_Zones[1][:,1]*Area_Zones_Percent[1] + Precipitation_All_Zones[2][:,1]*Area_Zones_Percent[2] + Precipitation_All_Zones[3][:,1]*Area_Zones_Percent[3] + Precipitation_All_Zones[4][:,1]*Area_Zones_Percent[4] + Precipitation_All_Zones[5][:,1]*Area_Zones_Percent[5]
-        break# don't consider spin up time for calculation of Goodness of Fit
+        # don't consider spin up time for calculation of Goodness of Fit
         # end of spin up time is 3 years after the start of the calibration and start in the month October
         index_spinup = findfirst(x -> Dates.year(x) == firstyear + 2 && Dates.month(x) == 10, Timeseries)
         # evaluations chouls alsways contain whole year
@@ -311,60 +236,51 @@ using Distributed
         #All_Goodness_new = []
         All_Goodness = zeros(29)
         #All_Parameter_Sets = Array{Any, 1}[]
-        GWStorage = 40.0
-        print("worker ", ID, " preparation finished", "\n")
-        count = 1
-        number_Files = 0
-        for n in 1 : nmax
+        GWStorage = 50.0
+        best_calibrations = readdlm(path_to_best_parameter, ',')
+        parameters_best_calibrations = best_calibrations[:,10:29]
+
+        All_discharge = Array{Any, 1}[]
+        for n in 1 : 1:size(parameters_best_calibrations)[1]
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
                 Current_GWStorage = deepcopy(GWStorage)
-                parameters, slow_parameters, parameters_array = parameter_selection()
+                # use parameter sets of the calibration as input
+                beta_Bare, beta_Forest, beta_Grass, beta_Rip, Ce, Interceptioncapacity_Forest, Interceptioncapacity_Grass, Interceptioncapacity_Rip, Kf_Rip, Kf, Ks, Meltfactor, Mm, Ratio_Pref, Ratio_Riparian, Soilstoaragecapacity_Bare, Soilstoaragecapacity_Forest, Soilstoaragecapacity_Grass, Soilstoaragecapacity_Rip, Temp_Thresh = parameters_best_calibrations[n, :]
+                bare_parameters = Parameters(beta_Bare, Ce, 0, 0.0, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Bare, Temp_Thresh)
+                forest_parameters = Parameters(beta_Forest, Ce, 0, Interceptioncapacity_Forest, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Forest, Temp_Thresh)
+                grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Grass, Temp_Thresh)
+                rip_parameters = Parameters(beta_Rip, Ce, 0.0, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Rip, Temp_Thresh)
+                slow_parameters = Slow_Paramters(Ks, Ratio_Riparian)
+
+                parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
+                parameters_array = parameters_best_calibrations[n, :]
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
+                Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
                 # don't calculate the goodness of fit for the spinup time!
-                Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
+                # use objectivefunctions_projections because it also saves values if Obj functions are below zero
+                Goodness_Fit, ObjFunctions = objectivefunctions_projections(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
-                if Goodness_Fit != -9999
-                        Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
-                        Goodness = collect(Iterators.flatten(Goodness))
-                        All_Goodness = hcat(All_Goodness, Goodness)
-                        #append!(All_Goodness_new, Goodness_new)
-                        #push!(All_Goodness, Goodness)
-                        if size(All_Goodness)[2]-1 == 100
-                                All_Goodness = transpose(All_Goodness[:, 2:end])
-                                if count != 100
-                                        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
-                                                writedlm(io, All_Goodness,",")
-                                        end
-                                        count+= 1
-                                else
-                                        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
-                                                writedlm(io, All_Goodness,",")
-                                        end
-                                        count = 1
-                                        number_Files += 1
-                                end
-
-                                #print("worker ", ID, " wrote 100 tested parameter sets to file.", "\n")
-                                All_Goodness = zeros(29)
-                        end
-                end
-                if mod(n, 1000) == 0
-                        print("number of runs", n, "\n")
-                end
+                Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
+                Goodness = collect(Iterators.flatten(Goodness))
+                All_Goodness = hcat(All_Goodness, Goodness)
+                #All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
         end
         All_Goodness = transpose(All_Goodness[:, 2:end])
-        open(local_path*"HBVModel/Gailtal_Parameterfit_"*string(ID)*".csv", "a") do io
-                writedlm(io, All_Goodness,",")
-        end
-# end
+        #All_Discharge = transpose(All_Discharge[:, 2:end])
+
+        writedlm("/home/sarah/Master/Thesis/Results/Calibration/Montafon/test_best_parameters"*string(startyear+3)*"_"*string(endyear)*"_new.csv", All_Goodness, ',')
+        #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
+        return All_Goodness
+end
 # #
 # nmax = 200000
 # @time begin
 # #run_MC(1,100)
 # pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
 # end
+run_Montafon_parameters(path_to_best_parameter)
