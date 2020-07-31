@@ -2,6 +2,8 @@ using CSV
 using DelimitedFiles
 using Plots
 using DocStringExtensions
+
+#include("loadfunctions.jl")
 """
 Runs the model for the projections for validating the historical input
 
@@ -63,6 +65,7 @@ function run_projections_validation_gailtal(path_to_projection, path_to_best_par
         Observed_Discharge = Array{Float64,1}[]
         push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
         Observed_Discharge = Observed_Discharge[1]
+        Observed_Discharge = Observed_Discharge * 1000 / Area_Catchment * (3600 * 24)
 
         # ------------- LOAD OBSERVED SNOW COVER DATA PER PRECIPITATION ZONE ------------
         # find day where 2000 starts for snow cover calculations
@@ -198,6 +201,7 @@ function run_projections_validation_gailtal(path_to_projection, path_to_best_par
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
+                Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
                 Goodness_Fit, ObjFunctions = objectivefunctions_projections(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
                 Goodness = collect(Iterators.flatten(Goodness))
@@ -207,7 +211,7 @@ function run_projections_validation_gailtal(path_to_projection, path_to_best_par
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"100_model_results_"*string(startyear+3)*"_"*string(endyear)*"_new.csv", All_Goodness, ',')
+        writedlm(path_to_projection*"298_model_results_"*string(startyear+3)*"_"*string(endyear)*"_new.csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
@@ -266,6 +270,7 @@ function run_projections_validation_palten(path_to_projection, path_to_best_para
         Observed_Discharge = Array{Float64,1}[]
         push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
         Observed_Discharge = Observed_Discharge[1]
+        Observed_Discharge = Observed_Discharge * 1000 / Area_Catchment * (3600 * 24)
 
         # ------------- LOAD OBSERVED SNOW COVER DATA PER PRECIPITATION ZONE ------------
         # find day where 2000 starts for snow cover calculations
@@ -407,6 +412,7 @@ function run_projections_validation_palten(path_to_projection, path_to_best_para
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
+                Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
                 Goodness_Fit, ObjFunctions = objectivefunctions_projections(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
                 Goodness = collect(Iterators.flatten(Goodness))
@@ -416,7 +422,7 @@ function run_projections_validation_palten(path_to_projection, path_to_best_para
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"100_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
+        writedlm(path_to_projection*"300_model_results_"*string(startyear+3)*"_"*string(endyear)*"_correct.csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
@@ -472,6 +478,7 @@ function run_projections_validation_feistritz(path_to_projection, path_to_best_p
         Observed_Discharge = Array{Float64,1}[]
         push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
         Observed_Discharge = Observed_Discharge[1]
+        Observed_Discharge = Observed_Discharge * 1000 / Area_Catchment * (3600 * 24)
         # ------------ LOAD TIMESERIES DATA AS DATES ------------------
         #Timeseries = Date.(Discharge[startindex[1]:endindex[1],1], Dates.DateFormat("d.m.y H:M:S"))
         firstyear = Dates.year(Timeseries[1])
@@ -479,9 +486,16 @@ function run_projections_validation_feistritz(path_to_projection, path_to_best_p
 
         # ------------- LOAD OBSERVED SNOW COVER DATA PER PRECIPITATION ZONE ------------
         # find day wehere 2000 starts for snow cover calculations
-        start2000 = findfirst(x -> x == Date(2000, 01, 01), Timeseries)
-        length_2000_end = length(Timeseries) - start2000 + 1
+        if Dates.year(Timeseries[1]) < 2000
+                start2000 = findfirst(x -> x == Date(2000, 01, 01), Timeseries)
+                length_2000_end = length(Observed_Discharge) - start2000 + 1
+        else
+                start2000 = 1
+                length_2000_end = length(Observed_Discharge)
+        end
+        print(start2000, " ", length_2000_end, "\n")
         observed_snow_cover = Array{Float64,2}[]
+
         for ID in ID_Prec_Zones
                 current_observed_snow = readdlm(local_path*"HBVModel/Feistritz/snow_cover_fixed_Zone"*string(ID)*".csv",',', Float64)
                 current_observed_snow = current_observed_snow[1:length_2000_end,3: end]
@@ -609,6 +623,7 @@ function run_projections_validation_feistritz(path_to_projection, path_to_best_p
                 parameters_array = parameters_best_calibrations[n, :]
 
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
+                Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
                 #calculate snow for each precipitation zone
                 # don't calculate the goodness of fit for the spinup time!
                 Goodness_Fit, ObjFunctions = objectivefunctions_projections(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
@@ -620,21 +635,45 @@ function run_projections_validation_feistritz(path_to_projection, path_to_best_p
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"100_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
+        writedlm(path_to_projection*"300_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
 
-path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
 # 14 different projections
 Name_Projections = readdir(path)
-# run the model for all projections using the best 100 parameter sets
+#run the model for all projections using the best 0.01% parameter sets
 # for (i, name) in enumerate(Name_Projections)
-#         observed_monthly_runoff = run_projections_validation(path*name*"/Gailtal/", "Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", 1983, 2005)
+#         observed_monthly_runoff = run_projections_validation_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1983, 2005)
+# end
+
+# ---------- for Palten
+#
+# for (i, name) in enumerate(Name_Projections)
+#         println(i)
+#         observed_monthly_runoff = run_projections_validation_feistritz(path*name*"/Pitten/", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_300.csv", 1983, 2005)
+# end
+#
+# path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
+# # 14 different projections
+# Name_Projections = readdir(path)
+#run the model for all projections using the best 0.01% parameter sets
+# for (i, name) in enumerate(Name_Projections)
+#         observed_monthly_runoff = run_projections_validation_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1983, 2005)
 # end
 
 # ---------- for Palten
 
+# for (i, name) in enumerate(Name_Projections)
+#         println(i)
+#                 observed_monthly_runoff = run_projections_validation_feistritz(path*name*"/Pitten/", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_300.csv", 1983, 2005)
+# end
+
+# for (i, name) in enumerate(Name_Projections)
+#         observed_monthly_runoff = run_projections_validation_feistritz(path*name*"/Pitten/", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_Parameterfit_All_best_100.csv", 1983, 2005)
+# end
+# println("new")
 for (i, name) in enumerate(Name_Projections)
-        observed_monthly_runoff = run_projections_validation_feistritz(path*name*"/Pitten/", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_Parameterfit_All_best_100.csv", 1983, 2005)
+        println(readdlm(path*name*"/Pitten/pr_model_timeseries.txt")[end,1])
 end

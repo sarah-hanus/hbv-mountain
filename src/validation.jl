@@ -256,8 +256,8 @@ function run_validation_gailtal(path_to_best_parameter)
 end
 
 
-#All_Goodness = run_validation_gailtal("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_1000.csv")
-#writedlm("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_best1000_validation.csv", All_Goodness,',')
+#All_Goodness = run_validation_gailtal("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_100.csv")
+#writedlm("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_best100_validation.csv", All_Goodness,',')
 
 #-------- COMPARE calibration and validation period ----------------
 
@@ -839,7 +839,7 @@ function run_validation_silbertal(path_to_best_parameter, startyear, endyear)
         Temperature_Array = Temperature.t / 10
         Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
         startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
-        endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
+        endindex = findfirst(isequal(Date(2007, 12, 31)), Timeseries_Temp)
         Temperature_Daily = Temperature_Array[startindex[1]:endindex[1]]
         Dates_Temperature_Daily = Timeseries_Temp[startindex[1]:endindex[1]]
         Dates_missing_Temp = Dates_Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)]
@@ -847,6 +847,39 @@ function run_validation_silbertal(path_to_best_parameter, startyear, endyear)
         # get the temperature data at the mean elevation to calculate the mean potential evaporation
         Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
         Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
+
+        # for years 2008 onwards
+
+        Temperature_100180 = CSV.read(local_path*"HBVModel/Montafon/LTkont100180.dat", header = false, delim= ' ', ignorerepeated = true, types=[String, Time, Float64])
+        Temperature_100180_Array = convert(Matrix, Temperature_100180)
+        startindex = findfirst(isequal("01.01."*string(2008)), Temperature_100180_Array)
+        endindex = findlast(isequal("31.12."*string(endyear)), Temperature_100180_Array)
+        Temperature_100180_Array = Temperature_100180_Array[startindex[1]:endindex[1],:]
+        Dates_Temperature_100180_Array = Date.(Temperature_100180_Array[:,1], Dates.DateFormat("d.m.y"))
+        # find duplicates and remove them
+        df = DataFrame(Temperature_100180_Array)
+        df = unique!(df)
+        # # drop missing values
+        df = dropmissing(df)
+        Temperature_100180_Array = convert(Vector, df[:,3])
+        Temperature_100180_Array = float.(Temperature_100180_Array)
+        startindex = findfirst(isequal(Date(2008, 1, 1)), Timeseries)
+        endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries)
+        Dates_Temperature_Daily_08 = Timeseries[startindex[1]:endindex[1]]
+        Temperature_Array = hcat(Dates_Temperature_100180_Array, Temperature_100180_Array)
+        Dates_Temperature_Daily_08, Temperature_Daily = daily_mean(hcat(Dates_Temperature_100180_Array, Temperature_100180_Array))
+
+        Elevation_Zone_Catchment_08, Temperature_Elevation_Catchment_08, Total_Elevationbands_Catchment_08= gettemperatureatelevation(Elevations(200.0, 600.0, 2800.0, 681., 681.), Temperature_Daily)
+        # get the temperature data at the mean elevation to calculate the mean potential evaporation
+        Temperature_Mean_Elevation_08 = Temperature_Elevation_Catchment_08[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+        Potential_Evaporation_08 = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation_08, Dates_Temperature_Daily_08, Sunhours_Vienna)
+
+        #combine the temperature and potential evaporation data
+        append!(Temperature_Mean_Elevation, Temperature_Mean_Elevation_08)
+        append!(Potential_Evaporation, Potential_Evaporation_08)
+        println(size(Temperature_Elevation_Catchment), size(Temperature_Elevation_Catchment_08))
+        Temperature_Elevation_Catchment = vcat(Temperature_Elevation_Catchment, Temperature_Elevation_Catchment_08)
+        println(size(Temperature_Elevation_Catchment))
 
         # ------------ LOAD OBSERVED DISCHARGE DATA ----------------
         Discharge = CSV.read(local_path*"HBVModel/Silbertal/Q-Tagesmittel-200048.csv", header= false, skipto=24, decimal=',', delim = ';', types=[String, Float64])
@@ -1051,57 +1084,63 @@ function plot_validation(path_to_Calibration, path_to_Validation, path_to_Calibr
 
         for obj in 1:size(Objective_Functions)[1]
             plot()
-            box = boxplot!(["Calibration 10 "],Calibration[1:10,obj],leg = false, color="orange")
-            box =boxplot!(["Validation 10 "],Validation[1:10,obj],leg = false, color="darkorange")
-            box = boxplot!(["Calibration 100 "],Calibration[:,obj],leg = false, color="blue")
-            box =boxplot!(["Validation 100 "],Validation[:,obj],leg = false, color="darkblue")
+            #box = boxplot!(["Calibration 10 "],Calibration[1:10,obj],leg = false, color="orange")
+            #box =boxplot!(["Validation 10 "],Validation[1:10,obj],leg = false, color="darkorange")
+            box = boxplot!(["Calibration 300 "],Calibration[:,obj],leg = false, color="blue")
+            box =boxplot!(["Validation 300 "],Validation[:,obj],leg = false, color="darkblue")
             box =boxplot!(["Calibration 1000 "],Calibration_1000[1:1000,obj],leg = false, color="lightgreen")
             box =boxplot!(["Validation 1000 "],Validation_1000[1:1000,obj],leg = false, color="darkgreen")
-            box =boxplot!(["Calibration 10000 "],Calibration_1000[:,obj],leg = false, color="lightgrey")
-            box =boxplot!(["Validation 10000 "],Validation_1000[:,obj],leg = false, color="darkgrey")
+            #box =boxplot!(["Calibration 300 "],Calibration_1000[1:300,obj],leg = false, color="lightgrey")
+            #box =boxplot!(["Validation 300 "],Validation_1000[1:300,obj],leg = false, color="darkgrey")
             ylabel!(Objective_Functions[obj])
-            ylims!(0.6,1)
+            ylims!(0.5,1)
             push!(plots_obj, box)
             #savefig("Gailtal/Calibration_8.05/Validation"*string(Objective_Functions[obj])*"_new.png")
         end
 
         plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(1800,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig(path_to_save * "obj_Calibration_Validation_limits.png")
+        savefig(path_to_save * "obj_Calibration_Validation_limits_unique_8years.png")
 
         plot(plots_obj[1], left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig(path_to_save*"ED_Calibration_Validation_limits.png")
+        savefig(path_to_save*"ED_Calibration_Validation_limits_unique_8years.png")
 
         plots_obj = []
         for obj in 1:size(Objective_Functions)[1]
             plot()
-            box = violin!(["Calibration 10 "],Calibration[1:10,obj],leg = false, color="orange")
-            box =violin!(["Validation 10 "],Validation[1:10,obj],leg = false, color="darkorange")
-            box = violin!(["Calibration 100 "],Calibration[:,obj],leg = false, color="blue")
-            box =violin!(["Validation 100 "],Validation[:,obj],leg = false, color="darkblue")
+            #box = violin!(["Calibration 10 "],Calibration[1:10,obj],leg = false, color="orange")
+            #box =violin!(["Validation 10 "],Validation[1:10,obj],leg = false, color="darkorange")
+            box = violin!(["Calibration 300 "],Calibration[:,obj],leg = false, color="blue")
+            box =violin!(["Validation 300 "],Validation[:,obj],leg = false, color="darkblue")
             box =violin!(["Calibration 1000 "],Calibration_1000[1:1000,obj],leg = false, color="lightgreen")
             box =violin!(["Validation 1000 "],Validation_1000[1:1000,obj],leg = false, color="darkgreen")
-            box =violin!(["Calibration 10000 "],Calibration_1000[:,obj],leg = false, color="lightgrey")
-            box =violin!(["Validation 10000 "],Validation_1000[:,obj],leg = false, color="darkgrey")
+            #box =violin!(["Calibration 300 "],Calibration_1000[1:300,obj],leg = false, color="lightgrey")
+            #box =violin!(["Validation 300 "],Validation_1000[1:300,obj],leg = false, color="darkgrey")
             ylabel!(Objective_Functions[obj])
             push!(plots_obj, box)
             #savefig("Gailtal/Calibration_8.05/Validation"*string(Objective_Functions[obj])*"_new.png")
         end
 
         plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(1800,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig(path_to_save * "obj_Calibration_Validation_violin_new.png")
+        savefig(path_to_save * "obj_Calibration_Validation_violin_unique_8years.png")
 
         plot(plots_obj[1], left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-        savefig(path_to_save*"ED_Calibration_Validation_violin_new.png")
+        savefig(path_to_save*"ED_Calibration_Validation_violin_unique_8years.png")
 
 end
 
 #All_Goodness = run_validation_feistritz("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_best_4.2MioRuns/Feistritz_Parameterfit_All_best_100.csv", 2003, 2010)
 #writedlm("/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_Parameterfit_best100_validation_5years.csv", All_Goodness,',')
 
-#All_Goodness = run_validation_palten("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_runs_best_10000.csv")
-#writedlm("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best10000_validation.csv", All_Goodness,',')
-#All_Goodness = run_validation_feistritz("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_runs_mm_best_10000.csv", 2003,2010)
-#writedlm("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best10000_validation.csv", All_Goodness,',')
+#All_Goodness = run_validation_palten("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv")
+#writedlm("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_unique_best300_validation.csv", All_Goodness,',')
+#All_Goodness = run_validation_feistritz("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_1000.csv", 2003,2010)
+#writedlm("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best1000_validation.csv", All_Goodness,',')
 
 #plot_validation("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_runs_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best100_validation.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_runs_best_10000.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best10000_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Paltental_less_dates/Validation/")
-plot_validation("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_runs_mm_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best100_validation.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_runs_mm_best_10000.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best10000_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Feistritz_less_dates/Validation/")
+plot_validation("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_300.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best300_validation_8years_unique.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_1000_unique.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best1000_validation_8years_unique.csv", "/home/sarah/Master/Thesis/Results/Calibration/Feistritz_less_dates/Validation/")
+
+#All_Goodness = run_validation_silbertal("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_100.csv", 2003, 2013)
+#writedlm("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_best100_validation_8years.csv", All_Goodness,',')
+#plot_validation("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_best100_validation_8years.csv","/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_best1000_validation_8years.csv", "/home/sarah/Master/Thesis/Results/Calibration/Silbertal/Validation/8years_")
+#plot_validation("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_best100_validation.csv","/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_best1000_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Gailtal_less_dates/Validation/")
+#plot_validation("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best100_validation.csv","/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_unique_best300_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Paltental/Validation/")

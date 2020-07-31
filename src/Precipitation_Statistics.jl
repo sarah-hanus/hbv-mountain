@@ -440,17 +440,17 @@ end
 
 # --------------------------- Montafon -------------------------
 
-Catchment_Name = "IllSugadin"
-ID_Prec_Zones = [100206]
-# size of the area of precipitation zones
-Area_Zones = [102000000]
-Area_Catchment = sum(Area_Zones)
-ID_Temp = 14200
-Area_Zones_Percent_Silbertal = Area_Zones / Area_Catchment
-startyear = 1986
-endyear = 2005
-All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Silbertal, ID_Prec_Zones, ID_Temp, startyear, endyear)
-
+# Catchment_Name = "IllSugadin"
+# ID_Prec_Zones = [100206]
+# # size of the area of precipitation zones
+# Area_Zones = [102000000]
+# Area_Catchment = sum(Area_Zones)
+# ID_Temp = 14200
+# Area_Zones_Percent_Silbertal = Area_Zones / Area_Catchment
+# startyear = 1986
+# endyear = 2005
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Silbertal, ID_Prec_Zones, ID_Temp, startyear, endyear)
+#
 
 # ------------- Paltental---------------------------------------------
 
@@ -591,18 +591,18 @@ function load_historic_data_palten()
         return Total_Precipitation, Temperature_Mean_Elevation, Timeseries
 end
 
-# ID_Prec_Zones = [106120, 111815, 9900]
-# # for projections temp at 106120 taken instead of 9900
-# ID_Temp = 106120
-# Area_Zones = [198175943.0, 56544073.0, 115284451.3]
-# Area_Catchment = sum(Area_Zones)
-# Area_Zones_Percent_Palten = Area_Zones / Area_Catchment
-# startyear = 1981
-# endyear = 2010
-# Catchment_Name = "Palten"
-# Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
+ID_Prec_Zones = [106120, 111815, 9900]
+# for projections temp at 106120 taken instead of 9900
+ID_Temp = 106120
+Area_Zones = [198175943.0, 56544073.0, 115284451.3]
+Area_Catchment = sum(Area_Zones)
+Area_Zones_Percent_Palten = Area_Zones / Area_Catchment
+startyear = 1981
+endyear = 2010
+Catchment_Name = "Palten"
+Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
 
-#Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten()
+Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten()
 #All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Palten, ID_Prec_Zones, ID_Temp, startyear, endyear)
 
 # ---------------------- Feistritz ------------------
@@ -660,4 +660,4 @@ end
 #         plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Paltental")
 # end
 
-#plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Pitztal", "4.5")
+#plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Paltental", "8.5")

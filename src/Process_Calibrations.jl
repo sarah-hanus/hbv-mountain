@@ -114,7 +114,7 @@ function projections_statistics(path_to_file)
 end
 
 
-function boxplot_projection(path, number_best)
+function boxplot_projection(path_to_calibration, path, number_best, Catchment_Name)
     #path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
     # 14 different projections
     Name_Projections = readdir(path)
@@ -122,11 +122,11 @@ function boxplot_projection(path, number_best)
     # run the model for all projections using the best 100 parameter sets
     All_Obj_Functions = Array{Float64,2}[]
     for (i, name) in enumerate(Name_Projections)
-            getData = readdlm(path*name*"/Gailtal/100_model_results_1986_2005_new.csv",',')
+            getData = readdlm(path*name*"/Pitten/300_model_results_1986_2005.csv",',')
             push!(All_Obj_Functions, getData[1:number_best,1:9])
     end
 
-    Calibration = readdlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", ',')[:,1:9]
+    Calibration = readdlm(path_to_calibration, ',')[:,1:9]
 
     names_obj = ["Euclidean Distance", "NSE", "NSElog", "VE","NSE_FDC", "Reative_Error_AC_1day", "NSE_AC_90day", "NSE_Runoff", "Snow_Cover"]
     #number = collect(1:size(All_Obj_Functions)[1])
@@ -136,17 +136,17 @@ function boxplot_projection(path, number_best)
             box = boxplot!(["Proj " *string(i)],All_Obj_Functions[i][1:number_best,obj],leg = false)
 
         end
-        box = boxplot!(["Calibration"],Calibration[:,obj],leg = false)
+        box = boxplot!(["Calibration"],Calibration[:,obj],leg = false, color="darkgrey")
         ylabel!(names_obj[obj])
         push!(plots_obj, box)
         #savefig("/home/sarah/Master/Thesis/Results/Projektionen/10best/"*names_obj[obj]*"rcp45_comparison_Calibration_"*string(number_best)*"best.png")
     end
 
     plot(plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], plots_obj[9], layout= (2,4), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/100best/rcp45_comparison_Calibration_"*string(number_best)*"best_new.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/rcp45_comparison_Calibration_"*string(number_best)*"best.png")
 
     plot(plots_obj[1], left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/100best/rcp45_comparison_Calibration_ED_"*string(number_best)*"best_new.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/rcp45_comparison_Calibration_ED_"*string(number_best)*"best.png")
 end
 
 
@@ -235,20 +235,26 @@ function plot_FDC(path)
 
 end
 
-#boxplot_projection("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", 10)
+#boxplot_projection("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_300.csv", "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", 300, "Feistritz")
 #Modelled_Discharge_Observations = plot_FDC("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
 
 
 
 
 # #----------------- COMBINE RESULTS OF ONE DEVICE-------------
-#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Silbertal/6run_2041000/", "/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_6run.csv")
+#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/best100000_run_mm/", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_runs_best_100000_mm.csv")
 # --------------- STORE BEST PARAMETER SETS ---------------------
-#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_6run.csv", 10001)
+#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_best_10000_unique.csv", 1000)
 # -------------- GET STATISTICS -------
 
-calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_6run_best_10000.csv", 100, 0.7)
+#calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_best_10000_unique.csv", 300, 0.7)
 
+#Palten_parameters = readdlm("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_best_proj.csv", ',')
+
+#Palten_uniqeu = unique(DataFrame(Palten_parameters))
+# test2 = convert(Vector, Palten_uniqeu[:,1])
+# sort!(test2)
+# writedlm("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique2.csv", test2, ',')
 
 function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)
     calibration = readdlm(path_to_file, ',')
@@ -270,7 +276,7 @@ function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)
     savefig(path_to_file[1:end-4]* "_compare_ED_small.png")
 end
 
-#EC_calibration("/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_2_3run.csv", 0.16, 0.3, 2326000)
+#EC_calibration("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_runs_best_100000_mm.csv", 0.17, 0.30, 3350000)
 
 
 

@@ -2,11 +2,17 @@ using Random
 using CSV
 using Dates
 using DelimitedFiles
+
+function convertDischarge(Discharge, Area)
+        Discharge_mm = Discharge / Area * (24 * 3600 * 1000)
+        return Discharge_mm
+end
+
 startyear = 1981
 endyear = 2010
 local_path = "/home/sarah/"
 Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
-Area_Catchment = sum(Area_Zones)
+Area_Catchment_Gailtal = sum(Area_Zones)
 Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
 Discharge = CSV.read(local_path*"HBVModel/Gailtal/Q-Tagesmittel-212670.csv", header= false, skipto=23, decimal=',', delim = ';', types=[String, Float64])
 Discharge = convert(Matrix, Discharge)
@@ -14,7 +20,16 @@ startindex = findfirst(isequal("01.01."*string(startyear)*" 00:00:00"), Discharg
 endindex = findfirst(isequal("31.12."*string(endyear)*" 00:00:00"), Discharge)
 Observed_Discharge = Array{Float64,1}[]
 push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
-Observed_Discharge = Observed_Discharge[1]
+Observed_Discharge_Gailtal = Observed_Discharge[1]
+
+Area_Catchment_Palten = sum([198175943.0, 56544073.0, 115284451.3])
+Discharge = CSV.read(local_path*"HBVModel/Palten/Q-Tagesmittel-210815.csv", header= false, skipto=21, decimal=',', delim = ';', types=[String, Float64])
+Discharge = convert(Matrix, Discharge)
+startindex = findfirst(isequal("01.01."*string(startyear)*" 00:00:00"), Discharge)
+endindex = findfirst(isequal("31.12."*string(endyear)*" 00:00:00"), Discharge)
+Observed_Discharge = Array{Float64,1}[]
+push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
+Observed_Discharge_Paltental = Observed_Discharge[1]
 # transfer Observed Discharge to mm/d
 #Observed_Discharge = Observed_Discharge * 1000 / Area_Catchment * (3600 * 24)
 
@@ -35,7 +50,7 @@ function max_Annual_Discharge(Discharge, Timeseries)
     return max_Annual_Discharge, Date_max_Annual_Discharge
 end
 
-Magnitude, Timing = max_Annual_Discharge(Observed_Discharge, Timeseries)
+
 
 function change_max_Annual_Discharge_Prob_Distribution(path_to_projections, Catchment_Name)
     Name_Projections_45 = readdir(path_to_projections)
@@ -101,7 +116,7 @@ function AMF_circular_plot(Timing::Array{Float64,1}, Magnitude::Array{Float64,1}
     # Nr_Days_Year = Dates.daysinyear.(Years)
     fig = figure(figsize=(10,10)) # Create a new figure
     ax = PyPlot.axes(polar="true") # Create a polar axis
-    PyPlot.title("Annual Maximum Discharge [m³/s] Gailtal Past")
+    PyPlot.title("Annual Maximum Discharge [mm/d] "*Catchment_Name*" Past")
     width = 2pi/365
     Farbe = "blue"
     for (i, current_timing) in enumerate(Timing)
@@ -128,15 +143,16 @@ function AMF_circular_plot(Timing::Array{Float64,1}, Magnitude::Array{Float64,1}
         #     label.set_horizontalalignment("left")
         # end
         fig.canvas.draw() # Update the figure
-        savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Annual_Max_Discharge/Circular/AMF_Past_m3s.png")
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/Circular/"*Catchment_Name*"_AMF_Past_mm.png")
 end
 
 # path_45 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
 # path_85 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
 #
+Magnitude, Timing = max_Annual_Discharge(Observed_Discharge_Paltental, Timeseries)
 Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
 Nr_Days_Year = Dates.daysinyear.(Years)
-AMF_circular_plot(Timing, Magnitude, Nr_Days_Year, "Gailtal", 2)
+AMF_circular_plot(Timing, convertDischarge(Magnitude, Area_Catchment_Palten), Nr_Days_Year, "Palten", 0)
 #max_Discharge_past, max_Discharge_future, Exceedance_Probability, Date_Past, Date_Future = change_max_Annual_Discharge_Prob_Distribution(path_85, "Gailtal")
 #
 # Timeseries = collect(Date(1981,1,1):Day(1):Date(2010,12,31))

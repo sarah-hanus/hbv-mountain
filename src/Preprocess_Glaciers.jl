@@ -156,9 +156,9 @@ end
 
 #Glaciers_Pitztal = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Pitztal_69_06.csv", ',')
 
-Glaciers_102046 = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061.csv", ',')
-Areas_102046, sum_areas = linear_interpolation(Glaciers_102046)
-writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061_evolution_69_06.csv", round.(Areas_102046, digits= 6), ',')
+Glaciers = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_100057_evolution_69_06.csv", ',')
+#Areas_102046, sum_areas = linear_interpolation(Glaciers_102046)
+#writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061_evolution_69_06.csv", round.(Areas_102046, digits= 6), ',')
 #linear extrapolation
 
 function linear_extrapolation(Glaciers_Pitztal)
@@ -204,8 +204,8 @@ function linear_extrapolation(Glaciers_Pitztal)
     return total_linear_fit, decline
 end
 
-#linear_total, decline = linear_extrapolation(Glaciers_Pitztal)
-#writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Pitztal_69_15.csv", linear_total, ',')
+linear_total, decline = linear_extrapolation(Glaciers)
+writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_100057_69_15.csv", linear_total, ',')
 # plot()
 # for i in 1:10
 #     plot!(Glaciers_Pitztal[1,:], Glaciers_Pitztal[1+i,:], legend=false)

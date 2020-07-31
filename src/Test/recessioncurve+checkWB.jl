@@ -121,7 +121,7 @@ function plot_recessioncurve(Area_Zones, Observed_Discharge, Precipitation, Time
 
 
                 linearFit = predict(linearRegressor)
-                if linearFit[1] >= linearFIt[2]
+                if linearFit[1] >= linearFit[2]
                         plot!(Timespan, linearFit)
                         plot!(Timespan, Current_Observed_Discharge)
                         xlabel!("Days")
@@ -143,7 +143,7 @@ function plot_recessioncurve(Area_Zones, Observed_Discharge, Precipitation, Time
         println(kvalue)
         mean_GW = abs(mean(GWstorage))
         title!("Mean GW: "*string(round(mean_GW))* " ks: "*string(round(mean(kvalue), digits=3)))
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/recessioncurves_Dryspelllength_"*string(Length_Dryspell)*"_"*string(Omit_Days)*".png")
+        savefig("/home/sarah/Master/Thesis/Results/Calibration/Silbertal/recessioncurves_Dryspelllength_"*string(Length_Dryspell)*"_"*string(Omit_Days)*".png")
 end
 
 
@@ -197,7 +197,7 @@ function checkwaterbalance(Total_Precipitation, Discharge, Potential_Evaporation
         return Waterbalance_Thorn_Daily, Waterbalance_Yearly, Total_Waterbalance, Annual_Precipitation, Annual_Pot_Evap_Thorn_Daily, Annual_Discharge
 end
 
-plot_recessioncurve(Area_Zones, Observed_Discharge, Total_Precipitation, Timeseries, 11,1)
+#plot_recessioncurve(Area_Zones, Observed_Discharge .*0.7, Total_Precipitation, Timeseries, 9,4)
 
 #daily_WB, WB, Total_WB, Annual_Prec, Annual_Epot, Annual_Discharge = checkwaterbalance(Total_Precipitation, Observed_Discharge, Potential_Evaporation, Area_Catchment)
 # # #
