@@ -17,7 +17,7 @@ using Distributed
       return loss
 end
 
-# # load list of structs
+# load list of structs
  @everywhere include("structs.jl")
  # load components of models represented by buckets
  @everywhere include("processes_buckets.jl")
@@ -215,14 +215,31 @@ end
         index_spinup = findfirst(x -> Dates.year(x) == firstyear + 2 && Dates.month(x) == 10, Timeseries)
         # evaluations chouls alsways contain whole year
         index_lastdate = findfirst(x -> Dates.year(x) == lastyear && Dates.month(x) == 10, Timeseries) - 1
+
+        delete_days = readdlm(local_path*"HBVModel/Pitztal/Delete_Days.csv", ',', Int)
         Timeseries_Obj = Timeseries[index_spinup: index_lastdate]
+        deleteat!(Timeseries_Obj, delete_days)
         Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
-        Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
-        #calculating the observed FDC; AC; Runoff
-        observed_FDC = flowdurationcurve(log.(Observed_Discharge_Obj))[1]
         observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
         observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
+
+        deleteat!(Observed_Discharge_Obj, delete_days)
+        Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
+        deleteat!(Total_Precipitation_Obj, delete_days)
+        #calculating the observed FDC; AC; Runoff
+        observed_FDC = flowdurationcurve(log.(Observed_Discharge_Obj))[1]
+        # observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
+        # observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
         observed_monthly_runoff = monthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)[1]
+
+        # Timeseries_Obj = Timeseries[index_spinup: index_lastdate]
+        # Observed_Discharge_Obj = Observed_Discharge[index_spinup: index_lastdate]
+        # Total_Precipitation_Obj = Total_Precipitation[index_spinup: index_lastdate]
+        # #calculating the observed FDC; AC; Runoff
+        # observed_FDC = flowdurationcurve(log.(Observed_Discharge_Obj))[1]
+        # observed_AC_1day = autocorrelation(Observed_Discharge_Obj, 1)
+        # observed_AC_90day = autocorrelationcurve(Observed_Discharge_Obj, 90)[1]
+        # observed_monthly_runoff = monthlyrunoff(Area_Catchment, Total_Precipitation_Obj, Observed_Discharge_Obj, Timeseries_Obj)[1]
 
         # ---------------- START MONTE CARLO SAMPLING ------------------------
         #All_Goodness_new = []
@@ -249,7 +266,9 @@ end
                 loss_parameter = rand(0.01:0.0001:0.08)
                 Discharge = Discharge - loss(Discharge, loss_parameter)
                 Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
-                Goodness_Fit, ObjFunctions = objectivefunctions(Discharge[index_spinup:index_lastdate], Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
+                Discharge_Obj = Discharge[index_spinup:index_lastdate]
+                deleteat!(Discharge_Obj, delete_days)
+                Goodness_Fit, ObjFunctions = objectivefunctions_delete_days(Discharge[index_spinup:index_lastdate], Discharge_Obj, Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
                 if Goodness_Fit != -9999
                         Goodness = [Goodness_Fit, ObjFunctions, parameters_array, loss_parameter]
@@ -258,12 +277,12 @@ end
                         if size(All_Goodness)[2]-1 == 100
                                 All_Goodness = transpose(All_Goodness[:, 2:end])
                                 if count != 100
-                                        open(local_path*"HBVModel/Pitztal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
                                         count+= 1
                                 else
-                                        open(local_path*"HBVModel/Pitztal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
                                         count = 1
@@ -279,13 +298,13 @@ end
                 end
         end
         All_Goodness = transpose(All_Goodness[:, 2:end])
-        open(local_path*"HBVModel/Pitztal_Parameterfit_"*string(ID)*".csv", "a") do io
+        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_"*string(ID)*".csv", "a") do io
                 writedlm(io, All_Goodness,",")
         end
 end
 # #
-nmax = 200
+nmax = 100
 @time begin
 #run_MC(1,20)
-pmap(ID -> run_MC(ID, nmax) , [1,2,3,4])
+pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])
 end
