@@ -33,7 +33,7 @@ using Distributed
 # @everywhere include("runmodel_Prec_Zones.jl")
 #
 #
-path_to_best_parameter = "/home/sarah/Master/Thesis/Calibrations/Silbertal/Silbertal_Parameterfit_7run_best_100.csv"
+path_to_best_parameter = "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv"
 function run_Montafon_parameters(path_to_best_parameter)
 
         local_path = "/home/sarah/"
@@ -273,7 +273,7 @@ function run_Montafon_parameters(path_to_best_parameter)
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
 
-        writedlm("/home/sarah/Master/Thesis/Results/Calibration/Montafon/test_best_parameters"*string(startyear+3)*"_"*string(endyear)*"_new.csv", All_Goodness, ',')
+        writedlm("/home/sarah/Master/Thesis/Results/Calibration/Montafon/best_300_parameters"*string(startyear+3)*"_"*string(endyear)*"_ohneGletscher.csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end

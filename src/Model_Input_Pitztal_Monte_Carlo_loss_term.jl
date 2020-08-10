@@ -303,7 +303,7 @@ end
         end
 end
 # #
-nmax = 100
+nmax = 200000
 @time begin
 #run_MC(1,20)
 pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])

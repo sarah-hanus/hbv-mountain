@@ -8,10 +8,6 @@ using CSV
 using Dates
 using DocStringExtensions
 
-path_45 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
-Name_Projections_45 = readdir(path_45)
-path_85 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
-Name_Projections_85 = readdir(path_85)
 relative_error(future, initial) = (future - initial) ./ initial
 # ------------------------- PLOT MONTHLY TEMPERATURE AND PRECIPITATION PAST AND FUTURE
 """
@@ -19,7 +15,7 @@ Computes the monthly daily average of e.g. discharge or temperature.
 
 $(SIGNATURES)
 
-The function returns the monthly daily average and the an array of the months in the timeseries (1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4...)
+The function returns the monthly daily average and an array of the months in the timeseries (1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4...)
 """
 function monthly_discharge(Discharge, Timeseries)
     #print(size(Discharge))
@@ -33,11 +29,7 @@ function monthly_discharge(Discharge, Timeseries)
                                       Dates.Year(x) == Dates.Year(Current_Year) &&
                                       Dates.Month(x) == Dates.Month(Current_Month)
                                   end
-                                  #print(length(Dates_Current_Month),"\n")
-                                 # print(Current_Month)
                     Current_Discharge = Discharge[indexin(Dates_Current_Month, Timeseries)]
-                    #print(Current_Year, " ", Current_Month)
-                    #print(Dates.daysinmonth(Current_Year, Current_Month))
                     Current_Monthly_Discharge = sum(Current_Discharge) / Dates.daysinmonth(Current_Year, Current_Month)
                     append!(Monthly_Discharge, Current_Monthly_Discharge)
                     append!(All_Months, Current_Month)
@@ -47,11 +39,11 @@ function monthly_discharge(Discharge, Timeseries)
 end
 
 """
-Computes the monthly average of e.g. precipitation (taking the sum over a month and averaging the results of several years)
+Computes the monthly sum of e.g. precipitation (taking the sum over a month)
 
 $(SIGNATURES)
 
-The function returns the monthly average and the an array of the months in the timeseries (1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4...)
+The function returns the monthly sum and the an array of the months in the timeseries (1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4...)
 """
 function monthly_precipitation(Discharge, Timeseries)
     #print(size(Discharge))
@@ -65,12 +57,8 @@ function monthly_precipitation(Discharge, Timeseries)
                                       Dates.Year(x) == Dates.Year(Current_Year) &&
                                       Dates.Month(x) == Dates.Month(Current_Month)
                                   end
-                                  #print(length(Dates_Current_Month),"\n")
-                                 # print(Current_Month)
                     Current_Discharge = Discharge[indexin(Dates_Current_Month, Timeseries)]
-                    #print(Current_Year, " ", Current_Month)
-                    #print(Dates.daysinmonth(Current_Year, Current_Month))
-                    Current_Monthly_Discharge = sum(Current_Discharge) #/ Dates.daysinmonth(Current_Year, Current_Month)
+                    Current_Monthly_Discharge = sum(Current_Discharge)
                     append!(Monthly_Discharge, Current_Monthly_Discharge)
                     append!(All_Months, Current_Month)
             end
@@ -78,12 +66,14 @@ function monthly_precipitation(Discharge, Timeseries)
     return Monthly_Discharge, All_Months
 end
 
+# ----------------  AVERAGE MONTHLY INPUTS ------------------
 """
 Plots the average Monthly Temperature and Precipitation of 1980-2010 and 2070-2100 of the projections in the given path (14 projectiosn). Also plots the absolute changes.
 
 $(SIGNATURES)
 
 The function returns plots and arrays of the average monthly temperature and precipitation of the past and future of all projections.
+    It saves plots under "Projections/Catchment_Name/PastvsFuture/Inputs/"
 """
 function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_Name)
     plot()
@@ -101,7 +91,6 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
         print(rcp, " ", path_to_projections)
     end
 
-
     all_months_all_runs = Float64[]
     average_monthly_Temperature_past = Float64[]
     average_monthly_Temperature_future = Float64[]
@@ -112,204 +101,97 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
         ID_Prec_Zones = [113589, 113597, 113670, 114538]
         # size of the area of precipitation zones
         Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
-        Area_Catchment = sum(Area_Zones)
-        Area_Zones_Percent = Area_Zones / Area_Catchment
-        for (i, name) in enumerate(Name_Projections_45)
-            Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-            #print(size(Timeseries_Past), size(Timeseries_Future))
-            Timeseries_Proj = readdlm(path_to_projections*name*"/Gailtal/pr_model_timeseries.txt")
-            Timeseries_Proj = Date.(Timeseries_Proj, Dates.DateFormat("y,m,d"))
-            Temperature = readdlm(path_to_projections*name*"/Gailtal/tas_113597_sim1.txt", ',')[:,1]
-            #print("temp", size(Temperature))
-
-            Temp_Elevation = 1140.0
-            Elevations_Catchment = Elevations(200.0, 400.0, 2800.0, Temp_Elevation, Temp_Elevation)
-            Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature)
-            # get the temperature data at the mean elevation to calculate the mean potential evaporation
-            Temperature = Temperature_Elevation_Catchment[:,findfirst(x-> x==1500, Elevation_Zone_Catchment)]
-
-            indexstart_past = findfirst(x-> x == Dates.year(Timeseries_Past[1]), Dates.year.(Timeseries_Proj))[1]
-            indexend_past = findlast(x-> x == Dates.year(Timeseries_Past[end]), Dates.year.(Timeseries_Proj))[1]
-            Temperature_Past = Temperature[indexstart_past:indexend_past] ./ 10
-            #print(Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj[end]))
-            indexstart_future = findfirst(x-> x == Dates.year(Timeseries_Future[1]), Dates.year.(Timeseries_Proj))[1]
-            indexend_future = findlast(x-> x == Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj))[1]
-            Temperature_Future = Temperature[indexstart_future:indexend_future] ./ 10
-
-            #print(size(Temperature_Past), size(Temperature_Future))
-
-            Monthly_Temperature_Past, Month = monthly_discharge(Temperature_Past, Timeseries_Past)
-            Monthly_Temperature_Future, Month_future = monthly_discharge(Temperature_Future, Timeseries_Future)
-
-            #-------- PRECIPITATION ------------------
-
-            Precipitation_All_Zones = Array{Float64, 1}[]
-            for j in 1: length(ID_Prec_Zones)
-                    # get precipitation projections for the precipitation measurement
-                    Precipitation_Zone = readdlm(path_to_projections*name*"/Gailtal/pr_"*string(ID_Prec_Zones[j])*"_sim1.txt", ',')[:,1]
-                    #print(size(Precipitation_Zone), typeof(Precipitation_Zone))
-                    push!(Precipitation_All_Zones, Precipitation_Zone ./10)
-            end
-            Total_Precipitation_Proj = Precipitation_All_Zones[1].*Area_Zones_Percent[1] + Precipitation_All_Zones[2].*Area_Zones_Percent[2] + Precipitation_All_Zones[3].*Area_Zones_Percent[3] + Precipitation_All_Zones[4].*Area_Zones_Percent[4]
-            Precipitation_Past = Total_Precipitation_Proj[indexstart_past:indexend_past]
-            Precipitation_Future = Total_Precipitation_Proj[indexstart_future:indexend_future]
-
-            Monthly_Precipitation_Past, Month = monthly_precipitation(Precipitation_Past, Timeseries_Past)
-            Monthly_Precipitation_Future, Month_future = monthly_precipitation(Precipitation_Future, Timeseries_Future)
-
-            for month in 1:12
-                current_Month_Temperature = Monthly_Temperature_Past[findall(x->x == month, Month)]
-                current_Month_Temperature_future = Monthly_Temperature_Future[findall(x->x == month, Month_future)]
-                current_Month_Temperature = mean(current_Month_Temperature)
-                current_Month_Temperature_future = mean(current_Month_Temperature_future)
-                #error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
-                append!(average_monthly_Temperature_past, current_Month_Temperature)
-                append!(average_monthly_Temperature_future, current_Month_Temperature_future)
-                append!(all_months_all_runs, month)
-                #append!(error_average_monthly_Discharge_all_runs, error)
-
-                current_Month_Precipitation = Monthly_Precipitation_Past[findall(x->x == month, Month)]
-                current_Month_Precipitation_future = Monthly_Precipitation_Future[findall(x->x == month, Month_future)]
-                current_Month_Precipitation = mean(current_Month_Precipitation)
-                current_Month_Precipitation_future = mean(current_Month_Precipitation_future)
-                #error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
-                append!(average_monthly_Precipitation_past, current_Month_Precipitation)
-                append!(average_monthly_Precipitation_future, current_Month_Precipitation_future)
-            end
-        end
+        Temp_Elevation = 1140.0
+        Mean_Elevation_Catchment = 1500
+        ID_temp = "tas_113597_sim1"
+        Elevations_Catchment = Elevations(200.0, 400.0, 2800.0, Temp_Elevation, Temp_Elevation)
     elseif Catchment_Name == "Palten"
         ID_Prec_Zones = [106120, 111815, 9900]
         Area_Zones = [198175943.0, 56544073.0, 115284451.3]
-        Area_Catchment = sum(Area_Zones)
-        Area_Zones_Percent = Area_Zones / Area_Catchment
-        for (i, name) in enumerate(Name_Projections_45)
-            Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-            #print(size(Timeseries_Past), size(Timeseries_Future))
-            Timeseries_Proj = readdlm(path_to_projections*name*"/Palten/pr_model_timeseries.txt")
-            Timeseries_Proj = Date.(Timeseries_Proj, Dates.DateFormat("y,m,d"))
-            Temperature = readdlm(path_to_projections*name*"/Palten/tas_106120_sim1.txt", ',')[:,1]
-            #print("temp", size(Temperature))
-            Temp_Elevation = 1265.0
-            Mean_Elevation_Catchment = 1300 # in reality 1314
-            Elevations_Catchment = Elevations(200.0, 600.0, 2600.0, Temp_Elevation, Temp_Elevation)
-            Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature)
-            # get the temperature data at the mean elevation to calculate the mean potential evaporation
-            Temperature = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
-
-            indexstart_past = findfirst(x-> x == Dates.year(Timeseries_Past[1]), Dates.year.(Timeseries_Proj))[1]
-            indexend_past = findlast(x-> x == Dates.year(Timeseries_Past[end]), Dates.year.(Timeseries_Proj))[1]
-            Temperature_Past = Temperature[indexstart_past:indexend_past] ./ 10
-            #print(Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj[end]))
-            indexstart_future = findfirst(x-> x == Dates.year(Timeseries_Future[1]), Dates.year.(Timeseries_Proj))[1]
-            indexend_future = findlast(x-> x == Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj))[1]
-            Temperature_Future = Temperature[indexstart_future:indexend_future] ./ 10
-
-            Monthly_Temperature_Past, Month = monthly_discharge(Temperature_Past, Timeseries_Past)
-            Monthly_Temperature_Future, Month_future = monthly_discharge(Temperature_Future, Timeseries_Future)
-
-            #-------- PRECIPITATION ------------------
-            Precipitation_All_Zones = Array{Float64, 1}[]
-            for j in 1: length(ID_Prec_Zones)
-                            #print(ID_Prec_Zones[i])
-                    Precipitation_Zone = readdlm(path_to_projections*name*"/Palten/pr_"*string(ID_Prec_Zones[j])*"_sim1.txt", ',')[:,1]
-                    push!(Precipitation_All_Zones, Precipitation_Zone ./10)
-            end
-            Total_Precipitation_Proj = Precipitation_All_Zones[1].*Area_Zones_Percent[1] + Precipitation_All_Zones[2].*Area_Zones_Percent[2] + Precipitation_All_Zones[3].*Area_Zones_Percent[3]
-            Precipitation_Past = Total_Precipitation_Proj[indexstart_past:indexend_past]
-            Precipitation_Future = Total_Precipitation_Proj[indexstart_future:indexend_future]
-
-            Monthly_Precipitation_Past, Month = monthly_precipitation(Precipitation_Past, Timeseries_Past)
-            Monthly_Precipitation_Future, Month_future = monthly_precipitation(Precipitation_Future, Timeseries_Future)
-
-            for month in 1:12
-                current_Month_Temperature = Monthly_Temperature_Past[findall(x->x == month, Month)]
-                current_Month_Temperature_future = Monthly_Temperature_Future[findall(x->x == month, Month_future)]
-                current_Month_Temperature = mean(current_Month_Temperature)
-                current_Month_Temperature_future = mean(current_Month_Temperature_future)
-                #error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
-                append!(average_monthly_Temperature_past, current_Month_Temperature)
-                append!(average_monthly_Temperature_future, current_Month_Temperature_future)
-                append!(all_months_all_runs, month)
-                #append!(error_average_monthly_Discharge_all_runs, error)
-
-                current_Month_Precipitation = Monthly_Precipitation_Past[findall(x->x == month, Month)]
-                current_Month_Precipitation_future = Monthly_Precipitation_Future[findall(x->x == month, Month_future)]
-                current_Month_Precipitation = mean(current_Month_Precipitation)
-                current_Month_Precipitation_future = mean(current_Month_Precipitation_future)
-                #error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
-                append!(average_monthly_Precipitation_past, current_Month_Precipitation)
-                append!(average_monthly_Precipitation_future, current_Month_Precipitation_future)
-            end
-        end
+        ID_temp = 106120
+        Temp_Elevation = 1265.0
+        Mean_Elevation_Catchment = 1300 # in reality 1314
+        Elevations_Catchment = Elevations(200.0, 600.0, 2600.0, Temp_Elevation, Temp_Elevation)
     elseif Catchment_Name == "Pitten"
         ID_Prec_Zones = [109967]
-        # size of the area of precipitation zones
         Area_Zones = [115496400.]
-        Area_Catchment = sum(Area_Zones)
-        Area_Zones_Percent = Area_Zones / Area_Catchment
-        for (i, name) in enumerate(Name_Projections_45)
-            Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-            #print(size(Timeseries_Past), size(Timeseries_Future))
-            Timeseries_Proj = readdlm(path_to_projections*name*"/Pitten/pr_model_timeseries.txt")
-            Timeseries_Proj = Date.(Timeseries_Proj, Dates.DateFormat("y,m,d"))
-            Temperature = readdlm(path_to_projections*name*"/Pitten/tas_10510_sim1.txt", ',')[:,1]
-            #print("temp", size(Temperature))
-            Mean_Elevation_Catchment = 900 # in reality 917
-            Temp_Elevation = 488.0
-            Elevations_Catchment = Elevations(200.0, 400.0, 1600.0, Temp_Elevation, Temp_Elevation)
-            Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature)
-            # get the temperature data at the mean elevation to calculate the mean potential evaporation
-            Temperature = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+        ID_temp = 10510
+        Mean_Elevation_Catchment = 900 # in reality 917
+        Temp_Elevation = 488.0
+        Elevations_Catchment = Elevations(200.0, 400.0, 1600.0, Temp_Elevation, Temp_Elevation)
+    elseif Catchment_Name == "Defreggental"
+        ID_Prec_Zones = [17700, 114926]
+        Area_Zones = [235811198.0, 31497403.0]
+        ID_temp = 17700
+        Mean_Elevation_Catchment =  2300 # in reality 2233.399986
+        Temp_Elevation = 1385.
+        Elevations_Catchment = Elevations(200.0, 1000.0, 3600.0, Temp_Elevation, Temp_Elevation)
+    elseif Catchment_Name == "IllSugadin"
+        ID_Prec_Zones = [100206]
+        Area_Zones = [100139168.]
+        ID_temp = 14200
+        Mean_Elevation_Catchment = 1700
+        Temp_Elevation = 670.
+        Elevations_Catchment = Elevations(200.0, 600.0, 2800.0, Temp_Elevation, Temp_Elevation)
+    end
+    Area_Catchment = sum(Area_Zones)
+    Area_Zones_Percent = Area_Zones / Area_Catchment
+    for (i, name) in enumerate(Name_Projections_45)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        #print(size(Timeseries_Past), size(Timeseries_Future))
+        Timeseries_Proj = readdlm(path_to_projections*name*"/"*Catchment_Name*"/pr_model_timeseries.txt")
+        Timeseries_Proj = Date.(Timeseries_Proj, Dates.DateFormat("y,m,d"))
+        Temperature = readdlm(path_to_projections*name*"/"*Catchment_Name*"/tas_"*string(ID_temp)*"_sim1.txt", ',')[:,1]
+        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature)
+        # get the temperature data at the mean elevation to calculate the mean potential evaporation
+        Temperature = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
 
-            indexstart_past = findfirst(x-> x == Dates.year(Timeseries_Past[1]), Dates.year.(Timeseries_Proj))[1]
-            indexend_past = findlast(x-> x == Dates.year(Timeseries_Past[end]), Dates.year.(Timeseries_Proj))[1]
-            Temperature_Past = Temperature[indexstart_past:indexend_past] ./ 10
-            #print(Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj[end]))
-            indexstart_future = findfirst(x-> x == Dates.year(Timeseries_Future[1]), Dates.year.(Timeseries_Proj))[1]
-            indexend_future = findlast(x-> x == Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj))[1]
-            Temperature_Future = Temperature[indexstart_future:indexend_future] ./ 10
+        indexstart_past = findfirst(x-> x == Dates.year(Timeseries_Past[1]), Dates.year.(Timeseries_Proj))[1]
+        indexend_past = findlast(x-> x == Dates.year(Timeseries_Past[end]), Dates.year.(Timeseries_Proj))[1]
+        Temperature_Past = Temperature[indexstart_past:indexend_past] ./ 10
+        #print(Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj[end]))
+        indexstart_future = findfirst(x-> x == Dates.year(Timeseries_Future[1]), Dates.year.(Timeseries_Proj))[1]
+        indexend_future = findlast(x-> x == Dates.year(Timeseries_Future[end]), Dates.year.(Timeseries_Proj))[1]
+        Temperature_Future = Temperature[indexstart_future:indexend_future] ./ 10
+        # calculate monthly mean temperature
+        Monthly_Temperature_Past, Month = monthly_discharge(Temperature_Past, Timeseries_Past)
+        Monthly_Temperature_Future, Month_future = monthly_discharge(Temperature_Future, Timeseries_Future)
 
-            #print(size(Temperature_Past), size(Temperature_Future))
-
-            Monthly_Temperature_Past, Month = monthly_discharge(Temperature_Past, Timeseries_Past)
-            Monthly_Temperature_Future, Month_future = monthly_discharge(Temperature_Future, Timeseries_Future)
-            #-------- PRECIPITATION ------------------
-
-            Precipitation_All_Zones = Array{Float64, 1}[]
-            for j in 1: length(ID_Prec_Zones)
-                    # get precipitation projections for the precipitation measurement
-                    Precipitation_Zone = readdlm(path_to_projections*name*"/Pitten/pr_"*string(ID_Prec_Zones[j])*"_sim1.txt", ',')[:,1]
-                    #print(size(Precipitation_Zone), typeof(Precipitation_Zone))
-                    push!(Precipitation_All_Zones, Precipitation_Zone ./10)
-            end
-            Total_Precipitation_Proj = Precipitation_All_Zones[1].*Area_Zones_Percent[1]
-            Precipitation_Past = Total_Precipitation_Proj[indexstart_past:indexend_past]
-            Precipitation_Future = Total_Precipitation_Proj[indexstart_future:indexend_future]
-
-            Monthly_Precipitation_Past, Month = monthly_precipitation(Precipitation_Past, Timeseries_Past)
-            Monthly_Precipitation_Future, Month_future = monthly_precipitation(Precipitation_Future, Timeseries_Future)
-
-            for month in 1:12
-                current_Month_Temperature = Monthly_Temperature_Past[findall(x->x == month, Month)]
-                current_Month_Temperature_future = Monthly_Temperature_Future[findall(x->x == month, Month_future)]
-                current_Month_Temperature = mean(current_Month_Temperature)
-                current_Month_Temperature_future = mean(current_Month_Temperature_future)
-                #error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
-                append!(average_monthly_Temperature_past, current_Month_Temperature)
-                append!(average_monthly_Temperature_future, current_Month_Temperature_future)
-                append!(all_months_all_runs, month)
-                #append!(error_average_monthly_Discharge_all_runs, error)
-
-                current_Month_Precipitation = Monthly_Precipitation_Past[findall(x->x == month, Month)]
-                current_Month_Precipitation_future = Monthly_Precipitation_Future[findall(x->x == month, Month_future)]
-                current_Month_Precipitation = mean(current_Month_Precipitation)
-                current_Month_Precipitation_future = mean(current_Month_Precipitation_future)
-                #error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
-                append!(average_monthly_Precipitation_past, current_Month_Precipitation)
-                append!(average_monthly_Precipitation_future, current_Month_Precipitation_future)
-            end
+        #-------- PRECIPITATION ------------------
+        Precipitation_All_Zones = Array{Float64, 1}[]
+        Total_Precipitation_Proj = zeros(length(Timeseries_Proj))
+        for j in 1: length(ID_Prec_Zones)
+                # get precipitation projections for the precipitation measurement
+                Precipitation_Zone = readdlm(path_to_projections*name*"/"*Catchment_Name*"/pr_"*string(ID_Prec_Zones[j])*"_sim1.txt", ',')[:,1]
+                #print(size(Precipitation_Zone), typeof(Precipitation_Zone))
+                push!(Precipitation_All_Zones, Precipitation_Zone ./10)
+                Total_Precipitation_Proj += Precipitation_All_Zones[j].*Area_Zones_Percent[j]
         end
+        #Total_Precipitation_Proj = Precipitation_All_Zones[1].*Area_Zones_Percent[1] + Precipitation_All_Zones[2].*Area_Zones_Percent[2] + Precipitation_All_Zones[3].*Area_Zones_Percent[3] + Precipitation_All_Zones[4].*Area_Zones_Percent[4]
+        Precipitation_Past = Total_Precipitation_Proj[indexstart_past:indexend_past]
+        Precipitation_Future = Total_Precipitation_Proj[indexstart_future:indexend_future]
 
+        Monthly_Precipitation_Past, Month = monthly_precipitation(Precipitation_Past, Timeseries_Past)
+        Monthly_Precipitation_Future, Month_future = monthly_precipitation(Precipitation_Future, Timeseries_Future)
+
+        # take average over all months in timeseries
+        for month in 1:12
+            current_Month_Temperature = Monthly_Temperature_Past[findall(x->x == month, Month)]
+            current_Month_Temperature_future = Monthly_Temperature_Future[findall(x->x == month, Month_future)]
+            current_Month_Temperature = mean(current_Month_Temperature)
+            current_Month_Temperature_future = mean(current_Month_Temperature_future)
+            append!(average_monthly_Temperature_past, current_Month_Temperature)
+            append!(average_monthly_Temperature_future, current_Month_Temperature_future)
+            append!(all_months_all_runs, month)
+
+            current_Month_Precipitation = Monthly_Precipitation_Past[findall(x->x == month, Month)]
+            current_Month_Precipitation_future = Monthly_Precipitation_Future[findall(x->x == month, Month_future)]
+            current_Month_Precipitation = mean(current_Month_Precipitation)
+            current_Month_Precipitation_future = mean(current_Month_Precipitation_future)
+            #error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
+            append!(average_monthly_Precipitation_past, current_Month_Precipitation)
+            append!(average_monthly_Precipitation_future, current_Month_Precipitation_future)
+        end
     end
     #----------- PLOTS PRECIPITATION------------------------
     xaxis_1 = collect(1:2:23)
@@ -320,6 +202,8 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
         boxplot!([xaxis_2[month]], average_monthly_Precipitation_future[findall(x-> x == month, all_months_all_runs)], size=(2000,800), leg=false, color=[Farben[2]], left_margin = [5mm 0mm])
     end
     ylabel!("Average Monthly Precipitation [mm/ month]")
+    ylims!((0,300))
+    yticks!([0:50:300;])
     title!("Averaged Monthly Precipitation Past=blue, Future=red")
     #ylims!((0,40))
     #hline!([0], color=["grey"], linestyle = :dash)
@@ -332,6 +216,8 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
         boxplot!([xaxis_1[month]], average_monthly_Temperature_past[findall(x-> x == month, all_months_all_runs)], size=(2000,800), leg=false, color=[Farben[1]])
         boxplot!([xaxis_2[month]], average_monthly_Temperature_future[findall(x-> x == month, all_months_all_runs)], size=(2000,800), leg=false, color=[Farben[2]])
     end
+    ylims!((-10,25))
+    yticks!([-10:5:25;])
     ylabel!("Average Monthly Temperature [°C]")
     title!("Averaged Monthly Temperature Past=light, Future=dark")
     #ylims!((0,40))
@@ -353,6 +239,8 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
     end
     ylabel!("Average Absolute Change in Monthly Precipitation [mm/ month]")
     title!("Averaged Monthly Precipitation Future - Past")
+    ylims!((-100,150))
+    yticks!([-100:25:150;])
     #ylims!((0,40))
     hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1:12;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
@@ -364,6 +252,8 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
     end
     ylabel!("Average Change in Monthly Temperature [°C]")
     title!("Averaged Monthly Temperature Future - Past")
+    ylims!((0,8))
+    yticks!([0:2:8;])
     #ylims!((0,40))
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1:12;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
@@ -377,14 +267,7 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
     return average_monthly_Precipitation_past, average_monthly_Precipitation_future, average_monthly_Temperature_past, average_monthly_Temperature_future, all_months_all_runs
 end
 
-#Prec_past, Prec_Future,Temp_past, Temp_Future, Months = plot_Monthly_Temperature_Precipitation(path_45, "Pitten")
-
-
 # -------------------------------- AVERAGE MONTHLY RUNOFF --------------------------
-
-# take average monthly discharge of 30 years compare it to monthly discharge in future
-
-
 """
 Computes the monthly discharges of the past and future and the relative changes, of the projections of the path and the different parameter sets
 
@@ -405,25 +288,21 @@ function change_monthly_Discharge(path_to_projections, Catchment_Name)
         rcp="85"
         print(rcp, " ", path_to_projections)
     end
-
     average_monthly_Discharge_past = Float64[]
     average_monthly_Discharge_future = Float64[]
-    #all_months = Float64[]
-
     error_average_monthly_Discharge_all_runs = Float64[]
-    #average_monthly_Discharge_future_all_runs = Float64[]
-    #average_monthly_Discharge_past_all_runs = Float64[]
     all_months_all_runs = Float64[]
     for (i, name) in enumerate(Name_Projections_45)
         Timeseries_Future_45 = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/0.01_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/0.01_model_results_discharge_future_2100.csv", ',')
-        #change_all_runs = Float64[]
+        Past_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
         println(size(Past_Discharge_45)[1])
         for run in 1:size(Past_Discharge_45)[1]
+            # computes mean monthly discharge of each month
             Monthly_Discharge_past, Month = monthly_discharge(Past_Discharge_45[run,:], Timeseries_Past)
             Monthly_Discharge_future, Month_future = monthly_discharge(Future_Discharge_45[run,:], Timeseries_Future_45)
             for month in 1:12
+                # computes the average mean monthly discharge over all years for each month
                 current_Month_Discharge = Monthly_Discharge_past[findall(x->x == month, Month)]
                 current_Month_Discharge_future = Monthly_Discharge_future[findall(x->x == month, Month_future)]
                 current_Month_Discharge = mean(current_Month_Discharge)
@@ -434,49 +313,11 @@ function change_monthly_Discharge(path_to_projections, Catchment_Name)
                 append!(all_months_all_runs, month)
                 append!(error_average_monthly_Discharge_all_runs, error)
             end
-
-
-            #error_timing = Date_max_Discharge_future - Date_max_Discharge_past)
-            # append!(error_average_monthly_Discharge_all_runs, error_all)
-            # append!(average_monthly_Discharge_past_all_runs, average_monthly_Discharge_past)
-            # append!(average_monthly_Discharge_future_all_runs, average_monthly_Discharge_future)
-            # append!(all_months_all_runs, all_months)
         end
     end
     return error_average_monthly_Discharge_all_runs, average_monthly_Discharge_past, average_monthly_Discharge_future, all_months_all_runs
 end
-# change_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Monthly_Discharge/discharge_months_4.5.txt", ',')
-# months_45 = change_45[:,1]
-# Monthly_Discharge_past_45 = change_45[:,2] #.* (24 * 3600)
-# Monthly_Discharge_future_45 = change_45[:,3] #.* (24 * 3600)
-# Monthly_Discharge_relative_change_45 = change_45[:,4]
-#
-# change_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Monthly_Discharge/discharge_months_8.5.txt", ',')
-# months_85 = change_85[:,1]
-# Monthly_Discharge_past_85 = change_85[:,2] #.* (24 * 3600) # to get m³ / month
-# Monthly_Discharge_future_85 = change_85[:,3] #.* (24 * 3600) # to get m³ / month
-# Monthly_Discharge_relative_change_85 = change_85[:,4]
 
-# @time begin
-# Monthly_Discharge_Change_85, monthly_Discharge_past_85, monthly_Discharge_future_85, months_85 = change_monthly_Discharge(path_85, "Gailtal")
-# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Monthly_Discharge/discharge_months_8.5.txt",hcat(months_85, monthly_Discharge_past_85, monthly_Discharge_future_85, Monthly_Discharge_Change_85),',')
-# end
-# #
-# @time begin
-# Monthly_Discharge_Change_45, monthly_Discharge_past_45, monthly_Discharge_future_45, months_45 = change_monthly_Discharge(path_45, "Gailtal")
-# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Monthly_Discharge/discharge_months_4.5.txt",hcat(months_45, monthly_Discharge_past_45, monthly_Discharge_future_45, Monthly_Discharge_Change_45),',')
-# end
-
-# monthly_changes_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Palten/PastvsFuture/Monthly_Discharge/discharge_months_8.5.txt", ',')
-# months_85 = monthly_changes_85[:,1]
-# monthly_Discharge_past_85 = monthly_changes_85[:,2]
-# monthly_Discharge_future_85  = monthly_changes_85[:,3]
-# Monthly_Discharge_Change_85  = monthly_changes_85[:,4]
-# monthly_changes_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Palten/PastvsFuture/Monthly_Discharge/discharge_months_4.5.txt", ',')
-# months_45 = monthly_changes_45[:,1]
-# monthly_Discharge_past_45 = monthly_changes_45[:,2]
-# monthly_Discharge_future_45  = monthly_changes_45[:,3]
-# Monthly_Discharge_Change_45  = monthly_changes_45[:,4]
 """
 Calculates the mean annual discharge using the monthly Discharge that is already calculated.
 
@@ -499,11 +340,9 @@ function annual_discharge_new(monthly_Discharge_past, monthly_Discharge_future, 
     return relative_change, yearly_discharge_past, yearly_discharge_future
 end
 
-#relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45 = annual_discharge_new(monthly_Discharge_past_45, monthly_Discharge_future_45, Area_Catchment_Palten)
-#relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85 = annual_discharge_new(monthly_Discharge_past_85, monthly_Discharge_future_85, Area_Catchment_Palten)
-
 """
-Plots the Aboslute and relative changes of both emission pathways of the monthly discharges of the past and future in m³/s
+Plots the Aboslute and relative changes of both emission pathways of the monthly discharges of the past and future in m³/s,
+plots the relative change for each projection to see the uncertainty in parameter sets
 
 $(SIGNATURES)
 
@@ -517,33 +356,33 @@ function plot_changes_monthly_discharge(Monthly_Discharge_past_45, Monthly_Disch
     plot()
     Farben_85 = palette(:reds)
     Farben_45 = palette(:blues)
-    # for month in 1:12
-    #     boxplot!([xaxis_45[month]],Monthly_Discharge_future_45[findall(x-> x == month, months_45)] - Monthly_Discharge_past_45[findall(x-> x == month, months_45)] , size=(2000,800), leg=false, color=["blue"], alpha=0.8)
-    #     boxplot!([xaxis_85[month]],Monthly_Discharge_future_85[findall(x-> x == month, months_45)] - Monthly_Discharge_past_85[findall(x-> x == month, months_45)], size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
-    # end
-    # ylabel!("Change in Average monthly Discharge [m³/s]")
-    # title!("Absolute Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
-    # #ylims!((-0.8,1.1))
-    # #hline!([0], color=["grey"], linestyle = :dash)
-    # xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
-    # #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_absolute_change_monthly_discharge4.5_8.5.png")
-    #
-    # # ------- REALTIVE CHANGE ----------------
-    # plot()
-    # for month in 1:12
-    #     boxplot!([xaxis_45[month]],relative_error(Monthly_Discharge_future_45[findall(x-> x == month, months_45)], Monthly_Discharge_past_45[findall(x-> x == month, months_45)])*100, size=(2000,800), leg=false, color=["blue"], alpha=0.8)
-    #     boxplot!([xaxis_85[month]],relative_error(Monthly_Discharge_future_85[findall(x-> x == month, months_45)], Monthly_Discharge_past_85[findall(x-> x == month, months_45)])*100, size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
-    # end
-    # ylabel!("Relative Change in Average monthly Discharge [%]", yguidefontsize=20)
-    # title!("Relative Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
-    # boxplot!(left_margin = [5mm 0mm], bottom_margin = 20px, xtickfont = font(20), ytickfont = font(20))
-    # #ylims!((-0.8,1.1))
-    # hline!([0], color=["grey"], linestyle = :dash)
-    # xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
-    #
-    # #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_relative_change_monthly_discharge4.5_8.5.png")
+    for month in 1:12
+        boxplot!([xaxis_45[month]],Monthly_Discharge_future_45[findall(x-> x == month, months_45)] - Monthly_Discharge_past_45[findall(x-> x == month, months_45)] , size=(2000,800), leg=false, color=["blue"], alpha=0.8)
+        boxplot!([xaxis_85[month]],Monthly_Discharge_future_85[findall(x-> x == month, months_45)] - Monthly_Discharge_past_85[findall(x-> x == month, months_45)], size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
+    end
+    ylabel!("Change in Average monthly Discharge [m³/s]")
+    title!("Absolute Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
+    #ylims!((-0.8,1.1))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_absolute_change_monthly_discharge4.5_8.5.png")
+
+    # ------- REALTIVE CHANGE ----------------
+    plot()
+    for month in 1:12
+        boxplot!([xaxis_45[month]],relative_error(Monthly_Discharge_future_45[findall(x-> x == month, months_45)], Monthly_Discharge_past_45[findall(x-> x == month, months_45)])*100, size=(2000,800), leg=false, color=["blue"], alpha=0.8)
+        boxplot!([xaxis_85[month]],relative_error(Monthly_Discharge_future_85[findall(x-> x == month, months_45)], Monthly_Discharge_past_85[findall(x-> x == month, months_45)])*100, size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
+    end
+    ylabel!("Relative Change in Average monthly Discharge [%]", yguidefontsize=20)
+    title!("Relative Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
+    boxplot!(left_margin = [5mm 0mm], bottom_margin = 20px, xtickfont = font(20), ytickfont = font(20))
+    #ylims!((-0.8,1.1))
+    hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_relative_change_monthly_discharge4.5_8.5.png")
 
     # ------------ EACH PROJECTION ----------------
     plot()
@@ -560,7 +399,7 @@ function plot_changes_monthly_discharge(Monthly_Discharge_past_45, Monthly_Disch
         end
         ylabel!("Relative Change in Average monthly Discharge [%]", yguidefontsize=20)
         title!("Relative Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
-        ylims!((-30,90))
+        ylims!((-75,275))
         boxplot!(left_margin = [5mm 0mm], bottom_margin = 20px, xtickfont = font(20), ytickfont = font(20))
         #ylims!((-0.8,1.1))
         hline!([0], color=["grey"], linestyle = :dash)
@@ -576,7 +415,7 @@ Plots the Aboslute and relative changes of both emission pathways of the monthly
 $(SIGNATURES)
 
 """
-function plot_changes_monthly_discharge_mm(Monthly_Discharge_past_45, Monthly_Discharge_future_45, Monthly_Discharge_past_85, Monthly_Discharge_future_85, months_45, Catchment_Name)
+function plot_changes_monthly_discharge_mm(Monthly_Discharge_past_45, Monthly_Discharge_future_45, Monthly_Discharge_past_85, Monthly_Discharge_future_85, months_45, Area_Catchment, Catchment_Name)
     Farben = palette(:tab20)
 
     xaxis_45 = collect(1:2:23)
@@ -585,6 +424,12 @@ function plot_changes_monthly_discharge_mm(Monthly_Discharge_past_45, Monthly_Di
     plot()
     Farben_85 = palette(:reds)
     Farben_45 = palette(:blues)
+    # convert discharges to mm/d
+    Monthly_Discharge_past_45 = convertDischarge(Monthly_Discharge_past_45, Area_Catchment)
+    Monthly_Discharge_future_45 = convertDischarge(Monthly_Discharge_future_45, Area_Catchment)
+    Monthly_Discharge_past_85 = convertDischarge(Monthly_Discharge_past_85, Area_Catchment)
+    Monthly_Discharge_future_85 = convertDischarge(Monthly_Discharge_future_85, Area_Catchment)
+
     for month in 1:12
         boxplot!([xaxis_45[month]],Monthly_Discharge_future_45[findall(x-> x == month, months_45)] - Monthly_Discharge_past_45[findall(x-> x == month, months_45)] , size=(2000,800), leg=false, color=["blue"], alpha=0.8)
         boxplot!([xaxis_85[month]],Monthly_Discharge_future_85[findall(x-> x == month, months_45)] - Monthly_Discharge_past_85[findall(x-> x == month, months_45)], size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
@@ -640,13 +485,6 @@ function plot_changes_monthly_discharge_mm(Monthly_Discharge_past_45, Monthly_Di
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_relative_change_monthly_discharge4.5_8.5_mm.png")
 end
-
-Area_Catchment_Gailtal = sum([98227533.0, 184294158.0, 83478138.0, 220613195.0])
-Area_Catchment_Palten = sum([198175943.0, 56544073.0, 115284451.3])
-#plot_changes_monthly_discharge(monthly_Discharge_past_45, monthly_Discharge_future_45, monthly_Discharge_past_85, monthly_Discharge_future_85, months_45, "Palten", 300)
-#
-#plot_changes_monthly_discharge_mm(convertDischarge(monthly_Discharge_past_45, Area_Catchment_Palten), convertDischarge(monthly_Discharge_future_45, Area_Catchment_Palten), convertDischarge(monthly_Discharge_past_85, Area_Catchment_Palten), convertDischarge(monthly_Discharge_future_85, Area_Catchment_Palten), months_45, "Palten")
-
 
 function plot_change_total_discharge(path_to_projections_45, path_to_projections_85, Name_Catchment, Area_Catchment)
     Name_Projections_45 = readdir(path_to_projections_45)
@@ -734,12 +572,16 @@ function plot_change_total_discharge(path_to_projections_45, path_to_projections
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/"*Catchment_Name*"_Total_Discharge_Comparison_Future_Past.png")
 end
 
+"""
+Calculates the mean yearly discharges of all years in the time series [mm/year]
+
+$(SIGNATURES)
+
+Takes as input the discharge, the corresponding timeseries and the area of the catchment, returns the average yearly discharge over the timeperiod
+"""
 function average_annual_discharge(Discharge, Timeseries, Area_Catchment)
     Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
     Yearly_Discharges = Float64[]
-    Nr_Drought_Events = Float64[]
-    Max_Drought_Length = Float64[]
-    #Date_max_Annual_Discharge = Float64[]
     for (i, Current_Year) in enumerate(Years)
             Dates_Current_Year = filter(Timeseries) do x
                               Dates.Year(x) == Dates.Year(Current_Year)
@@ -752,10 +594,11 @@ function average_annual_discharge(Discharge, Timeseries, Area_Catchment)
 end
 
 """
-Plots the Aboslute and relative changes of both emission pathways of the average annual discharges of the past and future in mm
+Calculates the mean yearly discharge of all runs and projections of both emission pathways [mm/year]
 
 $(SIGNATURES)
 
+Returns the relative change, the mean annual discharge of the past and future for both emission scenarios
 """
 function change_annual_discharge(path_to_projections_45, path_to_projections_85, Catchment_Name, Area_Catchment)
     Name_Projections_45 = readdir(path_to_projections_45)
@@ -804,12 +647,16 @@ function change_annual_discharge(path_to_projections_45, path_to_projections_85,
     return relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45, relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85
 end
 
-function plot_change_annual_discharge(relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45, relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85, Area_Catchment, Catchment_Name)
+"""
+Plots the absolute and relative change in average annual discharge [mm/year] and the values of past and future
 
+$(SIGNATURES)
+
+"""
+function plot_change_annual_discharge(relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45, relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85, Area_Catchment, Catchment_Name)
     Farben45=palette(:blues)
     Farben85=palette(:reds)
     rcps = ["RCP 4.5", "RCP 8.5"]
-
     # plot relative change
     plot()
     boxplot!([rcps[1]], relative_change_45*100, size=(2000,800), leg=false, color=[Farben45[2]])
@@ -854,45 +701,18 @@ function plot_change_annual_discharge(relative_change_45, Total_Discharge_Past_4
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Discharge/"*Catchment_Name*"_Annual_Discharge_Comparison_Future_Past.png")
 end
 
-
-#relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45, relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85 = change_annual_discharge(path_45, path_85, "Palten", Area_Catchment_Palten)
-
-#plot_change_annual_discharge(relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45, relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85, Area_Catchment_Palten, "Palten")
-
-## -------------- PLOT MONTHLY DISCHARGE PAST REAL DATA ---------------------------------
-# Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
-# Discharge = CSV.read("Gailtal/Q-Tagesmittel-212670.csv", header= false, skipto=23, decimal=',', delim = ';', types=[String, Float64])
-# Discharge = convert(Matrix, Discharge)
-# startindex = findfirst(isequal("01.01."*string(1981)*" 00:00:00"), Discharge)
-# endindex = findfirst(isequal("31.12."*string(2010)*" 00:00:00"), Discharge)
-# Observed_Discharge = Array{Float64,1}[]
-# push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
-# Observed_Discharge = Observed_Discharge[1]
-#
-# #Monthly_Discharge_Observed, Months_Past = monthly_discharge(Observed_Discharge, Timeseries_Past)
-# plot()
-# for month in 1:12
-#     boxplot!(Monthly_Discharge_Observed[findall(x-> x == month, Months_Past)], size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
-# end
-# ylabel!("Averaged Monthly Discharge [m³/s]")
-# title!("Averaged Measured Monthly Discharge 1981-2010")
-# ylims!((0,40))
-# #hline!([0], color=["grey"], linestyle = :dash)
-# xticks!([1:12;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
-# #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-# savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/Monthly_Discharge/measured_monthly_discharge_test.png")
-
-
-#------------------- FUNCTIONS -----------------------
+#---------------- FDC --------------------------
 
 findnearest(A::Array{Float64,1},t::Float64) = findmin(abs.(A-t*ones(length(A))))[2]
-relative_error(future, initial) = (future - initial) ./ initial
 
+"""
+Calculates the corresponding discharge of a certain percentile of the FDC for the past and the future.
+
+$(SIGNATURES)
+
+"""
 function FDC_compare_percentile(path_to_projections, percentile, Name_Catchment)
     Name_Projections = readdir(path_to_projections)
-    #Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
-    #Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
-    #change_all_runs = Float64[]
     discharge_percentile_past = Float64[]
     discharge_percentile_future = Float64[]
     relative_change = Float64[]
@@ -916,18 +736,19 @@ function FDC_compare_percentile(path_to_projections, percentile, Name_Catchment)
             FDC_Future = flowdurationcurve(Future_Discharge[run,:])
             index_Past = findnearest(FDC_Past[2], percentile)
             index_Future = findnearest(FDC_Future[2], percentile)
-            #error = relative_error(FDC_Future[1][index_Future], FDC_Past[1][index_Past])
             append!(discharge_percentile_past, FDC_Past[1][index_Past])
             append!(discharge_percentile_future, FDC_Future[1][index_Future])
-            #append!(relative_change, error)
         end
     end
-    return discharge_percentile_past, discharge_percentile_future#, relative_change
+    return discharge_percentile_past, discharge_percentile_future
 end
 
-#discharge_past_45, discharge_future_45= FDC_compare_percentile(path_45, 0.1, "Gailtal")
-#discharge_past_85, discharge_future_85= FDC_compare_percentile(path_85, 0.1, "Gailtal")
+"""
+Plots the change of the corresponding discharge of a certain percentile of the FDC for the past and the future.
 
+$(SIGNATURES)
+
+"""
 function plot_FDC_Percentile(path_to_projection_45, path_to_projection_85, Catchment_Name, percentile)
     # get data
     discharge_past_45, discharge_future_45= FDC_compare_percentile(path_to_projection_45, percentile, Catchment_Name)
@@ -983,7 +804,13 @@ function plot_FDC_Percentile(path_to_projection_45, path_to_projection_85, Catch
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/FDC/Discharge_"*string(percentile)*"_percentile_violin.png")
 end
 
+"""
+Calculates and plots the change of the corresponding discharge of a certain percentile of the FDC for the past and the future.
 
+$(SIGNATURES)
+
+As input a range of percentiles is needed
+"""
 function plot_FDC_Percentile_relative_change(path_to_projection_45, path_to_projection_85, Catchment_Name, percentiles)
     plot()
     for percentile in percentiles
@@ -991,7 +818,6 @@ function plot_FDC_Percentile_relative_change(path_to_projection_45, path_to_proj
         discharge_past_85, discharge_future_85= FDC_compare_percentile(path_to_projection_85, percentile, Catchment_Name)
         # plot change
         rcps = ["RCP 4.5", "RCP 8.5"]
-
         #plot relative change
         error_45 = relative_error(discharge_future_45, discharge_past_45)*100
         error_85 = relative_error(discharge_future_85, discharge_past_85)*100
@@ -1002,69 +828,15 @@ function plot_FDC_Percentile_relative_change(path_to_projection_45, path_to_proj
     end
     title!("Relative Change in Discharge which is exceeded for each percentile, RCP 4.5= Blue, RCP 8.5= Red")
     xticks!([1.5:2:17.5;], string.(percentiles))
+    hline!([0], color=["grey"], linestyle = :dash)
     ylabel!("Realtive Change in Discharge [%]")
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/FDC/"*Catchment_Name*"_relative_change_Discharge__percentile_violin.png")
-    # violin([rcps[1]], error_45, color="blue", leg=false)
-    # violin!([rcps[2]], error_85, color="red", size=(1000,600), leg=false)
-    # title!("Relative Change in Discharge which is exceeded "*string(percentile*100)*"%")
-    # ylabel!("Discharge [m³/s]")
-    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/FDC/relative_change_Discharge_"*string(percentile)*"_percentile_violin.png")
 end
-#plot_FDC_Percentile(path_45, path_85, "Gailtal", 0.9)
-@time begin
-plot_FDC_Percentile_relative_change(path_45, path_85, "Palten", collect(0.1:0.1:0.9))
-end
-# function plot_percentiles(Percentiles)
-#     All_Change_45 = zeros(length(Percentiles))
-#     All_Change_85 = zeros(length(Percentiles))
-#     for i in 1:14
-#         name = Name_Projections_45[i]
-#         Past_Discharge_45 = readdlm(path_45*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
-#         Future_Discharge_45 = readdlm(path_45*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
-#
-#         # ----------- LOAD DISCHARGES FROM RCP 8.5 --------------
-#         name = Name_Projections_85[i]
-#         Past_Discharge_85 = readdlm(path_85*name*"/Gailtal/100_model_results_discharge_past_2010.csv", ',')
-#         Future_Discharge_85 = readdlm(path_85*name*"/Gailtal/100_model_results_discharge_future_2100.csv", ',')
-#         #print(size(Past_Discharge_45[1,:]), size(Future_Discharge_45), size(Future_Discharge_85), size(Past_Discharge_85))
-#         # for all 100 model runs
-#         for run in 1:100
-#             Change_45, Change_85 = plot_FDC(Past_Discharge_45[run,:], Future_Discharge_45[run,:], Past_Discharge_85[run,:], Future_Discharge_85[run,:], name, Percentiles)
-#             global All_Change_45 = hcat(All_Change_45, Change_45)
-#             global All_Change_85 = hcat(All_Change_85, Change_85)
-#         end
-#     end
-#     All_Change_85 = All_Change_85[:,2:end]
-#     All_Change_45 = All_Change_45[:,2:end]
-#     print(size(All_Change_45), size(All_Change_85))
-#     plot()
-#     boxplots = []
-#     for percentile in 1:9
-#         box_45 = boxplot!([string(Percentiles[percentile])], All_Change_45[percentile,:], leg=false)
-#         title!("RCP 4.5")
-#         #savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/FDC/log/Change_Box45_Gailtal_"*string(Name_Projections_45[i])*".png")
-#     end
-#     push!(boxplots, boxplot!([string(Percentiles[1])], All_Change_45[1,:], leg=false))
-#     plot()
-#     for percentile in 1:9
-#         box_85 = boxplot!([string(Percentiles[percentile])], All_Change_85[percentile,:], leg=false)
-#         title!("RCP 8.5")
-#         #savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/FDC/log/Change_Box85_Gailtal_"*string(Name_Projections_85[i])*".png")
-#     end
-#     push!(boxplots, boxplot!([string(Percentiles[1])], All_Change_85[1,:], leg=false))
-#     plot(boxplots[1], boxplots[2], layout= (1,2), legend = false, size=(2000,1000))
-#     savefig("/home/sarah/Master/Thesis/Results/Projektionen/Gailtal/PastvsFuture/FDC/Change_FDC_Gailtal_All_Proj_100runs.png")
-# end
-
-# ----------- LOAD DISCHARGES FROM RCP 4.5 --------------
-
-#name = Name_Projections[1]
-
 
 # ------------------- BUDYKO ------------------------------
 """
-Calculates the aridity and evaporative index for all climate projections with each 100 parameter sets for the given path.
-
+Calculates the aridity and evaporative index for all climate projections with best parameter sets for the given path.
+For the calculations the mean discharge, potential evaporation and precipitation over the whole time period is taken.
 $(SIGNATURES)
 The function returns the past and future aridity index (Array length: Number of climate projections) and past and future evaporative index (Array Length: Number Climate Projections x Number Parameter Sets).
     It takes as input the path to the projections.
@@ -1132,18 +904,13 @@ function plot_Budyko(Aridity_Index_past_45, Aridity_Index_future_45, Evaporative
         plot!(Epot_Prec, Budyko_Eact_P, label="Budyko", color="grey")
         xlabel!("Epot/P")
         ylabel!("Eact/P")
-        xlims!((0,1))
-        ylims!((0,0.5))
-        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Budyko/budykoframework"*string(Name_Projections[proj])*"_closup.png")
+        #xlims!((0,1))
+        ylims!((0,1))
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Budyko/"*Catchment_Name*"_budykoframework"*string(Name_Projections[proj])*".png")
     end
 end
 
-# Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
-# Area_Catchment = sum(Area_Zones)
-#aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45 = aridity_evaporative_index(path_45, Area_Catchment_Palten, "Palten")
-#aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85 = aridity_evaporative_index(path_85, Area_Catchment_Palten, "Palten")
 
-#plot_Budyko(aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45, aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85, path_45, "Palten", 300)
 function circleShape(h,k,r)
     tau = LinRange(0, 2*pi, 500)
     h .+ r*sin.(tau), k .+ r*cos.(tau)
@@ -1154,10 +921,9 @@ Plots the changes in the Budyko framework of future and present for RCP 4.5 and 
 $(SIGNATURES)
 The input are the path to the projection and the size of the catchment in (m²)
 """
-function plot_changes_Budyko(path_to_projections_45, path_to_projections_85, Area_Catchment, Catchment_Name, nr_runs)
-    aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45 = aridity_evaporative_index(path_to_projections_45, Area_Catchment, Catchment_Name)
-    aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85 = aridity_evaporative_index(path_to_projections_85, Area_Catchment, Catchment_Name)
-
+function plot_changes_Budyko(aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45, aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85, Area_Catchment, Catchment_Name, nr_runs)
+    # aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45 = aridity_evaporative_index(path_to_projections_45, Area_Catchment, Catchment_Name)
+    # aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85 = aridity_evaporative_index(path_to_projections_85, Area_Catchment, Catchment_Name)
     #plot aboslute changes in aridity index
     scatter(aridity_future_45 - aridity_past45, color="blue")
     scatter!(aridity_future_85 - aridity_past85, color="red")
@@ -1194,6 +960,8 @@ function plot_changes_Budyko(path_to_projections_45, path_to_projections_85, Are
     plot!(circleShape(0,0,0.1), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
     plot!(circleShape(0,0,0.15), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
     plot!(circleShape(0,0,0.2), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.25), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.3), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
     for proj in 1:14
         change_vector_x = ones(nr_runs) * (aridity_future_45[proj] - aridity_past45[proj])
         change_vector_y = evaporative_future_45[1+(proj-1)*nr_runs: nr_runs*proj] - evaporative_past_45[1+(proj-1)*nr_runs: nr_runs*proj]
@@ -1211,6 +979,8 @@ function plot_changes_Budyko(path_to_projections_45, path_to_projections_85, Are
     plot!(circleShape(0,0,0.1), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
     plot!(circleShape(0,0,0.15), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
     plot!(circleShape(0,0,0.2), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.25), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
+    plot!(circleShape(0,0,0.3), lw=0.5, c= :grey, linecolor = :grey, legend=false, apsect_ratio = 1, size=(500,500))
     for proj in 1:14
         change_vector_x = ones(nr_runs) * (aridity_future_85[proj] - aridity_past85[proj])
         change_vector_y = evaporative_future_85[1+(proj-1)*nr_runs: nr_runs*proj] - evaporative_past_85[1+(proj-1)*nr_runs: nr_runs*proj]
@@ -1226,5 +996,3 @@ function plot_changes_Budyko(path_to_projections_45, path_to_projections_85, Are
     plot(rcp45, rcp85, size=(1200,600))
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Budyko/"*Catchment_Name*"_change_budyko4.5_8.5.png")
 end
-
-#plot_changes_Budyko(path_45, path_85, Area_Catchment_Palten, "Palten", 300)

@@ -59,6 +59,14 @@ function load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_
                 startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
                 endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
                 Temperature_Obs = Temperature_Array[startindex[1]:endindex[1]]
+        elseif Catchment_Name == "Montafon"
+                Temperature = CSV.read(local_path*"HBVModel/Montafon/prenner_tag_14200.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+                Temperature = dropmissing(Temperature)
+                Temperature_Array = Temperature.t / 10
+                Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
+                startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
+                endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
+                Temperature_Obs = Temperature_Array[startindex[1]:endindex[1]]
         else
                 Temperature = CSV.read(local_path*"HBVModel/"*Catchment_Name*"/"*path_to_temp_data*".csv", header=false, skipto = skip_to_temp, missingstring = "L\xfccke", decimal='.', delim = ';')
                 Temperature_Array = convert(Matrix, Temperature)
@@ -105,6 +113,11 @@ function load_temp_prec_projections(path, Catchment_Name, Area_Zones_Percent::Ar
                         Elevations_Catchment = Elevations(200.0, 600.0, 2600.0, 1265.0, 1265.0)
                         Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
                         # get the temperature data at the mean elevation to calculate the mean potential evaporation
+                        Temperature_Daily = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+                elseif Catchment_Name == "Defreggental"
+                        Mean_Elevation_Catchment =  2300 # in reality 2233.399986
+                        Elevations_Catchment = Elevations(200.0, 1000.0, 3600.0, 1385., 1385.)
+                        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
                         Temperature_Daily = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
                 end
                 All_Projections_Temperature = hcat(All_Projections_Temperature, Temperature_Daily)
@@ -426,31 +439,28 @@ end
 # Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
 # All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Gailtal, ID_Prec_Zones, 113597, startyear, endyear)
 
-# -------------------------- Defreggental -----------------
 
-# Catchment_Name = "Defreggental"
-# ID_Prec_Zones =  [17700, 114926]
-# Area_Zones = [235811198.0, 31497403.0]
-# ID_Temp = 17700
-# Area_Catchment = sum(Area_Zones)
-# Area_Zones_Percent_Defreggen = Area_Zones / Area_Catchment
-# startyear = 1986
-# endyear = 2005
-# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Defreggen, ID_Prec_Zones, ID_Temp, startyear, endyear)
+# --------------------------- Silbertal -------------------------
 
-# --------------------------- Montafon -------------------------
 
-# Catchment_Name = "IllSugadin"
+
+# skip_to_temp = 0
+# Skipto = [26]
+# Catchment_Name = "Silbertal"
 # ID_Prec_Zones = [100206]
+# Catchment_Name_Proj = "IllSugadin"
+# path_to_temp_data = "bla"
+# paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1])]
 # # size of the area of precipitation zones
 # Area_Zones = [102000000]
 # Area_Catchment = sum(Area_Zones)
 # ID_Temp = 14200
 # Area_Zones_Percent_Silbertal = Area_Zones / Area_Catchment
-# startyear = 1986
+# startyear = 1983
 # endyear = 2005
-# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Silbertal, ID_Prec_Zones, ID_Temp, startyear, endyear)
-#
+# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, "Montafon", Skipto, skip_to_temp, startyear, endyear)
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/", Catchment_Name_Proj, Area_Zones_Percent_Silbertal, ID_Prec_Zones, ID_Temp, startyear, endyear)
+
 
 # ------------- Paltental---------------------------------------------
 
@@ -591,19 +601,110 @@ function load_historic_data_palten()
         return Total_Precipitation, Temperature_Mean_Elevation, Timeseries
 end
 
-ID_Prec_Zones = [106120, 111815, 9900]
-# for projections temp at 106120 taken instead of 9900
-ID_Temp = 106120
-Area_Zones = [198175943.0, 56544073.0, 115284451.3]
-Area_Catchment = sum(Area_Zones)
-Area_Zones_Percent_Palten = Area_Zones / Area_Catchment
-startyear = 1981
-endyear = 2010
-Catchment_Name = "Palten"
-Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
+function load_historic_data_defreggental()
+        local_path = "/home/sarah/"
+        # ------------ CATCHMENT SPECIFIC INPUTS----------------
+        ID_Prec_Zones = [17700, 114926]
+        # size of the area of precipitation zones
+        Area_Zones = [235811198.0, 31497403.0]
+        Area_Catchment = sum(Area_Zones)
+        Area_Zones_Percent = Area_Zones / Area_Catchment
 
-Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten()
+        Mean_Elevation_Catchment =  2300 # in reality 2233.399986
+        Elevations_Catchment = Elevations(200.0, 1000.0, 3600.0, 1385., 1385.) # take temp at 17700
+        Sunhours_Vienna = [8.83, 10.26, 11.95, 13.75, 15.28, 16.11, 15.75, 14.36, 12.63, 10.9, 9.28, 8.43]
+        # where to skip to in data file of precipitation measurements
+        Skipto = [0, 24]
+        # get the areal percentage of all elevation zones in the HRUs in the precipitation zones
+        Areas_HRUs =  CSV.read(local_path*"HBVModel/Defreggental/HBV_Area_Elevation_round.csv", skipto=2, decimal='.', delim = ',')
+        # get the percentage of each HRU of the precipitation zone
+        Percentage_HRU = CSV.read(local_path*"HBVModel/Defreggental/HRU_Prec_Zones.csv", header=[1], decimal='.', delim = ',')
+        Elevation_Catchment = convert(Vector, Areas_HRUs[2:end,1])
+        startyear = 1983
+        endyear = 2005
+        scale_factor_Discharge = 0.65
+        # timeperiod for which model should be run (look if timeseries of data has same length)
+        Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
+        #------------ TEMPERATURE AND POT. EVAPORATION CALCULATIONS ---------------------
+
+        Temperature = CSV.read(local_path*"HBVModel/Defreggental/prenner_tag_17700.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
+
+        # get data for 20 years: from 1987 to end of 2006
+        # from 1986 to 2005 13669: 20973
+        #hydrological year 13577:20881
+        Temperature = dropmissing(Temperature)
+        Temperature_Array = Temperature.t / 10
+        Precipitation_17700 = Temperature.nied / 10
+        Timeseries_Temp = Date.(Temperature.datum, Dates.DateFormat("yyyymmdd"))
+        startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
+        endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
+        Temperature_Daily = Temperature_Array[startindex[1]:endindex[1]]
+        Dates_Temperature_Daily = Timeseries_Temp[startindex[1]:endindex[1]]
+        Precipitation_17700 = Precipitation_17700[startindex[1]:endindex[1]]
+        Precipitation_17700[findall(x -> x == -0.1, Precipitation_17700)] .= 0.0
+
+        #
+        # Dates_Temperature_Daily = Timeseries_Temp[startindex[1]:endindex[1]]
+        # Dates_missing_Temp = Dates_Temperature_Daily[findall(x-> x == 999.9, Temperature_Daily)]
+        # # get the temperature data at each elevation
+        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
+        # # get the temperature data at the mean elevation to calculate the mean potential evaporation
+        Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+        #Potential_Evaporation = getEpot_Daily_thornthwaite(Temperature_Mean_Elevation, Dates_Temperature_Daily, Sunhours_Vienna)
+        Total_Precipitation = zeros(length(Timeseries))
+        for i in 1: length(ID_Prec_Zones)
+                println(ID_Prec_Zones[i])
+                if ID_Prec_Zones[i] == 114926
+                        #print(ID_Prec_Zones[i])
+                        Precipitation = CSV.read(local_path*"HBVModel/Defreggental/N-Tagessummen-"*string(ID_Prec_Zones[i])*".csv", header= false, skipto=Skipto[i], missingstring = "L\xfccke", decimal=',', delim = ';')
+                        Precipitation_Array = convert(Matrix, Precipitation)
+                        startindex = findfirst(isequal("01.01."*string(startyear)*" 07:00:00   "), Precipitation_Array)
+                        endindex = findfirst(isequal("31.12."*string(endyear)*" 07:00:00   "), Precipitation_Array)
+                        Precipitation_Array = Precipitation_Array[startindex[1]:endindex[1],:]
+                        Precipitation_Array[:,1] = Date.(Precipitation_Array[:,1], Dates.DateFormat("d.m.y H:M:S   "))
+                        # find duplicates and remove them
+                        df = DataFrame(Precipitation_Array)
+                        df = unique!(df)
+                        # drop missing values
+                        df = dropmissing(df)
+                        Precipitation = convert(Vector, df[:,2])
+                elseif ID_Prec_Zones[i] == 17700
+                        Precipitation = Precipitation_17700
+                end
+                print(Area_Zones_Percent[i], typeof(Precipitation), "\n")
+                Total_Precipitation += Precipitation .* Area_Zones_Percent[i]
+        end
+        return Total_Precipitation, Temperature_Mean_Elevation, Timeseries
+end
+
+# ID_Prec_Zones = [106120, 111815, 9900]
+# # for projections temp at 106120 taken instead of 9900
+# ID_Temp = 106120
+# Area_Zones = [198175943.0, 56544073.0, 115284451.3]
+# Area_Catchment = sum(Area_Zones)
+# Area_Zones_Percent_Palten = Area_Zones / Area_Catchment
+# startyear = 1981
+# endyear = 2010
+# Catchment_Name = "Palten"
+# Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
+#
+# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten()
 #All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Palten, ID_Prec_Zones, ID_Temp, startyear, endyear)
+
+# -------------------------- Defreggental -----------------
+
+Catchment_Name = "Defreggental"
+ID_Prec_Zones =  [17700, 114926]
+Area_Zones = [235811198.0, 31497403.0]
+ID_Temp = 17700
+Area_Catchment = sum(Area_Zones)
+Area_Zones_Percent_Defreggen = Area_Zones / Area_Catchment
+startyear = 1983
+endyear = 2005
+Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_defreggental()
+All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Defreggen, ID_Prec_Zones, ID_Temp, startyear, endyear)
+
+
 
 # ---------------------- Feistritz ------------------
 # ID_Prec_Zones = [109967]
@@ -650,14 +751,14 @@ Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_pal
 # statistics_all_Zones = monthly_temp_statistics(Temperature_Observed, Timeseries)
 # for i in 1:14
 #         statistics_all_Zones_Proj = monthly_temp_statistics(All_Projections_Temp[:,i], Timeseries)
-#         plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal")
+#         plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Defreggental")
 # end
-
-# ------ PLOT PREC STATISTICS --------------
+#
+# #------ PLOT PREC STATISTICS --------------
 # statistics_all_Zones = monthly_storm_statistics(Precipitation_Observed, Timeseries)
 # for i in 1:14
 #         statistics_all_Zones_Proj = monthly_storm_statistics(All_Projections_Prec[:,i], Timeseries)
-#         plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Paltental")
+#         plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Defreggental")
 # end
 
-#plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Paltental", "8.5")
+plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Defreggental", "4.5")

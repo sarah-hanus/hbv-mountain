@@ -18,3 +18,8 @@ include("ObjectiveFunctions.jl")
 include("parameterselection.jl")
 # load running model in several precipitation zones
 include("runmodel_Prec_Zones.jl")
+
+function convertDischarge(Discharge, Area)
+        Discharge_mm = Discharge / Area * (24 * 3600 * 1000)
+        return Discharge_mm
+end

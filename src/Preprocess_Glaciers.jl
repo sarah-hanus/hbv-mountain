@@ -156,9 +156,13 @@ end
 
 #Glaciers_Pitztal = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Pitztal_69_06.csv", ',')
 
-Glaciers = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_100057_evolution_69_06.csv", ',')
+Glaciers = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061_evolution_69_06.csv", ',')
+println(size(Glaciers))
+
+Glaciers_Defreggen = readdlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_17700_evolution_69_06.csv", ',')
+println(size(Glaciers_Defreggen))
 #Areas_102046, sum_areas = linear_interpolation(Glaciers_102046)
-#writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061_evolution_69_06.csv", round.(Areas_102046, digits= 6), ',')
+#writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102046_evolution_69_06.csv", round.(Areas_102046, digits= 6), ',')
 #linear extrapolation
 
 function linear_extrapolation(Glaciers_Pitztal)
@@ -170,6 +174,7 @@ function linear_extrapolation(Glaciers_Pitztal)
         Timespan = Glaciers_Pitztal[1,29:end]
         Glacier_Area = Glaciers_Pitztal[1+i,29:end]
         Data = DataFrame([Timespan, Glacier_Area])
+        println(Data)
         rename!(Data, Symbol.(["Years", "Glacier_Area"]))
         # predicts values of dependend variables
         linearRegressor = lm(@formula(Glacier_Area ~ Years), Data)
@@ -177,7 +182,7 @@ function linear_extrapolation(Glaciers_Pitztal)
         append!(Interception, coeftable(linearRegressor).cols[1][1])
         append!(decline, coeftable(linearRegressor).cols[1][2])
         linearFit = predict(linearRegressor)
-        print(typeof(linearFit))
+        println(decline)
         linear_Fit_97_06 = hcat(linear_Fit_97_06, linearFit)
         #plot!(Timespan, linearFit)
     end
@@ -204,8 +209,14 @@ function linear_extrapolation(Glaciers_Pitztal)
     return total_linear_fit, decline
 end
 
-linear_total, decline = linear_extrapolation(Glaciers)
-writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_100057_69_15.csv", linear_total, ',')
+linear_total, decline = linear_extrapolation(float.(Glaciers[:,2:end]))
+# plot()
+# elevations = collect(1100:200:3500)
+# for i in 1:length(elevations)
+#     plot!(linear_total[1,:],linear_total[1+i,:], label=string(elevations[i]))
+# end
+#savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/decrease_glaciers.png")
+writedlm("/home/sarah/Master/Thesis/Data/Glaciers/Austrian_Glacier_Inventory_Gl3/Glaciers_Elevations_102061_evolution_69_15.csv", linear_total, ',')
 # plot()
 # for i in 1:10
 #     plot!(Glaciers_Pitztal[1,:], Glaciers_Pitztal[1+i,:], legend=false)

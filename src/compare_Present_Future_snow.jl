@@ -14,15 +14,15 @@ path_45 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rc
 Name_Projections_45 = readdir(path_45)
 path_85 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
 Name_Projections_85 = readdir(path_85)
-relative_error(future, initial) = (future - initial) ./ initial
 """
-Computes the mean yearly number of snow covered days at each elevation of the catchment for all 100 parameter sets.
+Computes the mean yearly number of snow covered days at each elevation of the catchment for all best parameter sets.
 
 $(SIGNATURES)
 
-The function returns the mean yearly number of snow covered days as an array (12x100) It takes as input the snow cover data, a timeseries and the elevation zones of the catchment.
+The function returns the mean yearly number of snow covered days as an array (12xnr_runs) It takes as input the snow cover data, a timeseries and the elevation zones of the catchment.
 """
 function snow_covered_days(Snow_Cover::Array{Float64,2}, Timeseries, Elevations, nr_runs)
+    # Snow_Cover is [elevations*runs, timeseries]
     Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
     Days_Snow_Cover = zeros(nr_runs*length(Elevations))
     #Date_max_Annual_Discharge = Float64[]
@@ -71,14 +71,12 @@ Computes the mean yearly number of snow covered days at each elevation of the ca
 
 $(SIGNATURES)
 
-The function returns the mean yearly number of snow covered days as an array (12x1400) It takes as input the path to the projection, the catchment name and the elvations of the catchment.
+The function returns the mean yearly number of snow covered days as an array (12x(14*nr_runs) It takes as input the path to the projection, the catchment name and the elvations of the catchment.
 """
 function snow_cover_days_projections(path_to_projections, Catchment_Name, Elevations_Catchment, nr_runs)
     Name_Projections = readdir(path_to_projections)
     Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
     Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
-
-    #Mean_Nr_Days_Snow_Past_All_Proj = zeros(5)#zeros(length(Elevations_Catchment))
     Mean_Nr_Days_Snow_Future_All_Proj = zeros(length(Elevations_Catchment))
 
     if path_to_projections[end-2:end-1] == "45"
@@ -90,7 +88,6 @@ function snow_cover_days_projections(path_to_projections, Catchment_Name, Elevat
         rcp="85"
         print(rcp, " ", path_to_projections)
     end
-    #println("name ",Name_Projections[1])
 
     for i in 13:14
         @time begin
@@ -98,43 +95,42 @@ function snow_cover_days_projections(path_to_projections, Catchment_Name, Elevat
         print("run ", i)
         println("name ", name, "\n")
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Snow_Cover_Past = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_snow_cover_past_2010.csv", ',')
-        #Snow_Cover_Future = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_snow_cover_future_2100.csv", ',')
-        Mean_Nr_Days_Snow_Past = snow_covered_days(Snow_Cover_Past, Timeseries_Past, Elevations_Catchment, nr_runs)
-        #Mean_Nr_Days_Snow_Future = snow_covered_days(Snow_Cover_Future, Timeseries_Future, Elevations_Catchment, nr_runs)
-        #Mean_Nr_Days_Snow_Past_All_Proj = hcat(Mean_Nr_Days_Snow_Past_All_Proj, Mean_Nr_Days_Snow_Past)
-        #Mean_Nr_Days_Snow_Future_All_Proj = hcat(Mean_Nr_Days_Snow_Future_All_Proj, Mean_Nr_Days_Snow_Future)
-        Mean_Nr_Days_Snow_Past = transpose(Mean_Nr_Days_Snow_Past)
-        #Mean_Nr_Days_Snow_Future = transpose(Mean_Nr_Days_Snow_Future)
+        #Snow_Cover_Past = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_snow_cover_past_2010.csv", ',')
+        Snow_Cover_Future = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_snow_cover_future_2100.csv", ',')
+        #Mean_Nr_Days_Snow_Past = snow_covered_days(Snow_Cover_Past, Timeseries_Past, Elevations_Catchment, nr_runs)
+        Mean_Nr_Days_Snow_Future = snow_covered_days(Snow_Cover_Future, Timeseries_Future, Elevations_Catchment, nr_runs)
+        #Mean_Nr_Days_Snow_Past = transpose(Mean_Nr_Days_Snow_Past)
+        Mean_Nr_Days_Snow_Future = transpose(Mean_Nr_Days_Snow_Future)
 
-        open("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_"*rcp*".csv", "a") do io
-                writedlm(io, Mean_Nr_Days_Snow_Past,",")
-        end
-        # open("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_"*rcp*".csv", "a") do io
-        #         writedlm(io, Mean_Nr_Days_Snow_Future,",")
+        # open("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_"*rcp*".csv", "a") do io
+        #         writedlm(io, Mean_Nr_Days_Snow_Past,",")
         # end
+        open("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_"*rcp*".csv", "a") do io
+                writedlm(io, Mean_Nr_Days_Snow_Future,",")
+        end
         end
     end
-    #return Mean_Nr_Days_Snow_Past_All_Proj[:,2:end], Mean_Nr_Days_Snow_Future_All_Proj[:,2:end]
 end
 
-Elevation_Gailtal = collect(500:200:2700)
-Elevation_Pitten = collect(500:200:1500)
-Elevation_Palten = collect(700:200:2500)
-# Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
-# Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
-#Snow_Cover_Past = readdlm(path*Name_Projections_45[1]*"/Gailtal/100_model_results_snow_cover_past_2010.csv", ',')
-#Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45 = snow_cover_days_projections(path_85, "Palten", Elevation_Palten, 300)
-#snow_cover_days_projections(path_45, "Gailtal", Elevation_Gailtal, 298)
+# Elevation_Gailtal = collect(500:200:2700)
+# Elevation_Pitten = collect(500:200:1500)
+# Elevation_Palten = collect(700:200:2500)
+Elevation_Silbertal = collect(700.0:200:2700.0)
+Elevation_Defreggental = collect(1100:200:3500)
+Elevation_Catchment = Elevation_Silbertal
+#Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+#Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+#snow_cover_days_projections(path_45, "IllSugadin", Elevation_Silbertal, 300)
 
-# Mean_Nr_Days_Snow_Past_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Palten/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_45.csv", ',')
-# Mean_Nr_Days_Snow_Future_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Palten/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_45.csv", ',')
-# Mean_Nr_Days_Snow_Past_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Palten/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_85.csv", ',')
-# Mean_Nr_Days_Snow_Future_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/Palten/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_85.csv", ',')
-# Mean_Nr_Days_Snow_Past_45 = transpose(Mean_Nr_Days_Snow_Past_45)
-# Mean_Nr_Days_Snow_Past_85 = transpose(Mean_Nr_Days_Snow_Past_85)
-# Mean_Nr_Days_Snow_Future_45 = transpose(Mean_Nr_Days_Snow_Future_45)
-# Mean_Nr_Days_Snow_Future_85 = transpose(Mean_Nr_Days_Snow_Future_85)
+Catchment_Name = "IllSugadin"
+Mean_Nr_Days_Snow_Past_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_45.csv", ',')
+Mean_Nr_Days_Snow_Future_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_45.csv", ',')
+Mean_Nr_Days_Snow_Past_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_85.csv", ',')
+Mean_Nr_Days_Snow_Future_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_85.csv", ',')
+Mean_Nr_Days_Snow_Past_45 = transpose(Mean_Nr_Days_Snow_Past_45)
+Mean_Nr_Days_Snow_Past_85 = transpose(Mean_Nr_Days_Snow_Past_85)
+Mean_Nr_Days_Snow_Future_45 = transpose(Mean_Nr_Days_Snow_Future_45)
+Mean_Nr_Days_Snow_Future_85 = transpose(Mean_Nr_Days_Snow_Future_85)
 
 """
 Plots the mean yearly number of snow covered days at each elevation of the catchment.
@@ -156,8 +152,6 @@ function plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,
     title!("Relative Change in Annual Number of Snow Days per Elevation in "*Catchment_Name)
     xticks!([1.5:2:length(Elevations_Catchment)*2-0.5;], string.(Elevations_Catchment))
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/"*Catchment_Name*"_rel_change.png")
-
-
     plot()
     for (i, elevation) in enumerate(Elevations_Catchment)
         boxplot!(Mean_Nr_Days_Snow_Future_45[i,:] - Mean_Nr_Days_Snow_Past_45[i,:], size=(2000,800), leg=false, color="blue")
@@ -167,7 +161,6 @@ function plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,
     title!("Absolute Change in Annual Number of Snow Days per Elevation in "*Catchment_Name)
     xticks!([1.5:2:length(Elevations_Catchment)*2-0.5;], string.(Elevations_Catchment))
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/"*Catchment_Name*"_abs_change.png")
-
     # plot true data
     plot()
     for (i, elevation) in enumerate(Elevations_Catchment)
@@ -217,7 +210,7 @@ function plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/"*Catchment_Name*"_rel_change_2.png")
 end
 
-#plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,  Mean_Nr_Days_Snow_Past_85, Mean_Nr_Days_Snow_Future_85, "Palten", Elevation_Palten)
+plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,  Mean_Nr_Days_Snow_Past_85, Mean_Nr_Days_Snow_Future_85, Catchment_Name, Elevation_Catchment)
 
 """
 Computes the mean yearly amount of snow melt as contribution to hydrological system in the timeseries.
@@ -251,10 +244,7 @@ function snow_contribution_yearly(Snow_Melt, Timeseries)
                                     end
 
         append!(Dates_Current_Year, Dates_Next_Year)
-        # the sum of the yearly precipitation stored as snow
         Snow_Contribution_Yearly = sum(Snow_Melt[indexin(Dates_Current_Year, Timeseries)])
-        # take the sum of yearly discharge in order to get relative contribution of melt to discharge
-        # discharge has to be converted to mm
         append!(Snow_Contribution_All_Years, Snow_Contribution_Yearly)
     end
     #because last years data only includes have the winter
@@ -312,7 +302,7 @@ $(SIGNATURES)
 
 It plots the relative and absolute change in snow melt and a figure comparing past to future snow melt.
 """
-function plot_snow_storage_contirbution(Snow_Storage_Past45, Snow_Storage_Future45, Snow_Storage_Past85, Snow_Storage_Future85, Catchment_Name)
+function plot_snow_storage_contribution(Snow_Storage_Past45, Snow_Storage_Future45, Snow_Storage_Past85, Snow_Storage_Future85, Catchment_Name)
     Farben45=palette(:blues)
     Farben85=palette(:reds)
     rcps = ["RCP 4.5", "RCP 8.5"]
@@ -359,26 +349,3 @@ function plot_snow_storage_contirbution(Snow_Storage_Past45, Snow_Storage_Future
     plot(relative_change, absolute_change, size=(2000,800), left_margin = [5mm 0mm])
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/"*Catchment_Name*"_snow_melt_past_future_new.png")
 end
-
-Snow_Storage_Past85, Snow_Storage_Future85 = snow_contribution_yearly_projections(path_85, "Palten")
-#Snow_Storage_Past45, Snow_Storage_Future45 = snow_contribution_yearly_projections(path_45, "Gailtal")
-#plot_snow_storage_contirbution(Snow_Storage_Past45, Snow_Storage_Future45, Snow_Storage_Past85, Snow_Storage_Future85, "Gailtal")
-
-
-# pyplot()
-#
-# fig, ax = plt.subplots()
-# #hold(True)
-# for (i, elevation) in enumerate(Elevation_Gailtal)
-#     bp = ax.boxplot(relative_error(Mean_Nr_Days_Snow_Future_85[i,:], Mean_Nr_Days_Snow_Past_85[i,:])*100)
-# end
-#plt.savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/rel_change_3.png")
-# path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
-# # 14 different projections
-# Name_Projections = readdir(path)
-# # run the model for all projections using the best 100 parameter sets
-# for (i, name) in enumerate(Name_Projections)
-#
-#     path*name*"/Gailtal/"
-#
-# (path_to_projection*"100_model_results_snow_cover_"*period*".csv"

@@ -30,6 +30,24 @@ endindex = findfirst(isequal("31.12."*string(endyear)*" 00:00:00"), Discharge)
 Observed_Discharge = Array{Float64,1}[]
 push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
 Observed_Discharge_Paltental = Observed_Discharge[1]
+
+Area_Catchment_Defreggental = sum([235811198.0, 31497403.0])
+Discharge = CSV.read("Defreggental/Q-Tagesmittel-212100.csv", header= false, skipto=26, decimal=',', delim = ';', types=[String, Float64])
+Discharge = convert(Matrix, Discharge)
+startindex = findfirst(isequal("01.01."*string(startyear)*" 00:00:00"), Discharge)
+endindex = findfirst(isequal("31.12."*string(endyear)*" 00:00:00"), Discharge)
+Observed_Discharge = Array{Float64,1}[]
+push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
+Observed_Discharge_Defreggental = Observed_Discharge[1]
+
+Area_Catchment_Silbertal = 100139168.
+Discharge = CSV.read("Silbertal/Q-Tagesmittel-200048.csv", header= false, skipto=24, decimal=',', delim = ';', types=[String, Float64])
+Discharge = convert(Matrix, Discharge)
+startindex = findfirst(isequal("01.01."*string(startyear)*" 00:00:00"), Discharge)
+endindex = findfirst(isequal("31.12."*string(endyear)*" 00:00:00"), Discharge)
+Observed_Discharge = Array{Float64,1}[]
+push!(Observed_Discharge, Discharge[startindex[1]:endindex[1],2])
+Observed_Discharge_Silbertal = Observed_Discharge[1]
 # transfer Observed Discharge to mm/d
 #Observed_Discharge = Observed_Discharge * 1000 / Area_Catchment * (3600 * 24)
 
@@ -149,10 +167,10 @@ end
 # path_45 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
 # path_85 = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
 #
-Magnitude, Timing = max_Annual_Discharge(Observed_Discharge_Paltental, Timeseries)
+Magnitude, Timing = max_Annual_Discharge(Observed_Discharge_Silbertal, Timeseries)
 Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
 Nr_Days_Year = Dates.daysinyear.(Years)
-AMF_circular_plot(Timing, convertDischarge(Magnitude, Area_Catchment_Palten), Nr_Days_Year, "Palten", 0)
+AMF_circular_plot(Timing, convertDischarge(Magnitude, Area_Catchment_Silbertal), Nr_Days_Year, "IllSugadin", 0)
 #max_Discharge_past, max_Discharge_future, Exceedance_Probability, Date_Past, Date_Future = change_max_Annual_Discharge_Prob_Distribution(path_85, "Gailtal")
 #
 # Timeseries = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
