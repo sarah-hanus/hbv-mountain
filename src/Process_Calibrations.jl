@@ -36,7 +36,7 @@ The functions takes a path with data and saves the combined data to the path_to_
 function combine_calibrations(path, path_to_save)
     all_calibrations = Array{Float64,2}[]
     total_saved = 0
-    all_calibrations = zeros((1,29))
+    all_calibrations = zeros((1,30))
     #files = readdir(path)
     files = filter(name -> endswith(name, ".csv"), readdir(path))
     for i in 1: length(files)
@@ -90,6 +90,54 @@ function calibration_statistics(path_to_file, number_best, lower_boundary_y_axis
     savefig(path_to_file[1:end_file+1]*string(number_best)*"_parameters1.png")
     plot(plots_par[13], plots_par[14], plots_par[15], plots_par[16], plots_par[17], plots_par[18], plots_par[19], plots_par[20], layout= (2,4), legend=false, size=(1400,1000))
     savefig(path_to_file[1:end_file+1]*string(number_best)*"_parameters2.png")
+    # scatter(ED_best, calibration_best[:,30], xlabel = "Euclidean Distance", ylabel= "loss parameter")
+    # savefig(path_to_file[1:end_file+1]*string(number_best)*"_loss_parameters.png")
+end
+
+function calibration_statistics_pitztal(path_to_file, number_best, lower_boundary_y_axis)
+    max_Obj = Float64[]
+    max_NSE = Float64[]
+    max_NSElog = Float64[]
+    max_VE = Float64[]
+    max_NSE_FDC = Float64[]
+    max_Reative_Error_AC_1day = Float64[]
+    max_NSE_AC_90day = Float64[]
+    max_Relative_Error_Runoff = Float64[]
+    max_Snow_Cover = Float64[]
+    end_file = findlast(isequal('t'), path_to_file)
+    names_obj = ["NSE", "NSElog", "VE", "NSE_FDC", "Reative_Error_AC_1day", "NSE_AC_90day", "NSE_Runoff", "Snow_Cover"]
+    Parameters = ["beta_Bare", "beta_Forest", "beta_Grass", "beta_Rip", "Ce", "Interceptioncapacity_Forest", "Interceptioncapacity_Grass", "Interceptioncapacity_Rip", "Kf_Rip", "Kf", "Ks", "Meltfactor", "Mm", "Ratio_Pref", "Ratio_Riparian", "Soilstoaragecapacity_Bare", "Soilstoaragecapacity_Forest", "Soilstoaragecapacity_Grass", "Soilstoaragecapacity_Rip", "Temp_Thresh", "loss_term"]
+    #Objective_Functions = [max_NSE, max_NSElog, max_VE, max_NSE_FDC, max_Reative_Error_AC_1day, max_NSE_AC_90day, max_Relative_Error_Runoff, max_Snow_Cover]
+    # get array with all calibtation data
+    calibration = readdlm(path_to_file, ',')
+    # sort the calibration according to the euclidean distance
+    calibration_sorted = sortslices(calibration, dims=1)
+    #number_best = 10
+    calibration_best = calibration_sorted[1:number_best,:]
+    ED_best = calibration_best[:,1]
+    plots_obj = []
+    for i in 1:8
+        scatter(ED_best, calibration_best[:,i+1], xlabel = "Euclidean Distance", ylabel= names_obj[i])
+        push!(plots_obj, scatter(ED_best, calibration_best[:,i+1], xlabel = "Euclidean Distance", ylabel= names_obj[i]))
+    end
+    plot(plots_obj[1], plots_obj[2], plots_obj[3], plots_obj[4], plots_obj[5], plots_obj[6], plots_obj[7], plots_obj[8], layout= (2,4), legend = false, size=(1400,800))
+    #ylims!(lower_boundary_y_axis,1)
+    savefig(path_to_file[1:end_file+1]*string(number_best)*"_objective_functions.png")
+    #plot the parameter distribution
+    plots_par = []
+    for i in 1:21
+        scatter(ED_best, calibration_best[:,i+9], xlabel = "Euclidean Distance", ylabel= string(Parameters[i]))
+        push!(plots_par, scatter(ED_best, calibration_best[:,i+9], xlabel = "Euclidean Distance", ylabel= Parameters[i]))
+    end
+    print(size(plots_par), typeof(plots_par))
+    plot(plots_par[1], plots_par[2], plots_par[3], plots_par[4], plots_par[5], plots_par[6], plots_par[7], plots_par[8], plots_par[9], plots_par[10], plots_par[11], plots_par[12], layout= (3,4), legend=false, size=(1400,1000))
+    savefig(path_to_file[1:end_file+1]*string(number_best)*"_parameters1.png")
+    plot(plots_par[13], plots_par[14], plots_par[15], plots_par[16], plots_par[17], plots_par[18], plots_par[19], plots_par[20], layout= (2,4), legend=false, size=(1400,1000))
+    savefig(path_to_file[1:end_file+1]*string(number_best)*"_parameters2.png")
+    plot(plots_par[21])
+    savefig(path_to_file[1:end_file+1]*string(number_best)*"_loss_parameter.png")
+    # scatter(ED_best, calibration_best[:,30], xlabel = "Euclidean Distance", ylabel= "loss parameter")
+    # savefig(path_to_file[1:end_file+1]*string(number_best)*"_loss_parameters.png")
 end
 
 function projections_statistics(path_to_file)
@@ -122,7 +170,7 @@ function boxplot_projection(path_to_calibration, path, number_best, Catchment_Na
     # run the model for all projections using the best 100 parameter sets
     All_Obj_Functions = Array{Float64,2}[]
     for (i, name) in enumerate(Name_Projections)
-            getData = readdlm(path*name*"/Pitten/300_model_results_1986_2005.csv",',')
+            getData = readdlm(path*name*"/IllSugadin/300_model_results_1986_2005.csv",',')
             push!(All_Obj_Functions, getData[1:number_best,1:9])
     end
 
@@ -235,26 +283,26 @@ function plot_FDC(path)
 
 end
 
-#boxplot_projection("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_300.csv", "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", 300, "Feistritz")
+#boxplot_projection("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", 300, "Pitztal")
 #Modelled_Discharge_Observations = plot_FDC("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
 
 
 
 
 # #----------------- COMBINE RESULTS OF ONE DEVICE-------------
-#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/best100000_run_mm/", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_runs_best_100000_mm.csv")
+#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs.csv")
 # --------------- STORE BEST PARAMETER SETS ---------------------
-#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_best_10000_unique.csv", 1000)
+#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_100000.csv", 300)
 # -------------- GET STATISTICS -------
 
-#calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_best_10000_unique.csv", 300, 0.7)
+calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 300, 0.7)
 
-#Palten_parameters = readdlm("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_best_proj.csv", ',')
-
-#Palten_uniqeu = unique(DataFrame(Palten_parameters))
-# test2 = convert(Vector, Palten_uniqeu[:,1])
+# Defreggen_parameters = readdlm("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_10000.csv", ',')
+# #
+# Params_unique = unique(DataFrame(Defreggen_parameters))
+# test2 = convert(Vector, Params_unique[:,1])
 # sort!(test2)
-# writedlm("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique2.csv", test2, ',')
+# # writedlm("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique2.csv", test2, ',')
 
 function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)
     calibration = readdlm(path_to_file, ',')
@@ -273,10 +321,10 @@ function EC_calibration(path_to_file, lower_threshold, upper_threshold, nr_runs)
     scatter(threshold_values, number_values/nr_runs * 100 , size=(1400,800))
     xlabel!("Euclidean Distance")
     ylabel!("Percent of Runs below the Euclidean Distance")
-    savefig(path_to_file[1:end-4]* "_compare_ED_small.png")
+    savefig(path_to_file[1:end-4]* "_compare_ED.png")
 end
 
-#EC_calibration("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_runs_best_100000_mm.csv", 0.17, 0.30, 3350000)
+#EC_calibration("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs.csv", 0.09, 0.3, 3000002)
 
 
 

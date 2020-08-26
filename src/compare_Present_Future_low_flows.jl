@@ -780,6 +780,206 @@ function compare_hydrological_drought(path_to_projections, Threshold, season, Ar
     return Drought_Statistics
 end
 
+function monthly_days_Q90(path_to_projections, Threshold, Area_Catchment, Catchment_Name)
+    Threshold = convertDischarge(Threshold, Area_Catchment)
+    Name_Projections = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    #Threshold = convertDischarge(Threshold, Area_Catchment)
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    Nr_Dates_Low_Flows_Past = zeros(12)
+    Nr_Dates_Low_Flows_Future = zeros(12)
+    Deficit_Low_Flows_Past = zeros(12)
+    Deficit_Low_Flows_Future = zeros(12)
+    for (i, name) in enumerate(Name_Projections)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = convertDischarge(Past_Discharge, Area_Catchment)
+        Future_Discharge = convertDischarge(Future_Discharge, Area_Catchment)
+        for run in 1:size(Past_Discharge)[1]
+            Current_Dates_Low_Flows_Past = Timeseries[findall(x->x < Threshold, Past_Discharge[run,:])]
+            Current_Dates_Low_Flows_Future = Timeseries[findall(x->x < Threshold, Future_Discharge[run,:])]
+            Current_Low_Flows_Past = Past_Discharge[run,:][findall(x->x < Threshold, Past_Discharge[run,:])]
+            Current_Low_Flows_Future = Future_Discharge[run,:][findall(x->x < Threshold, Future_Discharge[run,:])]
+            # get monthly mean value
+            nr_low_flow_days_year_past = Float64[]
+            nr_low_flow_days_year_future = Float64[]
+            deficit_low_flows_past_monthly = Float64[]
+            deficit_low_flows_future_monthly = Float64[]
+            for current_month in 1:12
+                append!(nr_low_flow_days_year_past, length(findall(x->Dates.month(x) == current_month, Current_Dates_Low_Flows_Past)) / 30)
+                append!(nr_low_flow_days_year_future, length(findall(x->Dates.month(x) == current_month, Current_Dates_Low_Flows_Future)) / 30)
+                Current_Month_Low_Flows_Past = Current_Low_Flows_Past[findall(x->Dates.month(x) == current_month, Current_Dates_Low_Flows_Past)]
+                Current_Month_Low_Flows_Future = Current_Low_Flows_Future[findall(x->Dates.month(x) == current_month, Current_Dates_Low_Flows_Future)]
+                append!(deficit_low_flows_past_monthly, sum(Threshold .- Current_Month_Low_Flows_Past) / 30)
+                append!(deficit_low_flows_future_monthly, sum(Threshold .- Current_Month_Low_Flows_Future) / 30)
+            end
+            Nr_Dates_Low_Flows_Past = hcat(Nr_Dates_Low_Flows_Past, nr_low_flow_days_year_past)
+            Nr_Dates_Low_Flows_Future = hcat(Nr_Dates_Low_Flows_Future, nr_low_flow_days_year_future)
+            Deficit_Low_Flows_Past = hcat(Deficit_Low_Flows_Past, deficit_low_flows_past_monthly)
+            Deficit_Low_Flows_Future = hcat(Deficit_Low_Flows_Future, deficit_low_flows_future_monthly)
+        end
+    end
+    return Nr_Dates_Low_Flows_Past[:, 2:end], Nr_Dates_Low_Flows_Future[:,2:end], Deficit_Low_Flows_Past[:,2:end], Deficit_Low_Flows_Future[:,2:end]
+end
+
+function plot_monthly_low_flows(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought_monthly_future_45, Nr_Days_Drought_monthly_past_85, Nr_Days_Drought_monthly_future_85, Catchment_Name, nr_runs)
+    Farben = palette(:tab20)
+
+    xaxis_45 = collect(1:2:23)
+    xaxis_85 = collect(2:2:24)
+
+    plot()
+    Farben_85 = palette(:reds)
+    Farben_45 = palette(:blues)
+    months = repeat([1,2,3,4,5,6,7,8,9,10,11,12],14*nr_runs)
+    for month in 1:12
+        boxplot!([xaxis_45[month]],Nr_Days_Drought_monthly_past_45[findall(x-> x == month, months)] , size=(2000,800), leg=false, color=[Farben_45[1]], alpha=0.8)
+        boxplot!([xaxis_85[month]],Nr_Days_Drought_monthly_future_45[findall(x-> x == month, months)], size=(2000,800), leg=false, color=[Farben_45[2]], left_margin = [5mm 0mm])
+    end
+    ylabel!("Mean Nr of Days below Q90")
+    title!("Nr of Low Flow Days RCP 4.5 (Past=light, Future=dark)")
+    ylims!((0,25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_low_flows_45.png")
+
+    plot()
+    for month in 1:12
+        boxplot!([xaxis_45[month]],Nr_Days_Drought_monthly_past_85[findall(x-> x == month, months)] , size=(2000,800), leg=false, color=[Farben_85[1]], alpha=0.8)
+        boxplot!([xaxis_85[month]],Nr_Days_Drought_monthly_future_85[findall(x-> x == month, months)], size=(2000,800), leg=false, color=[Farben_85[2]], left_margin = [5mm 0mm])
+    end
+    ylabel!("Mean Nr of Days below Q90")
+    title!("Nr of Low Flow Days RCP 8.5 (Past=light, Future=dark)")
+    ylims!((-0, 25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_low_flows_85.png")
+
+    # ------------------- ABSOLUTE CHANGES -------------------
+
+    plot()
+    for month in 1:12
+        boxplot!([xaxis_45[month]], Nr_Days_Drought_monthly_future_45[findall(x-> x == month, months)] - Nr_Days_Drought_monthly_past_45[findall(x-> x == month, months)], size=(2000,800), leg=false, color="blue")
+        boxplot!([xaxis_85[month]],Nr_Days_Drought_monthly_future_85[findall(x-> x == month, months)] - Nr_Days_Drought_monthly_past_85[findall(x-> x == month, months)], size=(2000,800), leg=false, color="red", left_margin = [5mm 0mm])
+    end
+    hline!([0], color=["grey"], linestyle = :dash)
+    ylabel!("Change in Mean Nr of Days below Q90")
+    title!("Absolute Change in Nr of Low Flow Days (RCP 4.5=blue, RCP 8.5=red)")
+    ylims!((-15,25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_monthly_low_flows.png")
+
+    plot()
+    for month in 1:12
+        violin!([xaxis_45[month]], Nr_Days_Drought_monthly_future_45[findall(x-> x == month, months)] - Nr_Days_Drought_monthly_past_45[findall(x-> x == month, months)], size=(2000,800), leg=false, color="blue")
+        violin!([xaxis_85[month]],Nr_Days_Drought_monthly_future_85[findall(x-> x == month, months)] - Nr_Days_Drought_monthly_past_85[findall(x-> x == month, months)], size=(2000,800), leg=false, color="red", left_margin = [5mm 0mm])
+    end
+    hline!([0], color=["grey"], linestyle = :dash)
+    ylabel!("Change in Mean Nr of Days below Q90")
+    title!("Absolute Change in Nr of Low Flow Days (RCP 4.5=blue, RCP 8.5=red)")
+    ylims!((-15,25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_monthly_low_flows_violin.png")
+
+    # ------------------- RELATIVE CHANGES -------------------
+
+    # plot()
+    # for month in 1:12
+    #     boxplot!([xaxis_45[month]], relative_error(Nr_Days_Drought_monthly_future_45[findall(x-> x == month, months)], Nr_Days_Drought_monthly_past_45[findall(x-> x == month, months)]), size=(2000,800), leg=false, color="blue")
+    #     boxplot!([xaxis_85[month]],relative_error(Nr_Days_Drought_monthly_future_85[findall(x-> x == month, months)], Nr_Days_Drought_monthly_past_85[findall(x-> x == month, months)]), size=(2000,800), leg=false, color="red", left_margin = [5mm 0mm])
+    # end
+    # hline!([0], color=["grey"], linestyle = :dash)
+    # ylabel!("Change in Mean Nr of Days below Q90 [%]")
+    # title!("Relative Change in Nr of Low Flow Days (RCP 4.5=blue, RCP 8.5=red)")
+    # #ylims!((-0.8,1.1))
+    # #hline!([0], color=["grey"], linestyle = :dash)
+    # xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    # #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_relative_change_monthly_low_flows.png")
+end
+
+function plot_monthly_deficit(Deficit_monthly_past_45, Deficit_monthly_future_45, Deficit_monthly_past_85, Deficit_monthly_future_85, Catchment_Name, nr_runs)
+    Farben = palette(:tab20)
+
+    xaxis_45 = collect(1:2:23)
+    xaxis_85 = collect(2:2:24)
+
+    plot()
+    Farben_85 = palette(:reds)
+    Farben_45 = palette(:blues)
+    months = repeat([1,2,3,4,5,6,7,8,9,10,11,12],14*nr_runs)
+    for month in 1:12
+        boxplot!([xaxis_45[month]],Deficit_monthly_past_45[findall(x-> x == month, months)] , size=(2000,800), leg=false, color=[Farben_45[1]], alpha=0.8)
+        boxplot!([xaxis_85[month]],Deficit_monthly_future_45[findall(x-> x == month, months)], size=(2000,800), leg=false, color=[Farben_45[2]], left_margin = [5mm 0mm])
+    end
+    ylabel!("Mean Deficit [mm]")
+    title!("Mean Discharge Deficit based on Q90 RCP 4.5 (Past=light, Future=dark)")
+    #ylims!((0,25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_deficit_45.png")
+
+    plot()
+    for month in 1:12
+        boxplot!([xaxis_45[month]],Deficit_monthly_past_85[findall(x-> x == month, months)] , size=(2000,800), leg=false, color=[Farben_85[1]], alpha=0.8)
+        boxplot!([xaxis_85[month]],Deficit_monthly_future_85[findall(x-> x == month, months)], size=(2000,800), leg=false, color=[Farben_85[2]], left_margin = [5mm 0mm])
+    end
+    ylabel!("Mean Deficit [mm]")
+    title!("Mean Discharge Deficit based on Q90 RCP 8.5 (Past=light, Future=dark)")
+    #ylims!((-0, 25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_deficit_85.png")
+
+    # ------------------- ABSOLUTE CHANGES -------------------
+
+    plot()
+    for month in 1:12
+        boxplot!([xaxis_45[month]], Deficit_monthly_future_45[findall(x-> x == month, months)] - Deficit_monthly_past_45[findall(x-> x == month, months)], size=(2000,800), leg=false, color="blue")
+        boxplot!([xaxis_85[month]],Deficit_monthly_future_85[findall(x-> x == month, months)] - Deficit_monthly_past_85[findall(x-> x == month, months)], size=(2000,800), leg=false, color="red", left_margin = [5mm 0mm])
+    end
+    hline!([0], color=["grey"], linestyle = :dash)
+    ylabel!("Change in Mean Deficit [mm]")
+    title!("Absolute Change inMean Discharge Deficit based on Q90 (RCP 4.5=blue, RCP 8.5=red)")
+    #ylims!((-15,25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_deficit.png")
+
+    plot()
+    for month in 1:12
+        violin!([xaxis_45[month]], Deficit_monthly_future_45[findall(x-> x == month, months)] - Deficit_monthly_past_45[findall(x-> x == month, months)], size=(2000,800), leg=false, color="blue")
+        violin!([xaxis_85[month]],Deficit_monthly_future_85[findall(x-> x == month, months)] - Deficit_monthly_past_85[findall(x-> x == month, months)], size=(2000,800), leg=false, color="red", left_margin = [5mm 0mm])
+    end
+    hline!([0], color=["grey"], linestyle = :dash)
+    ylabel!("Change in Mean Deficit [mm]")
+    title!("Absolute Change in Mean Discharge Deficit based on Q90 (RCP 4.5=blue, RCP 8.5=red)")
+    #ylims!((-15,25))
+    #hline!([0], color=["grey"], linestyle = :dash)
+    xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+    #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_deficit_violin.png")
+end
+
 # function plot_drought_statistics_yearly(Drought_45, Drought_85, Threshold, Catchment_Name, season)
 #     rcps = ["RCP 4.5", "RCP 8.5"]
 #     # plot change in Number of Drought days in year

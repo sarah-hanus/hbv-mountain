@@ -23,3 +23,9 @@ function convertDischarge(Discharge, Area)
         Discharge_mm = Discharge / Area * (24 * 3600 * 1000)
         return Discharge_mm
 end
+
+function loss(Discharge, loss_parameter)
+      loss = loss_parameter .* Discharge.^2
+      loss[loss.>12.1] .= 12.1
+      return loss
+end

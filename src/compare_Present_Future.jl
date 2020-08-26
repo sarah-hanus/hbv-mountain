@@ -133,6 +133,13 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
         Mean_Elevation_Catchment = 1700
         Temp_Elevation = 670.
         Elevations_Catchment = Elevations(200.0, 600.0, 2800.0, Temp_Elevation, Temp_Elevation)
+    elseif Catchment_Name == "Pitztal"
+        ID_Prec_Zones = [102061, 102046]
+        Area_Zones = [20651736.0, 145191864.0]
+        ID_temp = 14620
+        Mean_Elevation_Catchment =  2500 # in reality 2233.399986
+        Temp_Elevation = 1410.
+        Elevations_Catchment = Elevations(200.0, 1200.0, 3800.0, Temp_Elevation, Temp_Elevation)
     end
     Area_Catchment = sum(Area_Zones)
     Area_Zones_Percent = Area_Zones / Area_Catchment
@@ -193,6 +200,8 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
             append!(average_monthly_Precipitation_future, current_Month_Precipitation_future)
         end
     end
+    println("yearly prec past", sum(average_monthly_Precipitation_past)/14)
+    println("yearly prec past", sum(average_monthly_Precipitation_future)/14)
     #----------- PLOTS PRECIPITATION------------------------
     xaxis_1 = collect(1:2:23)
     xaxis_2 = collect(2:2:24)
@@ -294,8 +303,8 @@ function change_monthly_Discharge(path_to_projections, Catchment_Name)
     all_months_all_runs = Float64[]
     for (i, name) in enumerate(Name_Projections_45)
         Timeseries_Future_45 = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_20100_without_loss.csv", ',')
         println(size(Past_Discharge_45)[1])
         for run in 1:size(Past_Discharge_45)[1]
             # computes mean monthly discharge of each month
@@ -324,12 +333,12 @@ Calculates the mean annual discharge using the monthly Discharge that is already
 $(SIGNATURES)
 
 """
-function annual_discharge_new(monthly_Discharge_past, monthly_Discharge_future, Area_Catchment)
+function annual_discharge_new(monthly_Discharge_past, monthly_Discharge_future, Area_Catchment, nr_runs)
     yearly_discharge_past = Float64[]
     yearly_discharge_future = Float64[]
     relative_change = Float64[]
     days_in_month = [31,28.25, 31,30,31, 30, 31, 31, 30, 31, 30,31]
-    for run in 1: 14*300
+    for run in 1: 14*nr_runs
         current_average_yearly_discharge_past = sum(monthly_Discharge_past[1+((run-1)*12):run*12] .* days_in_month)
         current_average_yearly_discharge_future = sum(monthly_Discharge_future[1+((run-1)*12):run*12] .* days_in_month)
         current_relative_change = relative_error(current_average_yearly_discharge_future, current_average_yearly_discharge_past)
@@ -435,12 +444,15 @@ function plot_changes_monthly_discharge_mm(Monthly_Discharge_past_45, Monthly_Di
         boxplot!([xaxis_85[month]],Monthly_Discharge_future_85[findall(x-> x == month, months_45)] - Monthly_Discharge_past_85[findall(x-> x == month, months_45)], size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
     end
     ylabel!("Change in Average monthly Discharge [mm/d]")
-    title!("Absolute Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
-    #ylims!((-0.8,1.1))
+    #title!("Absolute Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
+    title!(Catchment_Name)
+    ylims!((-3.5,3))
+    yticks!([-3.5:0.5:3;])
+    hline!([0], color=["grey"], linestyle = :dash)
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_absolute_change_monthly_discharge4.5_8.5_mm.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_absolute_change_monthly_discharge4.5_8.5_mm_scaled.png")
 
     # --------- PLOT VALUES PAST VS FUTURE ---------------------
     plot()
@@ -476,14 +488,19 @@ function plot_changes_monthly_discharge_mm(Monthly_Discharge_past_45, Monthly_Di
         boxplot!([xaxis_85[month]],relative_error(Monthly_Discharge_future_85[findall(x-> x == month, months_45)], Monthly_Discharge_past_85[findall(x-> x == month, months_45)])*100, size=(2000,800), leg=false, color=["red"], left_margin = [5mm 0mm])
     end
     ylabel!("Relative Change in Average monthly Discharge [%]", yguidefontsize=20)
-    title!("Relative Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
+    #title!("Relative Change in Discharge RCP 4.5 =blue, RCP 4.5 = red")
+    title!(Catchment_Name)
     boxplot!(left_margin = [5mm 0mm], bottom_margin = 20px, xtickfont = font(20), ytickfont = font(20))
-    #ylims!((-0.8,1.1))
+    ylims!((-100,275))
+    yticks!([-100:25:275;])
     hline!([0], color=["grey"], linestyle = :dash)
+    hline!([100], color=["grey"], linestyle = :dash)
+    hline!([50], color=["grey"], linestyle = :dash)
+    hline!([-25], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
 
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_relative_change_monthly_discharge4.5_8.5_mm.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/"*Catchment_Name*"_relative_change_monthly_discharge4.5_8.5_scaled.png")
 end
 
 function plot_change_total_discharge(path_to_projections_45, path_to_projections_85, Name_Catchment, Area_Catchment)
@@ -496,8 +513,8 @@ function plot_change_total_discharge(path_to_projections_45, path_to_projections
     Total_Discharge_Past_85 = Float64[]
     Total_Discharge_Future_85 = Float64[]
     for (i, name) in enumerate(Name_Projections_45)
-        Past_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/0.01_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/0.01_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/300_model_results_discharge_future_2100.csv", ',')
         # get FDCs from each discharge
         for run in 1: size(Past_Discharge)[1]
             # for each run get the total discharge
@@ -510,8 +527,8 @@ function plot_change_total_discharge(path_to_projections_45, path_to_projections
         end
     end
     for (i, name) in enumerate(Name_Projections_85)
-        Past_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"/0.01_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"/0.01_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"300__model_results_discharge_future_2100.csv", ',')
         # get FDCs from each discharge
         for run in 1: size(Past_Discharge)[1]
             # for each run get the total discharge
@@ -663,9 +680,12 @@ function plot_change_annual_discharge(relative_change_45, Total_Discharge_Past_4
     boxplot!([rcps[2]], relative_change_85*100, size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]])
     violin!([rcps[1]], relative_change_45*100, size=(2000,800), leg=false, color=[Farben45[2]], alpha=0.6)
     violin!([rcps[2]], relative_change_85*100,size=(2000,800), left_margin = [5mm 0mm], leg=false, color=[Farben85[2]], alpha=0.6)
+    ylims!((-35,35))
+    yticks!([-35:5:35;])
+    hline!([0], color=["grey"], linestyle = :dash)
     ylabel!("Relative Change in Average Annual Discharge [%]")
     title!("Relative Change in Average Annual Discharge in "*Catchment_Name)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Discharge/"*Catchment_Name*"_Relative_Change_Annual_Discharge.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Discharge/"*Catchment_Name*"_Relative_Change_Annual_Discharge_scaled.png")
     #plot absolut change
     plot()
     boxplot!([rcps[1]], Total_Discharge_Future_45 - Total_Discharge_Past_45, size=(2000,800), leg=false, color=[Farben45[2]])
@@ -850,6 +870,8 @@ function aridity_evaporative_index(path_to_projections, Area_Catchment, Catchmen
     Evaporative_Index_future_all_runs = Float64[] # will be 100x14
     Aridity_Index_past = Float64[] # will be 14 long
     Aridity_Index_future = Float64[] # will be 14 long
+    Past_Precipitation_all_runs = Float64[]
+    Future_Precipitation_all_runs = Float64[]
     if path_to_projections[end-2:end-1] == "45"
         index = 1
         rcp = "45"
@@ -861,18 +883,23 @@ function aridity_evaporative_index(path_to_projections, Area_Catchment, Catchmen
     end
     for (i, name) in enumerate(Name_Projections)
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_20100_without_loss.csv", ',')
         Past_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_past_2010.csv", ',')
         Future_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_future_2100.csv", ',')
         Past_Epot = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_epot_past_2010.csv", ',')
         Future_Epot = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_epot_future_2100.csv", ',')
-
+        println("mean Epot", mean(Past_Epot))
+        println("mean prec", mean(Past_Precipitation))
         Current_Aridity_Index_past = mean(Past_Epot) / mean(Past_Precipitation)
         Current_Aridity_Index_future = mean(Future_Epot) / mean(Future_Precipitation)
         append!(Aridity_Index_past, Current_Aridity_Index_past)
         append!(Aridity_Index_future, Current_Aridity_Index_future)
+        append!(Past_Precipitation_all_runs, mean(Past_Precipitation))
+        append!(Future_Precipitation_all_runs, mean(Future_Precipitation))
         println(size(Past_Discharge)[1])
+        # if Catchment_Name == "Pitztal"
+        #     Past_Discharge =
         for run in 1:size(Past_Discharge)[1]
             Evaporative_Index_past = 1 - mean(convertDischarge(Past_Discharge[run,:], Area_Catchment)) / mean(Past_Precipitation)
             Evaporative_Index_future = 1 - mean(convertDischarge(Future_Discharge[run,:], Area_Catchment))/ mean(Future_Precipitation)
@@ -880,7 +907,7 @@ function aridity_evaporative_index(path_to_projections, Area_Catchment, Catchmen
             append!(Evaporative_Index_future_all_runs, Evaporative_Index_future)
         end
     end
-    return Aridity_Index_past, Aridity_Index_future, Evaporative_Index_past_all_runs, Evaporative_Index_future_all_runs
+    return Aridity_Index_past, Aridity_Index_future, Evaporative_Index_past_all_runs, Evaporative_Index_future_all_runs, Past_Precipitation_all_runs, Future_Precipitation_all_runs
 end
 """
 Plots the catchment in the Budyko framework (past and future for RCP 4.5 and RCP 8.5).
@@ -893,6 +920,8 @@ function plot_Budyko(Aridity_Index_past_45, Aridity_Index_future_45, Evaporative
     # aridity past and future each 14 elements
     # evaporative index each 1400 elements
     Name_Projections = readdir(path_to_projections)
+    budyko_wrong45 = []
+    budyko_wrong85 = []
     for proj in 1:14
         plot(collect(0:1),collect(0:1), color="darkblue", label="Energy Limit")
         plot!(collect(1:5), ones(5), color="lightblue", label="Water Limit")
@@ -904,10 +933,17 @@ function plot_Budyko(Aridity_Index_past_45, Aridity_Index_future_45, Evaporative
         plot!(Epot_Prec, Budyko_Eact_P, label="Budyko", color="grey")
         xlabel!("Epot/P")
         ylabel!("Eact/P")
+        vline!([0.406])
         #xlims!((0,1))
         ylims!((0,1))
         savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Budyko/"*Catchment_Name*"_budykoframework"*string(Name_Projections[proj])*".png")
+        # difference_epot_eact = Aridity_Index_past_45[proj] .- Evaporative_Index_past_45[1+(proj-1)*nr_runs: nr_runs*proj]
+        # difference_epot_eact85 = Aridity_Index_past_85[proj] .- Evaporative_Index_past_85[1+(proj-1)*nr_runs: nr_runs*proj]
+        # append!(budyko_wrong45, findall(x->x <0, difference_epot_eact))
+        # append!(budyko_wrong85, findall(x->x <0, difference_epot_eact85))
+
     end
+    #return budyko_wrong45, budyko_wrong85
 end
 
 

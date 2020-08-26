@@ -320,15 +320,15 @@ function plot_Max_Flows(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, 
         savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_"*string(Name_Projections_45[proj])*".png")
     end
     # plot flows of all projections combined
-    boxplot(Max_Flows_past45, color=[Farben45[1]])
-    boxplot!(Max_Flows_future45,color=[Farben45[2]])
-    boxplot!(Max_Flows_past85, color=[Farben85[1]])
-    boxplot!(Max_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    boxplot(Max_Flows_past45, notch=true, color=[Farben45[1]])
+    boxplot!(Max_Flows_future45,notch=true, color=[Farben45[2]])
+    boxplot!(Max_Flows_past85, notch=true, color=[Farben85[1]])
+    boxplot!(Max_Flows_future85, notch=true, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
     xticks!([1:4;], ["Past", "Future 4.5", "Future 8.5"])
     ylabel!("Mean annual maximum yearly Discharge [m³/s]")
     #ylims!((40,100))
     title!("Annual Maximum Discharge")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_notch.png")
 
     #absolute and relative decrease
     boxplot(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
@@ -374,15 +374,15 @@ function plot_Max_Flows(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, 
     Max_Flows_future45 = convertDischarge(Max_Flows_future45, Area_Catchment)
     Max_Flows_past85 = convertDischarge(Max_Flows_past85, Area_Catchment)
     Max_Flows_future85 = convertDischarge(Max_Flows_future85, Area_Catchment)
-    boxplot(Max_Flows_past45, color=[Farben45[1]])
-    boxplot!(Max_Flows_future45,color=[Farben45[2]])
-    boxplot!(Max_Flows_past85, color=[Farben85[1]])
-    boxplot!(Max_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    boxplot(Max_Flows_past45, notch=true, color=[Farben45[1]])
+    boxplot!(Max_Flows_future45, notch=true, color=[Farben45[2]])
+    boxplot!(Max_Flows_past85, notch=true, color=[Farben85[1]])
+    boxplot!(Max_Flows_future85, notch=true, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
     xticks!([1:4;], ["Past", "Future 4.5", "Future 8.5"])
     ylabel!("Mean annual maximum yearly Discharge [mm/d]")
     #ylims!((40,100))
     title!("Annual Maximum Discharge")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_mm.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_mm_notch.png")
 
     #absolute and relative decrease
     boxplot(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
