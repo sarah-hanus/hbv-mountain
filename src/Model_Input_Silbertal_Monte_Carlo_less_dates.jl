@@ -42,6 +42,8 @@ using Distributed
 
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2500
         #mean elevation needs to be determiend
 
         Mean_Elevation_Catchment = 1700 #in reality 1776 # in reality 1842.413038
@@ -199,10 +201,10 @@ using Distributed
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 push!(Inputs_All_Zones, all_inputs)
@@ -249,12 +251,24 @@ using Distributed
         print("worker ", ID, " preparation finished", "\n")
         count = 1
         number_Files = 0
-        for n in 1 : nmax
+        parameters_best_calibrations = nmax[1+71430*(ID-1):71430*ID,:]
+        print("startvalue ", 1+71430*(ID-1), "endvalue", 71430*ID)
+
+        #All_discharge = Array{Any, 1}[]
+        for n in 1 : 1:size(parameters_best_calibrations)[1]
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
                 Current_GWStorage = deepcopy(GWStorage)
-                parameters, slow_parameters, parameters_array = parameter_selection_silbertal()
 
+                beta_Bare, beta_Forest, beta_Grass, beta_Rip, Ce, Interceptioncapacity_Forest, Interceptioncapacity_Grass, Interceptioncapacity_Rip, Kf_Rip, Kf, Ks, Meltfactor, Mm, Ratio_Pref, Ratio_Riparian, Soilstoaragecapacity_Bare, Soilstoaragecapacity_Forest, Soilstoaragecapacity_Grass, Soilstoaragecapacity_Rip, Temp_Thresh = parameters_best_calibrations[n, :]
+                bare_parameters = Parameters(beta_Bare, Ce, 0, 0.0, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Bare, Temp_Thresh)
+                forest_parameters = Parameters(beta_Forest, Ce, 0, Interceptioncapacity_Forest, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Forest, Temp_Thresh)
+                grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Grass, Temp_Thresh)
+                rip_parameters = Parameters(beta_Rip, Ce, 0.0, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Rip, Temp_Thresh)
+                slow_parameters = Slow_Paramters(Ks, Ratio_Riparian)
+
+                parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
+                parameters_array = parameters_best_calibrations[n, :]
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
                 Discharge, Snow_Extend = runmodelprecipitationzones(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, observed_snow_cover, start2000)
@@ -275,12 +289,12 @@ using Distributed
                         if size(All_Goodness)[2]-1 == 100
                                 All_Goodness = transpose(All_Goodness[:, 2:end])
                                 if count != 100
-                                        open(local_path*"HBVModel/Silbertal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                        open(local_path*"HBVModel/Silbertal_Parameterfit_snow_redistr_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
                                         count+= 1
                                 else
-                                        open(local_path*"HBVModel/Silbertal_Parameterfit_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                        open(local_path*"HBVModel/Silbertal_Parameterfit_snow_redistr_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
                                         count = 1
@@ -296,12 +310,13 @@ using Distributed
                 end
         end
         All_Goodness = transpose(All_Goodness[:, 2:end])
-        open(local_path*"HBVModel/Silbertal_Parameterfit_"*string(ID)*".csv", "a") do io
+        open(local_path*"HBVModel/Silbertal_Parameterfit_snow_redistr_"*string(ID)*".csv", "a") do io
                 writedlm(io, All_Goodness,",")
         end
 end
 #
-nmax = 97143
+nmax = readdlm("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_500020.csv", ',')[:,10:29]
+
 @time begin
 #run_MC(1,100)
 pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])

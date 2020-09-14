@@ -71,7 +71,6 @@ function runmodelprecipitationzones_glacier_validation(Potential_Evaporation::Ar
         return Total_Discharge::Array{Float64,1}, Snow_Overall_Objective_Function::Float64
 end
 
-
 function run_validation_gailtal(path_to_best_parameter, startyear, endyear)
 
         local_path = "/home/sarah/"
@@ -286,15 +285,13 @@ function run_validation_gailtal(path_to_best_parameter, startyear, endyear)
 end
 
 
-All_Goodness = run_validation_gailtal("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 2003,2013)
-writedlm("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_bestproj_validation_10years.csv", All_Goodness,',')
+# All_Goodness = run_validation_gailtal("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 2003,2013)
+# writedlm("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_bestproj_validation_10years.csv", All_Goodness,',')
 
 #-------- COMPARE calibration and validation period ----------------
 
 # Calibration = readdlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100.csv", ',')[:,1:9]
 # Validation = readdlm("Gailtal/Calibration_8.05/Gailtal_Parameterfit_best100_validation.csv", ',')[:,1:9]
-
-
 
 function run_validation_palten(path_to_best_parameter, startyear, endyear)
         local_path = "/home/sarah/"
@@ -831,7 +828,6 @@ function run_validation_feistritz(path_to_best_parameter, startyear, endyear)
         return All_Goodness
 end
 
-
 function run_validation_silbertal(path_to_best_parameter, startyear, endyear)
         local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
@@ -841,6 +837,8 @@ function run_validation_silbertal(path_to_best_parameter, startyear, endyear)
 
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2500
         #mean elevation needs to be determiend
 
         Mean_Elevation_Catchment = 1700 #in reality 1776 # in reality 1842.413038
@@ -1024,10 +1022,10 @@ function run_validation_silbertal(path_to_best_parameter, startyear, endyear)
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 push!(Inputs_All_Zones, all_inputs)
@@ -1108,6 +1106,8 @@ function run_validation_defreggental(path_to_best_parameter, startyear, endyear)
         Area_Zones = [235811198.0, 31497403.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2700
 
         Mean_Elevation_Catchment =  2300 # in reality 2233.399986
         Elevations_Catchment = Elevations(200.0, 1000.0, 3600.0, 1385., 1385.) # take temp at 17700
@@ -1268,10 +1268,10 @@ function run_validation_defreggental(path_to_best_parameter, startyear, endyear)
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -1349,6 +1349,8 @@ function run_validation_pitztal(path_to_best_parameter, startyear, endyear)
         Area_Zones = [20651736.0, 145191864.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2700
 
         Mean_Elevation_Catchment = 2500 # in reality 2558
         # elevation of catchment and height of temp measurement
@@ -1489,10 +1491,10 @@ function run_validation_pitztal(path_to_best_parameter, startyear, endyear)
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -1565,7 +1567,6 @@ function run_validation_pitztal(path_to_best_parameter, startyear, endyear)
         return All_Goodness
 end
 
-
 function plot_validation(path_to_Calibration, path_to_Validation, path_to_Calibration_1000, path_to_Validation_1000, path_to_save)
         Calibration = readdlm(path_to_Calibration, ',')[:,1:9]
         Validation = readdlm(path_to_Validation, ',')[:,1:9]
@@ -1633,21 +1634,25 @@ end
 #plot_validation("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_runs_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best100_validation.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_runs_best_10000.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best10000_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Paltental_less_dates/Validation/")
 #plot_validation("/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_300.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best300_validation_8years_unique.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_All_less_dates_unique_best_1000_unique.csv", "/home/sarah/Master/Thesis/Calibrations/Feistritz_less_dates/Feistritz_Parameterfit_best1000_validation_8years_unique.csv", "/home/sarah/Master/Thesis/Results/Calibration/Feistritz_less_dates/Validation/")
 
-#All_Goodness = run_validation_silbertal("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_100.csv", 2003, 2013)
-#writedlm("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_best100_validation_8years.csv", All_Goodness,',')
+# All_Goodness = run_validation_silbertal("/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_300.csv", 2003, 2013)
+# writedlm("/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_best300_snow_redistr_validation_8years.csv", All_Goodness,',')
 #plot_validation("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_best100_validation_8years.csv","/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_best1000_validation_8years.csv", "/home/sarah/Master/Thesis/Results/Calibration/Silbertal/Validation/8years_")
 #plot_validation("/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_best100_validation.csv","/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_best1000_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Gailtal_less_dates/Validation/")
-#plot_validation("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best100_validation.csv","/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_unique_best300_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Paltental/Validation/")
+#plot_validation("/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_best100_validation.csv","/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_unique_best300_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Paltental/Validation/")# All_Goodness = run_validation_silbertal("/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_300.csv", 2003, 2013)
+# writedlm("/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_b
 
 # --------- Defreggental ---------
-#All_Goodness = run_validation_defreggental("/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_All_runs_less_dates_best_1000.csv", 2003, 2015)
-#writedlm("/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_best1000_validation_10_years.csv", All_Goodness,',')
+#All_Goodness = run_validation_defreggental("/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_All_runs_snow_redistr_best_100.csv", 2003, 2015)
+#writedlm("/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_best100_snow_redistr_validation_10_years.csv", All_Goodness,',')
 
-#plot_validation("/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_All_runs_less_dates_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_best100_validation_10_years.csv","/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_All_runs_less_dates_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_best1000_validation_10_years.csv", "/home/sarah/Master/Thesis/Results/Calibration/Defreggental/Validation/10_years_")
+#plot_validation("/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_All_runs_snow_redistr_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_best100_snow_redistr_validation_10_years.csv","/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_All_runs_snow_redistr_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_best1000_snow_redistr_validation_10_years.csv", "/home/sarah/Master/Thesis/Results/Calibration/Defreggental_Snow_Redistribution/Validation/10_years_")
+# plot_validation("/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_best100_snow_redistr_validation_8years.csv","/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_best1000_snow_redistr_validation_8years.csv", "/home/sarah/Master/Thesis/Results/Calibration/Silbertal_Snow_Redistribution/Validation/8_years_")
 
 #------------------Pitztal--------------------
 
-# All_Goodness = run_validation_pitztal("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_1000.csv", 2003, 2015)
-# writedlm("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_best1000_validation_10_years.csv", All_Goodness,',')
+# All_Goodness = run_validation_pitztal("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_100.csv", 2003, 2015)
+# writedlm("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_best100_validation_10_years.csv", All_Goodness,',')
+
+#plot_validation("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_best100_snow_redistr_validation_10_years.csv","/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_best1000_snow_redistr_validation_10_years.csv", "/home/sarah/Master/Thesis/Results/Calibration/Pitztal_Snow_Redistribution/Validation/10_years_")
 
 #plot_validation("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_100.csv", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_best100_validation.csv","/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_1000.csv", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_best1000_validation.csv", "/home/sarah/Master/Thesis/Results/Calibration/Pitztal_loss_less/Validation/")

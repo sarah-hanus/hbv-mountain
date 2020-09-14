@@ -55,6 +55,26 @@ function seasonal_low_flows(Discharge, Timeseries, days, season)
                                                      Dates.Month(x) == Dates.Month(4))
                                                end
                                                append!(Dates_Current_Season, Dates_Next_Year)
+        elseif season == "none"
+            Dates_Current_Season = filter(Timeseries) do x
+                                              Dates.Year(x) == Dates.Year(Current_Year) &&
+                                              (Dates.Month(x) == Dates.Month(6) ||
+                                              Dates.Month(x) == Dates.Month(7) ||
+                                              Dates.Month(x) == Dates.Month(8) ||
+                                              Dates.Month(x) == Dates.Month(9) ||
+                                              Dates.Month(x) == Dates.Month(10) ||
+                                              Dates.Month(x) == Dates.Month(11) ||
+                                              Dates.Month(x) == Dates.Month(12))
+                                        end
+            Dates_Next_Year = filter(Timeseries) do x
+                                              Dates.Year(x) == Dates.Year(Current_Year+1) &&
+                                              (Dates.Month(x) == Dates.Month(1) ||
+                                              Dates.Month(x) == Dates.Month(2) ||
+                                              Dates.Month(x) == Dates.Month(3) ||
+                                              Dates.Month(x) == Dates.Month(4) ||
+                                              Dates.Month(x) == Dates.Month(5))
+                                        end
+                                        append!(Dates_Current_Season, Dates_Next_Year)
                                            end
             Current_Discharge = Discharge[indexin(Dates_Current_Season, Timeseries)]
             All_Discharges_7days = Float64[]
@@ -65,7 +85,7 @@ function seasonal_low_flows(Discharge, Timeseries, days, season)
             append!(Seasonal_Low_Flows_7days, minimum(All_Discharges_7days))
             append!(Timing_Seasonal_Low_Flows_7days, Dates.dayofyear(Dates_Current_Season[argmin(All_Discharges_7days)]))
     end
-    if season == "winter"
+    if season == "winter" || season == "none"
         return  Seasonal_Low_Flows_7days[1:end-1], Timing_Seasonal_Low_Flows_7days[1:end-1]
     elseif season == "summer"
         return  Seasonal_Low_Flows_7days, Timing_Seasonal_Low_Flows_7days
@@ -100,8 +120,8 @@ function analyse_low_flows(path_to_projections, Catchment_Name,  season)
     concentration_future = Float64[]
     for (i, name) in enumerate(Name_Projections)
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_future_2100_without_loss.csv", ',')
         for run in 1:size(Past_Discharge)[1]
             Seasonal_Low_Flows_Past, Timing_Seasonal_Low_Flows_Past = seasonal_low_flows(Past_Discharge[run,:], Timeseries_Past, 7, season)
             Seasonal_Low_Flows_Future, Timing_Seasonal_Low_Flows_Future = seasonal_low_flows(Future_Discharge[run,:], Timeseries_Future, 7, season)
@@ -111,7 +131,7 @@ function analyse_low_flows(path_to_projections, Catchment_Name,  season)
             if season == "summer"
                 timing_average_low_flows_past, Current_Concentration_past = average_timing(Timing_Seasonal_Low_Flows_Past, Timeseries_Past)
                 timing_average_low_flows_future, Current_Concentration_future = average_timing(Timing_Seasonal_Low_Flows_Future, Timeseries_Future)
-            elseif season == "winter"
+            elseif season == "winter" || season == "none"
                 # timeseries is one year shorter (first year deleted) because one less winter season than summer season
                 Timeseries_Past_new = collect(Date(1982,1,1):Day(1):Date(2010,12,31))
                 Timeseries_Future_new = Timeseries_Future[366:end] # because first year has always 365 days
@@ -126,6 +146,51 @@ function analyse_low_flows(path_to_projections, Catchment_Name,  season)
     end
     return average_Low_Flows_past, average_Low_Flows_future, average_Low_Flows_past_Timing, average_Low_Flows_future_Timing, concentration_past, concentration_future
 end
+
+function analyse_low_flows_prob_distr(path_to_projections, Catchment_Name)
+    Name_Projections = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    Low_Flows_past = Float64[]
+    Low_Flows_future = Float64[]
+    Exceedance_Probability = Float64[]
+    Date_Past = Float64[]
+    Date_Future = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", path_to_projections)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", path_to_projections)
+    end
+    average_Low_Flows_past = Float64[]
+    average_Low_Flows_future = Float64[]
+    average_Low_Flows_past_Timing = Float64[]
+    average_Low_Flows_future_Timing = Float64[]
+    concentration_past = Float64[]
+    concentration_future = Float64[]
+    for (i, name) in enumerate(Name_Projections)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_future_2100_without_loss.csv", ',')
+        for run in 1:size(Past_Discharge)[1]
+            Seasonal_Low_Flows_Past, Timing_Seasonal_Low_Flows_Past = seasonal_low_flows(Past_Discharge[run,:], Timeseries_Past, 7, "none")
+            Seasonal_Low_Flows_Future, Timing_Seasonal_Low_Flows_Future = seasonal_low_flows(Future_Discharge[run,:], Timeseries_Future, 7, "none")
+            Low_Flows_past_sorted, Prob_Dis_past = flowdurationcurve(Seasonal_Low_Flows_Past)
+            Low_Flows_future_sorted, Prob_Dis_future = flowdurationcurve(Seasonal_Low_Flows_Future)
+            #@assert Prob_Dis_past == Prob_Dis_future
+            append!(Low_Flows_past, Low_Flows_past_sorted)
+            append!(Low_Flows_future, Low_Flows_future_sorted)
+            append!(Exceedance_Probability, Prob_Dis_past)
+            append!(Date_Past, Timing_Seasonal_Low_Flows_Past)
+            append!(Date_Future, Timing_Seasonal_Low_Flows_Future)
+        end
+    end
+    return Low_Flows_past, Low_Flows_future, Exceedance_Probability, Date_Past, Date_Future
+end
+
 
 # --------- TOTAL LOW FLOWS PLOTS ---------------------
 """
@@ -704,6 +769,154 @@ function hydrological_drought_statistics(Discharge, Timeseries, Threshold, seaso
     end
     return Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, Total_Deficit,  Max_Intensity, Mean_Intensity
 end
+
+"""
+Calculates extreme statistics for hydrological drought for the whole timeseries.
+
+$(SIGNATURES)
+The function returns the event in the timeseries with the maximum drought length, the corresponding discharge and start and enddate as well as the event with the highest deficit,
+    the corresponding length and start-and enddate.
+"""
+function hydrological_drought_extreme(Discharge, Timeseries, Threshold)
+    Current_Discharge = Discharge
+    index_drought = findall(x->x < Threshold, Current_Discharge)
+    #println(index_drought)
+    # appends the total number of drought days over the timeseries (30 years)
+    Nr_Drought_Days = length(index_drought)
+    count = 0
+    startindex = Int64[]
+    endindex = Int64[]
+    length_drought = Float64[]
+    last_daily_discharge = 0.1
+    # like this also drought events are put together which are not in the same year!!!
+    if index_drought != Int64[]
+        for (j,daily_discharge) in enumerate(Current_Discharge)
+            if j == 1 && daily_discharge < Threshold
+                count += 1
+                append!(startindex, j)
+            elseif j == 1 && daily_discharge >= Threshold
+                count = 0
+            elseif j == length(Current_Discharge) && daily_discharge < Threshold && last_daily_discharge < Threshold
+                count += 1
+                append!(endindex, j)
+                append!(length_drought, count)
+            elseif daily_discharge < Threshold && last_daily_discharge >= Threshold
+                count+=1
+                append!(startindex, j)
+                if j == length(Current_Discharge)
+                    append!(endindex, j)
+                    append!(length_drought, count)
+                end
+            elseif daily_discharge < Threshold && last_daily_discharge < Threshold
+                count += 1
+            elseif daily_discharge >= Threshold && last_daily_discharge < Threshold
+                append!(endindex, j-1)
+                append!(length_drought, count)
+                count = 0
+            end
+            last_daily_discharge = daily_discharge
+        end
+        # get deficit by calculating the deficit sum over the days of one drought event
+        Deficit = Float64[]
+        @assert length(startindex) == length(endindex)
+        for index in 1:length(startindex)
+            Current_Deficit = sum(Threshold .- Current_Discharge[startindex[index]:endindex[index]])
+            append!(Deficit, Current_Deficit)
+        end
+
+        # get maximum length of drought
+        index_longest_drought = argmax(length_drought)
+        length_longest_drought = maximum(length_drought)
+        deficit_longest_drought = Deficit[index_longest_drought]
+        begin_longest_drought = Dates.dayofyear(Timeseries[startindex[index_longest_drought]])
+        end_longest_drought = Dates.dayofyear(Timeseries[endindex[index_longest_drought]])
+
+        # get drought with maximum deficit
+        index_max_deficit_drought = argmax(Deficit)
+        deficit_max_deficit_drought = maximum(Deficit)
+        length_max_deficit_drought = length_drought[index_max_deficit_drought]
+        begin_max_deficit_drought = Dates.dayofyear(Timeseries[startindex[index_max_deficit_drought]])
+        end_max_deficit_drought = Dates.dayofyear(Timeseries[endindex[index_max_deficit_drought]])
+    else
+        length_longest_drought = 0
+        deficit_longest_drought = 0
+        begin_longest_drought = 0
+        end_longest_drought = 0
+        deficit_max_deficit_drought = 0
+        length_max_deficit_drought = 0
+        begin_max_deficit_drought = 0
+        end_max_deficit_drought = 0
+    end
+
+    return length_longest_drought, deficit_longest_drought, begin_longest_drought, end_longest_drought, length_max_deficit_drought, deficit_max_deficit_drought, begin_max_deficit_drought, end_max_deficit_drought
+end
+
+
+function compare_hydrological_drought_extremes(path_to_projections, Area_Catchment, Catchment_Name)
+    Name_Projections = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    #Threshold = convertDischarge(Threshold, Area_Catchment)
+    Longest_Drought_Length_Past = Float64[]
+    Longest_Drought_Length_Future  = Float64[]
+    Longest_Drought_Deficit_Past = Float64[]
+    Longest_Drought_Deficit_Future = Float64[]
+    Longest_Drought_Start_Past = Float64[]
+    Longest_Drought_Start_Future = Float64[]
+    Longest_Drought_End_Past = Float64[]
+    Longest_Drought_End_Future = Float64[]
+    Severest_Drought_Length_Past = Float64[]
+    Severest_Drought_Length_Future  = Float64[]
+    Severest_Drought_Deficit_Past = Float64[]
+    Severest_Drought_Deficit_Future = Float64[]
+    Severest_Drought_Start_Past = Float64[]
+    Severest_Drought_Start_Future = Float64[]
+    Severest_Drought_End_Past = Float64[]
+    Severest_Drought_End_Future = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    for (i, name) in enumerate(Name_Projections)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/0.01_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/0.01_model_results_discharge_future_2100.csv", ',')
+        for run in 1:size(Past_Discharge)[1]
+            # Threshold
+            FDC = flowdurationcurve(Past_Discharge[run,:])
+            Threshold = convertDischarge(FDC[1][findnearest(FDC[2], 0.9)], Area_Catchment)
+            length_longest_drought, deficit_longest_drought, begin_longest_drought, end_longest_drought, length_max_deficit_drought, deficit_max_deficit_drought, begin_max_deficit_drought, end_max_deficit_drought = hydrological_drought_extreme(convertDischarge(Past_Discharge[run,:], Area_Catchment), Timeseries_Past, Threshold)
+            length_longest_drought_future, deficit_longest_drought_future, begin_longest_drought_future, end_longest_drought_future, length_max_deficit_drought_future, deficit_max_deficit_drought_future, begin_max_deficit_drought_future, end_max_deficit_drought_future = hydrological_drought_extreme(convertDischarge(Future_Discharge[run,:], Area_Catchment), Timeseries_Future, Threshold)
+            #longest drought
+            append!(Longest_Drought_Length_Past, length_longest_drought)
+            append!(Longest_Drought_Length_Future, length_longest_drought_future)
+            append!(Longest_Drought_Deficit_Past, deficit_longest_drought)
+            append!(Longest_Drought_Deficit_Future, deficit_longest_drought_future)
+            append!(Longest_Drought_Start_Past, begin_longest_drought)
+            append!(Longest_Drought_Start_Future, begin_longest_drought_future)
+            append!(Longest_Drought_End_Past, end_longest_drought)
+            append!(Longest_Drought_End_Future, end_longest_drought_future)
+            #most severe drought
+            append!(Severest_Drought_Length_Past, length_max_deficit_drought)
+            append!(Severest_Drought_Length_Future, length_max_deficit_drought_future)
+            append!(Severest_Drought_Deficit_Past, deficit_max_deficit_drought)
+            append!(Severest_Drought_Deficit_Future, deficit_max_deficit_drought_future)
+            append!(Severest_Drought_Start_Past, begin_max_deficit_drought)
+            append!(Severest_Drought_Start_Future, begin_max_deficit_drought_future)
+            append!(Severest_Drought_End_Past, end_max_deficit_drought)
+            append!(Severest_Drought_End_Future, end_max_deficit_drought_future)
+        end
+    end
+    Drought_Statistics = Drought_Extremes(Longest_Drought_Length_Past, Longest_Drought_Length_Future, Longest_Drought_Deficit_Past, Longest_Drought_Deficit_Future, Longest_Drought_Start_Past, Longest_Drought_Start_Future, Longest_Drought_End_Past, Longest_Drought_End_Future, Severest_Drought_Length_Past, Severest_Drought_Length_Future, Severest_Drought_Deficit_Past, Severest_Drought_Deficit_Future, Severest_Drought_Start_Past, Severest_Drought_Start_Future, Severest_Drought_End_Past, Severest_Drought_End_Future)
+    return Drought_Statistics
+end
+
+
 """
 Provides statistics for hydrological drought for every climate projection in [mm/d].
 
@@ -780,12 +993,11 @@ function compare_hydrological_drought(path_to_projections, Threshold, season, Ar
     return Drought_Statistics
 end
 
-function monthly_days_Q90(path_to_projections, Threshold, Area_Catchment, Catchment_Name)
-    Threshold = convertDischarge(Threshold, Area_Catchment)
+function monthly_days_Q90(path_to_projections, Area_Catchment, Catchment_Name)
+    #Threshold_old = convertDischarge(Threshold, Area_Catchment)
     Name_Projections = readdir(path_to_projections)
     Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
     Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
-    #Threshold = convertDischarge(Threshold, Area_Catchment)
     if path_to_projections[end-2:end-1] == "45"
         index = 1
         rcp = "45"
@@ -799,15 +1011,22 @@ function monthly_days_Q90(path_to_projections, Threshold, Area_Catchment, Catchm
     Nr_Dates_Low_Flows_Future = zeros(12)
     Deficit_Low_Flows_Past = zeros(12)
     Deficit_Low_Flows_Future = zeros(12)
+    All_Thresholds = zeros(12)
     for (i, name) in enumerate(Name_Projections)
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
         Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
         Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge_m3 = Past_Discharge
         Past_Discharge = convertDischarge(Past_Discharge, Area_Catchment)
         Future_Discharge = convertDischarge(Future_Discharge, Area_Catchment)
+        # get threshold based on past discharge
+        #print(size(Past_Discharge))
         for run in 1:size(Past_Discharge)[1]
-            Current_Dates_Low_Flows_Past = Timeseries[findall(x->x < Threshold, Past_Discharge[run,:])]
-            Current_Dates_Low_Flows_Future = Timeseries[findall(x->x < Threshold, Future_Discharge[run,:])]
+            FDC = flowdurationcurve(Past_Discharge_m3[run,:])
+            Threshold = convertDischarge(FDC[1][findnearest(FDC[2], 0.90)], Area_Catchment)
+            #println("Threshold real: ", Threshold_old, "Threshold modelled: ", Threshold)
+            Current_Dates_Low_Flows_Past = Timeseries_Past[findall(x->x < Threshold, Past_Discharge[run,:])]
+            Current_Dates_Low_Flows_Future = Timeseries_Future[findall(x->x < Threshold, Future_Discharge[run,:])]
             Current_Low_Flows_Past = Past_Discharge[run,:][findall(x->x < Threshold, Past_Discharge[run,:])]
             Current_Low_Flows_Future = Future_Discharge[run,:][findall(x->x < Threshold, Future_Discharge[run,:])]
             # get monthly mean value
@@ -815,6 +1034,7 @@ function monthly_days_Q90(path_to_projections, Threshold, Area_Catchment, Catchm
             nr_low_flow_days_year_future = Float64[]
             deficit_low_flows_past_monthly = Float64[]
             deficit_low_flows_future_monthly = Float64[]
+            Thresholds = Float64[]
             for current_month in 1:12
                 append!(nr_low_flow_days_year_past, length(findall(x->Dates.month(x) == current_month, Current_Dates_Low_Flows_Past)) / 30)
                 append!(nr_low_flow_days_year_future, length(findall(x->Dates.month(x) == current_month, Current_Dates_Low_Flows_Future)) / 30)
@@ -822,14 +1042,16 @@ function monthly_days_Q90(path_to_projections, Threshold, Area_Catchment, Catchm
                 Current_Month_Low_Flows_Future = Current_Low_Flows_Future[findall(x->Dates.month(x) == current_month, Current_Dates_Low_Flows_Future)]
                 append!(deficit_low_flows_past_monthly, sum(Threshold .- Current_Month_Low_Flows_Past) / 30)
                 append!(deficit_low_flows_future_monthly, sum(Threshold .- Current_Month_Low_Flows_Future) / 30)
+                append!(Thresholds, Threshold)
             end
             Nr_Dates_Low_Flows_Past = hcat(Nr_Dates_Low_Flows_Past, nr_low_flow_days_year_past)
             Nr_Dates_Low_Flows_Future = hcat(Nr_Dates_Low_Flows_Future, nr_low_flow_days_year_future)
             Deficit_Low_Flows_Past = hcat(Deficit_Low_Flows_Past, deficit_low_flows_past_monthly)
             Deficit_Low_Flows_Future = hcat(Deficit_Low_Flows_Future, deficit_low_flows_future_monthly)
+            All_Thresholds = hcat(All_Thresholds, Thresholds)
         end
     end
-    return Nr_Dates_Low_Flows_Past[:, 2:end], Nr_Dates_Low_Flows_Future[:,2:end], Deficit_Low_Flows_Past[:,2:end], Deficit_Low_Flows_Future[:,2:end]
+    return Nr_Dates_Low_Flows_Past[:, 2:end], Nr_Dates_Low_Flows_Future[:,2:end], Deficit_Low_Flows_Past[:,2:end], Deficit_Low_Flows_Future[:,2:end], All_Thresholds[:,2:end]
 end
 
 function plot_monthly_low_flows(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought_monthly_future_45, Nr_Days_Drought_monthly_past_85, Nr_Days_Drought_monthly_future_85, Catchment_Name, nr_runs)
@@ -852,7 +1074,7 @@ function plot_monthly_low_flows(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_low_flows_45.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_low_flows_45_modelled_threshold_Q95.png")
 
     plot()
     for month in 1:12
@@ -865,7 +1087,7 @@ function plot_monthly_low_flows(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_low_flows_85.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_low_flows_85_modelled_threshold_Q95.png")
 
     # ------------------- ABSOLUTE CHANGES -------------------
 
@@ -881,7 +1103,7 @@ function plot_monthly_low_flows(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_monthly_low_flows.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_monthly_low_flows_modelled_threshold_Q95.png")
 
     plot()
     for month in 1:12
@@ -895,7 +1117,7 @@ function plot_monthly_low_flows(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_monthly_low_flows_violin.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_monthly_low_flows_violin_modelled_threshold_Q95.png")
 
     # ------------------- RELATIVE CHANGES -------------------
 
@@ -934,7 +1156,7 @@ function plot_monthly_deficit(Deficit_monthly_past_45, Deficit_monthly_future_45
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_deficit_45.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_deficit_45_modelled_threshold_Q95.png")
 
     plot()
     for month in 1:12
@@ -947,7 +1169,7 @@ function plot_monthly_deficit(Deficit_monthly_past_45, Deficit_monthly_future_45
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_deficit_85.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_monthly_deficit_85_modelled_threshold_Q95.png")
 
     # ------------------- ABSOLUTE CHANGES -------------------
 
@@ -963,7 +1185,7 @@ function plot_monthly_deficit(Deficit_monthly_past_45, Deficit_monthly_future_45
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_deficit.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_deficit_modelled_threshold_Q95.png")
 
     plot()
     for month in 1:12
@@ -977,9 +1199,49 @@ function plot_monthly_deficit(Deficit_monthly_past_45, Deficit_monthly_future_45
     #hline!([0], color=["grey"], linestyle = :dash)
     xticks!([1.5:2:23.5;], ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
     #xticks!([2:2:24;], ["Jan 8.5", "Feb 8.5", "Mar 8.5", "Apr 8.5", "May 8.5","Jun 8.5", "Jul 8.5", "Aug 8.5", "Sep 8.5", "Oct 8.5", "Nov 8.5", "Dec 8.5"])
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_deficit_violin.png")
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/"*Catchment_Name*"_abs_change_deficit_violin_modelled_threshold_Q95.png")
 end
 
+
+function Q90_precipitation(path_to_projections, Area_Catchment, Catchment_Name)
+    Name_Projections = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    All_Q90_Prec_Past = Float64[]
+    All_Q90_Prec_Future = Float64[]
+    for (i, name) in enumerate(Name_Projections)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_past_2010.csv", ',')
+        Future_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_future_2100.csv", ',')
+        Past_Discharge_m3 = Past_Discharge
+        Future_Discharge_m3 = Future_Discharge
+        Past_Discharge = convertDischarge(Past_Discharge, Area_Catchment)
+        Future_Discharge = convertDischarge(Future_Discharge, Area_Catchment)
+        # get threshold based on past discharge
+        #print(size(Past_Discharge))
+        for run in 1:size(Past_Discharge)[1]
+            FDC = flowdurationcurve(Past_Discharge_m3[run,:])
+            Threshold_Past = convertDischarge(FDC[1][findnearest(FDC[2], 0.90)], Area_Catchment)
+            FDC = flowdurationcurve(Future_Discharge_m3[run,:])
+            Threshold_Future = convertDischarge(FDC[1][findnearest(FDC[2], 0.90)], Area_Catchment)
+            # get the threshold for each run for past and future, compare it to long term  annual precipiation
+            append!(All_Q90_Prec_Past, Threshold_Past)# / mean(Past_Precipitation))
+            append!(All_Q90_Prec_Future, Threshold_Future)# / mean(Future_Precipitation))
+        end
+    end
+    return All_Q90_Prec_Past, All_Q90_Prec_Future
+end
 # function plot_drought_statistics_yearly(Drought_45, Drought_85, Threshold, Catchment_Name, season)
 #     rcps = ["RCP 4.5", "RCP 8.5"]
 #     # plot change in Number of Drought days in year
@@ -1020,6 +1282,257 @@ end
 #     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_violin_"*season*".png")
 # end
 
+function plot_drought_extremes_statistics(Drought_45, Drought_85, Catchment_Name)
+    rcps = ["RCP 4.5 past", "RCP 4.5 future", "RCP 8.5 past", "RCP 8.5 future"]
+    Farben45=palette(:blues)
+    Farben85=palette(:reds)
+    # plot change in Number of Drought days in year
+    boxplot([rcps[1]], Drought_45.Longest_Drought_Length_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Longest_Drought_Length_Future , color=[Farben45[2]])
+    boxplot!([rcps[3]], Drought_85.Longest_Drought_Length_Past, color=[Farben85[1]], size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Longest_Drought_Length_Future, color=[Farben85[2]], size=(1200,800), leg=false)
+    title!("Change in Length of Longest Drought Event")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Nr_Drought_Days = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    #plot change in number of drought events per year
+    boxplot([rcps[1]], Drought_45.Longest_Drought_Deficit_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Longest_Drought_Deficit_Future , color=[Farben45[2]])
+    boxplot!([rcps[3]], Drought_85.Longest_Drought_Deficit_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Longest_Drought_Deficit_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in Deficit of Longest Drought Event ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]")
+    Nr_Drought_Events = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_nr_events_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot cahnge in maximum  drought length per year
+    boxplot([rcps[1]], Drought_45.Longest_Drought_Start_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Longest_Drought_Start_Future, color=[Farben45[2]])
+    boxplot!([rcps[3]], Drought_85.Longest_Drought_Start_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Longest_Drought_Start_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in start of longest drought")#*", Threshold= " *string(Threshold))
+    ylabel!("Days o Year")
+    Max_Drought_Length = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean drought length
+    boxplot([rcps[1]], Drought_45.Severest_Drought_Length_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Severest_Drought_Length_Future, color=[Farben45[2]])
+    boxplot!([rcps[3]], Drought_85.Severest_Drought_Length_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Severest_Drought_Length_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in length of severest drought (highest deficit) ")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Mean_Drought_Length = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change max deficit
+    boxplot([rcps[1]], Drought_45.Severest_Drought_Deficit_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Severest_Drought_Deficit_Future, color=[Farben45[2]])
+    boxplot!([rcps[3]], Drought_85.Severest_Drought_Deficit_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Severest_Drought_Deficit_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in deficit of severest drought ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]]")
+    Max_Deficit = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_deficit"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean deficit
+    boxplot([rcps[1]], Drought_45.Severest_Drought_Start_Past, color=[Farben45[1]])
+    boxplot!([rcps[2]], Drought_45.Severest_Drought_Start_Future, color=[Farben45[2]])
+    boxplot!([rcps[3]], Drought_85.Severest_Drought_Start_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    boxplot!([rcps[4]], Drought_85.Severest_Drought_Start_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in start of severest drought")#*", Threshold= " *string(Threshold))
+    ylabel!("Day of Year")
+    Mean_Deficit = boxplot!()
+
+    # # plot change max Intensity
+    # boxplot([rcps[1]], Drought_45.Max_Intensity_Past, color=[Farben45[1]])
+    # boxplot!([rcps[2]], Drought_45.Max_Intensity_Future, color=[Farben45[2]])
+    # boxplot!([rcps[3]],  Drought_85.Max_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    # boxplot!([rcps[4]], Drought_85.Max_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    # title!("Change in Maximum Intensity "*season)#*", Threshold= " *string(Threshold))
+    # ylabel!("Intensity [mm/d]")
+    # Max_Intensity = boxplot!()
+    # #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_all_years_"*season*".png")
+    # # plot change mean Intensity
+    # boxplot([rcps[1]], Drought_45.Mean_Intensity_Past, color=[Farben45[1]])
+    # boxplot!([rcps[2]], Drought_45.Mean_Intensity_Future, color=[Farben45[2]])
+    # boxplot!([rcps[3]], Drought_85.Mean_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    # boxplot!([rcps[4]], Drought_85.Mean_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    # title!("Change in Mean Intensity "*season)#*", Threshold= " *string(Threshold))
+    # ylabel!("Intensity [mm/d]")
+    # Mean_Intensity = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_all_years_"*season*".png")
+
+    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, layout= (2,3), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_extremes_comparison_all_years.png")
+    # make violin plots
+    # plot change in Number of Drought days in year
+    plot()
+    violin([rcps[1]], Drought_45.Longest_Drought_Length_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Longest_Drought_Length_Future , color=[Farben45[2]])
+    violin!([rcps[3]], Drought_85.Longest_Drought_Length_Past, color=[Farben85[1]], size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Longest_Drought_Length_Future, color=[Farben85[2]], size=(1200,800), leg=false)
+    title!("Change in Length of Longest Drought Event")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Nr_Drought_Days = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    #plot change in number of drought events per year
+    violin([rcps[1]], Drought_45.Longest_Drought_Deficit_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Longest_Drought_Deficit_Future , color=[Farben45[2]])
+    violin!([rcps[3]], Drought_85.Longest_Drought_Deficit_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Longest_Drought_Deficit_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in Deficit of Longest Drought Event ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]")
+    Nr_Drought_Events = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_nr_events_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot cahnge in maximum  drought length per year
+    violin([rcps[1]], Drought_45.Longest_Drought_Start_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Longest_Drought_Start_Future, color=[Farben45[2]])
+    violin!([rcps[3]], Drought_85.Longest_Drought_Start_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Longest_Drought_Start_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in start of longest drought")#*", Threshold= " *string(Threshold))
+    ylabel!("Days o Year")
+    Max_Drought_Length = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean drought length
+    violin([rcps[1]], Drought_45.Severest_Drought_Length_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Severest_Drought_Length_Future, color=[Farben45[2]])
+    violin!([rcps[3]], Drought_85.Severest_Drought_Length_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Severest_Drought_Length_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in length of severest drought (highest deficit) ")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Mean_Drought_Length = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change max deficit
+    violin([rcps[1]], Drought_45.Severest_Drought_Deficit_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Severest_Drought_Deficit_Future, color=[Farben45[2]])
+    violin!([rcps[3]], Drought_85.Severest_Drought_Deficit_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Severest_Drought_Deficit_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in deficit of severest drought ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]]")
+    Max_Deficit = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_deficit"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean deficit
+    violin([rcps[1]], Drought_45.Severest_Drought_Start_Past, color=[Farben45[1]])
+    violin!([rcps[2]], Drought_45.Severest_Drought_Start_Future, color=[Farben45[2]])
+    violin!([rcps[3]], Drought_85.Severest_Drought_Start_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    violin!([rcps[4]], Drought_85.Severest_Drought_Start_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    title!("Change in start of severest drought")#*", Threshold= " *string(Threshold))
+    ylabel!("Day of Year")
+    Mean_Deficit = violin!()
+
+    plot(Nr_Drought_Days, Nr_Drought_Events, Max_Drought_Length, Mean_Drought_Length, Max_Deficit, Mean_Deficit, layout= (2,3), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_extremes_comparison_all_years_violin.png")
+end
+
+function plot_drought_extremes_statistics_change(Drought_45, Drought_85, Catchment_Name)
+    rcps = ["RCP 4.5", "RCP 8.5"]
+    Farben45=palette(:blues)
+    Farben85=palette(:reds)
+    # plot change in Number of Drought days in year
+    boxplot([rcps[1]], Drought_45.Longest_Drought_Length_Future - Drought_45.Longest_Drought_Length_Past, color=["blue"])
+    boxplot!([rcps[2]], Drought_85.Longest_Drought_Length_Future - Drought_85.Longest_Drought_Length_Past, color=["red"], size=(1200,800), leg=false)
+    title!("Absolute Change in Length of Longest Drought Event")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Nr_Drought_Days = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    #plot change in number of drought events per year
+    boxplot([rcps[1]], Drought_45.Longest_Drought_Deficit_Future - Drought_45.Longest_Drought_Deficit_Past, color=["blue"])
+    boxplot!([rcps[2]], Drought_85.Longest_Drought_Deficit_Future - Drought_85.Longest_Drought_Deficit_Past, color=["red"], size=(1200,800), leg=false)
+    title!("Absolute Change in Deficit of Longest Drought Event ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]")
+    Nr_Drought_Events = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_nr_events_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot cahnge in maximum  drought length per year
+    # boxplot([rcps[1]], Drought_45.Longest_Drought_Start_Past, color=[Farben45[1]])
+    # boxplot!([rcps[2]], Drought_45.Longest_Drought_Start_Future, color=[Farben45[2]])
+    # boxplot!([rcps[3]], Drought_85.Longest_Drought_Start_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    # boxplot!([rcps[4]], Drought_85.Longest_Drought_Start_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    # title!("Change in start of longest drought")#*", Threshold= " *string(Threshold))
+    # ylabel!("Days o Year")
+    # Max_Drought_Length = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean drought length
+    boxplot([rcps[1]], Drought_45.Severest_Drought_Length_Future - Drought_45.Severest_Drought_Length_Past, color=["blue"])
+    boxplot!([rcps[2]], Drought_85.Severest_Drought_Length_Future - Drought_85.Severest_Drought_Length_Past, color=["red"], size=(1200,800), leg=false)
+    title!("Absolute Change in length of severest drought (highest deficit) ")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Mean_Drought_Length = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change max deficit
+    boxplot([rcps[1]], Drought_45.Severest_Drought_Deficit_Future - Drought_45.Severest_Drought_Deficit_Past, color=["blue"])
+    boxplot!([rcps[2]], Drought_85.Severest_Drought_Deficit_Future - Drought_85.Severest_Drought_Deficit_Past, color=["red"], size=(1200,800), leg=false)
+    title!(" Absolute Change in deficit of severest drought ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]]")
+    Max_Deficit = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_deficit"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean deficit
+    # boxplot([rcps[1]], Drought_45.Severest_Drought_Start_Past, color=[Farben45[1]])
+    # boxplot!([rcps[2]], Drought_45.Severest_Drought_Start_Future, color=[Farben45[2]])
+    # boxplot!([rcps[3]], Drought_85.Severest_Drought_Start_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    # boxplot!([rcps[4]], Drought_85.Severest_Drought_Start_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    # title!("Change in start of severest drought")#*", Threshold= " *string(Threshold))
+    # ylabel!("Day of Year")
+    # Mean_Deficit = boxplot!()
+
+    # # plot change max Intensity
+    # boxplot([rcps[1]], Drought_45.Max_Intensity_Past, color=[Farben45[1]])
+    # boxplot!([rcps[2]], Drought_45.Max_Intensity_Future, color=[Farben45[2]])
+    # boxplot!([rcps[3]],  Drought_85.Max_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    # boxplot!([rcps[4]], Drought_85.Max_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    # title!("Change in Maximum Intensity "*season)#*", Threshold= " *string(Threshold))
+    # ylabel!("Intensity [mm/d]")
+    # Max_Intensity = boxplot!()
+    # #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_Intensity"*string(Threshold)*"_all_years_"*season*".png")
+    # # plot change mean Intensity
+    # boxplot([rcps[1]], Drought_45.Mean_Intensity_Past, color=[Farben45[1]])
+    # boxplot!([rcps[2]], Drought_45.Mean_Intensity_Future, color=[Farben45[2]])
+    # boxplot!([rcps[3]], Drought_85.Mean_Intensity_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    # boxplot!([rcps[4]], Drought_85.Mean_Intensity_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    # title!("Change in Mean Intensity "*season)#*", Threshold= " *string(Threshold))
+    # ylabel!("Intensity [mm/d]")
+    # Mean_Intensity = boxplot!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_deficit"*string(Threshold)*"_all_years_"*season*".png")
+
+    plot(Nr_Drought_Days, Nr_Drought_Events, Mean_Drought_Length, Max_Deficit, layout= (2,2), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_extremes_comparison_all_years_absolute_change.png")
+    # make violin plots
+    # plot change in Number of Drought days in year
+    plot()
+    violin([rcps[1]], Drought_45.Longest_Drought_Length_Future - Drought_45.Longest_Drought_Length_Past, color=["blue"])
+    violin!([rcps[2]], Drought_85.Longest_Drought_Length_Future - Drought_85.Longest_Drought_Length_Past, color=["red"], size=(1200,800), leg=false)
+    title!("Absolute Change in Length of Longest Drought Event")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Nr_Drought_Days = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    #plot change in number of drought events per year
+    violin([rcps[1]], Drought_45.Longest_Drought_Deficit_Future - Drought_45.Longest_Drought_Deficit_Past, color=["blue"])
+    violin!([rcps[2]], Drought_85.Longest_Drought_Deficit_Future - Drought_85.Longest_Drought_Deficit_Past, color=["red"], size=(1200,800), leg=false)
+    title!("Absolute Change in Deficit of Longest Drought Event ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]")
+    Nr_Drought_Events = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_nr_events_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot cahnge in maximum  drought length per year
+    # violin([rcps[1]], Drought_45.Longest_Drought_Start_Past, color=[Farben45[1]])
+    # violin!([rcps[2]], Drought_45.Longest_Drought_Start_Future, color=[Farben45[2]])
+    # violin!([rcps[3]], Drought_85.Longest_Drought_Start_Past, color=[Farben85[1]],  size=(1200,800), leg=false)
+    # violin!([rcps[4]], Drought_85.Longest_Drought_Start_Future, color=[Farben85[2]],  size=(1200,800), leg=false)
+    # title!("Change in start of longest drought")#*", Threshold= " *string(Threshold))
+    # ylabel!("Days o Year")
+    # Max_Drought_Length = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_max_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change mean drought length
+    violin([rcps[1]], Drought_45.Severest_Drought_Length_Future - Drought_45.Severest_Drought_Length_Past, color=["blue"])
+    violin!([rcps[2]], Drought_85.Severest_Drought_Length_Future - Drought_85.Severest_Drought_Length_Past, color=["red"], size=(1200,800), leg=false)
+    title!("Absolute Change in length of severest drought (highest deficit) ")#*", Threshold= " *string(Threshold))
+    ylabel!("Days")
+    Mean_Drought_Length = violin!()
+    #savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/change_mean_length_Threshold"*string(Threshold)*"_all_years_"*season*".png")
+    # plot change max deficit
+    violin([rcps[1]], Drought_45.Severest_Drought_Deficit_Future - Drought_45.Severest_Drought_Deficit_Past, color=["blue"])
+    violin!([rcps[2]], Drought_85.Severest_Drought_Deficit_Future - Drought_85.Severest_Drought_Deficit_Past, color=["red"], size=(1200,800), leg=false)
+    title!(" Absolute Change in deficit of severest drought ")#*", Threshold= " *string(Threshold))
+    ylabel!("[mm]]")
+    Max_Deficit = violin!()
+    plot(Nr_Drought_Days, Nr_Drought_Events, Mean_Drought_Length, Max_Deficit, layout= (2,2), legend = false, size=(2400,1200), left_margin = [5mm 0mm], bottom_margin = 20px)
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/drought_extremes_comparison_all_years_absolute_change_violin.png")
+end
 
 function plot_drought_statistics(Drought_45, Drought_85, Threshold, Catchment_Name, Area_Catchment, season)
     rcps = ["RCP 4.5 past", "RCP 4.5 future", "RCP 8.5 past", "RCP 8.5 future"]

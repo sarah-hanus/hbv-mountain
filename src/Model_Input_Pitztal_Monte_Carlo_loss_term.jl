@@ -16,28 +16,27 @@ using Distributed
       loss[loss.>12.1] .= 12.1
       return loss
 end
-
-# load list of structs
- @everywhere include("structs.jl")
- # load components of models represented by buckets
- @everywhere include("processes_buckets.jl")
- # load functions that combine all components of one HRU
- @everywhere include("elevations.jl")
- # load functions for combining all HRUs and for running the model
- @everywhere include("allHRU.jl")
- # load function for running model which just returns the necessary output for calibration
- @everywhere include("run_model.jl")
- # load functions for preprocessing temperature and precipitation data
- @everywhere include("Preprocessing.jl")
- # load functions for calculating the potential evaporation
- @everywhere include("Potential_Evaporation.jl")
- # load objective functionsM
- @everywhere include("ObjectiveFunctions.jl")
- # load parameterselection
- @everywhere include("parameterselection.jl")
- # load running model in several precipitation zones
- @everywhere include("runmodel_Prec_Zones.jl")
-
+# # load list of structs
+  @everywhere include("structs.jl")
+#  # load components of models represented by buckets
+  @everywhere include("processes_buckets.jl")
+#  # load functions that combine all components of one HRU
+  @everywhere include("elevations.jl")
+#  # load functions for combining all HRUs and for running the model
+  @everywhere include("allHRU.jl")
+#  # load function for running model which just returns the necessary output for calibration
+  @everywhere include("run_model.jl")
+#  # load functions for preprocessing temperature and precipitation data
+  @everywhere include("Preprocessing.jl")
+#  # load functions for calculating the potential evaporation
+  @everywhere include("Potential_Evaporation.jl")
+#  # load objective functionsM
+  @everywhere include("ObjectiveFunctions.jl")
+#  # load parameterselection
+  @everywhere include("parameterselection.jl")
+#  # load running model in several precipitation zones
+@everywhere include("runmodel_Prec_Zones.jl")
+#
 @everywhere function run_MC(ID, nmax)
         local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
@@ -47,6 +46,8 @@ end
         Area_Zones = [20651736.0, 145191864.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2700
 
         Mean_Elevation_Catchment = 2500 # in reality 2558
         # elevation of catchment and height of temp measurement
@@ -187,10 +188,10 @@ end
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -207,7 +208,6 @@ end
         # ---------------- CALCULATE OBSERVED OBJECTIVE FUNCTIONS -------------------------------------
         # calculate the sum of precipitation of all precipitation zones to calculate objective functions
         Total_Precipitation = Precipitation_All_Zones[1][:,1]*Area_Zones_Percent[1] + Precipitation_All_Zones[2][:,1]*Area_Zones_Percent[2]
-
         #check_waterbalance = hcat(Total_Precipitation, Observed_Discharge, Potential_Evaporation)
 
         # don't consider spin up time for calculation of Goodness of Fit
@@ -249,12 +249,24 @@ end
         print("worker ", ID, " preparation finished", "\n")
         count = 1
         number_Files = 0
-        for n in 1 : nmax
-                #print(n,"\n")
+        parameters_best_calibrations = nmax[1+71430*(ID-1):71430*ID,:]
+        print("startvalue ", 1+71430*(ID-1), "endvalue", 71430*ID)
+
+        #All_discharge = Array{Any, 1}[]
+        for n in 1 : 1:size(parameters_best_calibrations)[1]
                 Current_Inputs_All_Zones = deepcopy(Inputs_All_Zones)
                 Current_Storages_All_Zones = deepcopy(Storages_All_Zones)
                 Current_GWStorage = deepcopy(GWStorage)
-                parameters, slow_parameters, parameters_array = parameter_selection_pitztal()
+
+                beta_Bare, beta_Forest, beta_Grass, beta_Rip, Ce, Interceptioncapacity_Forest, Interceptioncapacity_Grass, Interceptioncapacity_Rip, Kf_Rip, Kf, Ks, Meltfactor, Mm, Ratio_Pref, Ratio_Riparian, Soilstoaragecapacity_Bare, Soilstoaragecapacity_Forest, Soilstoaragecapacity_Grass, Soilstoaragecapacity_Rip, Temp_Thresh, loss_parameter = parameters_best_calibrations[n, :]
+                bare_parameters = Parameters(beta_Bare, Ce, 0, 0.0, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Bare, Temp_Thresh)
+                forest_parameters = Parameters(beta_Forest, Ce, 0, Interceptioncapacity_Forest, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Forest, Temp_Thresh)
+                grass_parameters = Parameters(beta_Grass, Ce, 0, Interceptioncapacity_Grass, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Grass, Temp_Thresh)
+                rip_parameters = Parameters(beta_Rip, Ce, 0.0, Interceptioncapacity_Rip, Kf, Meltfactor, Mm, Ratio_Pref, Soilstoaragecapacity_Rip, Temp_Thresh)
+                slow_parameters = Slow_Paramters(Ks, Ratio_Riparian)
+
+                parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
+                parameters_array = parameters_best_calibrations[n, :]
 
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
@@ -263,7 +275,7 @@ end
                 # don't calculate the goodness of fit for the spinup time!
                 # maximum outtake is 12.1 m³/s
                 # the maximum outtake is reached between 12 and 35m³/s
-                loss_parameter = rand(0.01:0.0001:0.08)
+                #loss_parameter = rand(0.01:0.0001:0.08)
                 Discharge = Discharge - loss(Discharge, loss_parameter)
                 Discharge = Discharge * 1000 / Area_Catchment * (3600 * 24)
                 Discharge_Obj = Discharge[index_spinup:index_lastdate]
@@ -271,18 +283,18 @@ end
                 Goodness_Fit, ObjFunctions = objectivefunctions_delete_days(Discharge[index_spinup:index_lastdate], Discharge_Obj, Snow_Extend, Observed_Discharge_Obj, observed_FDC, observed_AC_1day, observed_AC_90day, observed_monthly_runoff, Area_Catchment, Total_Precipitation_Obj, Timeseries_Obj)
                 #if goodness higher than -9999 save it
                 if Goodness_Fit != -9999
-                        Goodness = [Goodness_Fit, ObjFunctions, parameters_array, loss_parameter]
+                        Goodness = [Goodness_Fit, ObjFunctions, parameters_array]
                         Goodness = collect(Iterators.flatten(Goodness))
                         All_Goodness = hcat(All_Goodness, Goodness)
                         if size(All_Goodness)[2]-1 == 100
                                 All_Goodness = transpose(All_Goodness[:, 2:end])
                                 if count != 100
-                                        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_snow_redistr_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
                                         count+= 1
                                 else
-                                        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
+                                        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_snow_redistr_"*string(ID)*"_"*string(number_Files)*".csv", "a") do io
                                                 writedlm(io, All_Goodness,",")
                                         end
                                         count = 1
@@ -298,12 +310,12 @@ end
                 end
         end
         All_Goodness = transpose(All_Goodness[:, 2:end])
-        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_"*string(ID)*".csv", "a") do io
+        open(local_path*"HBVModel/Pitztal_Parameterfit_loss_less_dates_snow_redistr_"*string(ID)*".csv", "a") do io
                 writedlm(io, All_Goodness,",")
         end
 end
 # #
-nmax = 200000
+nmax = readdlm("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_500020.csv", ',')[:,10:30]
 @time begin
 #run_MC(1,20)
 pmap(ID -> run_MC(ID, nmax) , [1,2,3,4,5,6,7])

@@ -122,15 +122,15 @@ Elevation_Catchment = Elevation_Silbertal
 #Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
 #snow_cover_days_projections(path_45, "IllSugadin", Elevation_Silbertal, 300)
 
-Catchment_Name = "IllSugadin"
-Mean_Nr_Days_Snow_Past_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_45.csv", ',')
-Mean_Nr_Days_Snow_Future_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_45.csv", ',')
-Mean_Nr_Days_Snow_Past_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_85.csv", ',')
-Mean_Nr_Days_Snow_Future_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_85.csv", ',')
-Mean_Nr_Days_Snow_Past_45 = transpose(Mean_Nr_Days_Snow_Past_45)
-Mean_Nr_Days_Snow_Past_85 = transpose(Mean_Nr_Days_Snow_Past_85)
-Mean_Nr_Days_Snow_Future_45 = transpose(Mean_Nr_Days_Snow_Future_45)
-Mean_Nr_Days_Snow_Future_85 = transpose(Mean_Nr_Days_Snow_Future_85)
+# Catchment_Name = "IllSugadin"
+# Mean_Nr_Days_Snow_Past_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_45.csv", ',')
+# Mean_Nr_Days_Snow_Future_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_45.csv", ',')
+# Mean_Nr_Days_Snow_Past_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Past_85.csv", ',')
+# Mean_Nr_Days_Snow_Future_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/Mean_Nr_Days_Snow_Future_85.csv", ',')
+# Mean_Nr_Days_Snow_Past_45 = transpose(Mean_Nr_Days_Snow_Past_45)
+# Mean_Nr_Days_Snow_Past_85 = transpose(Mean_Nr_Days_Snow_Past_85)
+# Mean_Nr_Days_Snow_Future_45 = transpose(Mean_Nr_Days_Snow_Future_45)
+# Mean_Nr_Days_Snow_Future_85 = transpose(Mean_Nr_Days_Snow_Future_85)
 
 """
 Plots the mean yearly number of snow covered days at each elevation of the catchment.
@@ -210,7 +210,7 @@ function plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/"*Catchment_Name*"_rel_change_2.png")
 end
 
-plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,  Mean_Nr_Days_Snow_Past_85, Mean_Nr_Days_Snow_Future_85, Catchment_Name, Elevation_Catchment)
+#plot_snow_cover(Mean_Nr_Days_Snow_Past_45, Mean_Nr_Days_Snow_Future_45,  Mean_Nr_Days_Snow_Past_85, Mean_Nr_Days_Snow_Future_85, Catchment_Name, Elevation_Catchment)
 
 """
 Computes the mean yearly amount of snow melt as contribution to hydrological system in the timeseries.
@@ -254,6 +254,108 @@ function snow_contribution_yearly(Snow_Melt, Timeseries)
 end
 
 """
+Computes the monthly snow melt of the past and future and the relative changes, of the projections of the path and the different parameter sets
+
+$(SIGNATURES)
+
+The function returns relative change in monthly sum of snow melt, the monthly sum of snow melt of the past, and the monthly mean snow melt of the future
+"""
+function change_monthly_snowmelt(path_to_projections, Catchment_Name)
+    Name_Projections_45 = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    if path_45[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", path_to_projections)
+    elseif path_45[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", path_to_projections)
+    end
+    average_monthly_Discharge_past = Float64[]
+    average_monthly_Discharge_future = Float64[]
+    error_average_monthly_Discharge_all_runs = Float64[]
+    all_months_all_runs = Float64[]
+    for (i, name) in enumerate(Name_Projections_45)
+        Timeseries_Future_45 = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/0.01_model_results_snow_melt_past_2010.csv", ',')
+        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/0.01_model_results_snow_melt_future_2100.csv", ',')
+        println(size(Past_Discharge_45)[1])
+        for run in 1:size(Past_Discharge_45)[1]
+            # computes sum of monthly snow melt of each month
+            Monthly_Discharge_past, Month = monthly_snowmelt(Past_Discharge_45[run,:], Timeseries_Past)
+            Monthly_Discharge_future, Month_future = monthly_snowmelt(Future_Discharge_45[run,:], Timeseries_Future_45)
+            for month in 1:12
+                # computes the average mean monthly discharge over all years for each month
+                current_Month_Discharge = Monthly_Discharge_past[findall(x->x == month, Month)]
+                current_Month_Discharge_future = Monthly_Discharge_future[findall(x->x == month, Month_future)]
+                current_Month_Discharge = mean(current_Month_Discharge)
+                current_Month_Discharge_future = mean(current_Month_Discharge_future)
+                error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
+                append!(average_monthly_Discharge_past, current_Month_Discharge)
+                append!(average_monthly_Discharge_future, current_Month_Discharge_future)
+                append!(all_months_all_runs, month)
+                append!(error_average_monthly_Discharge_all_runs, error)
+            end
+        end
+    end
+    return error_average_monthly_Discharge_all_runs, average_monthly_Discharge_past, average_monthly_Discharge_future, all_months_all_runs
+end
+
+"""
+Computes the monthly snow storage of the past and future and the relative changes, of the projections of the path and the different parameter sets
+
+$(SIGNATURES)
+
+The function returns relative change in monthly sum of snow melt, the monthly sum of snow melt of the past, and the monthly mean snow melt of the future
+"""
+function change_monthly_snowstorage(path_to_projections, Catchment_Name)
+    Name_Projections_45 = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    if path_45[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", path_to_projections)
+    elseif path_45[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", path_to_projections)
+    end
+    average_monthly_Discharge_past = Float64[]
+    average_monthly_Discharge_future = Float64[]
+    error_average_monthly_Discharge_all_runs = Float64[]
+    all_months_all_runs = Float64[]
+    for (i, name) in enumerate(Name_Projections_45)
+        Timeseries_Future_45 = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_snow_storage_past_2010.csv", ',')
+        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_snow_storage_future_2100.csv", ',')
+        println("future ",size(Future_Discharge_45))
+        println("past ",size(Past_Discharge_45))
+        for run in 1:size(Past_Discharge_45)[1]
+            # computes sum of monthly snow melt of each month
+            Monthly_Discharge_past, Month = monthly_discharge(Past_Discharge_45[run,:], Timeseries_Past)
+            Monthly_Discharge_future, Month_future = monthly_discharge(Future_Discharge_45[run,:], Timeseries_Future_45)
+            for month in 1:12
+                # computes the average mean monthly discharge over all years for each month
+                current_Month_Discharge = Monthly_Discharge_past[findall(x->x == month, Month)]
+                current_Month_Discharge_future = Monthly_Discharge_future[findall(x->x == month, Month_future)]
+                current_Month_Discharge = mean(current_Month_Discharge)
+                current_Month_Discharge_future = mean(current_Month_Discharge_future)
+                error = relative_error(current_Month_Discharge_future, current_Month_Discharge)
+                append!(average_monthly_Discharge_past, current_Month_Discharge)
+                append!(average_monthly_Discharge_future, current_Month_Discharge_future)
+                append!(all_months_all_runs, month)
+                append!(error_average_monthly_Discharge_all_runs, error)
+            end
+        end
+    end
+    return error_average_monthly_Discharge_all_runs, average_monthly_Discharge_past, average_monthly_Discharge_future, all_months_all_runs
+end
+
+
+"""
 Computes the mean yearly amount of snow melt as contribution to hydrological system for past and future of all 14 simulations.
 
 $(SIGNATURES)
@@ -292,6 +394,7 @@ function snow_contribution_yearly_projections(path_to_projections, Catchment_Nam
     end
     return Mean_Annual_Snow_Storage_Past_All_Proj::Array{Float64,1}, Mean_Annual_Snow_Storage_Future_All_Proj::Array{Float64,1}
 end
+
 #
 
 

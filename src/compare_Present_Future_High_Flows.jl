@@ -174,6 +174,33 @@ function average_timing(Dates_Max_Annual_Discharge, Timeseries)
     return Mean_Timing, concentration_floods
 end
 
+function average_timing_simulations(Dates_Max_Annual_Discharge)
+    Days_In_Year = Float64[]
+    Formula_x = Float64[]
+    Formula_y = Float64[]
+    mean_DaysinYear = 365.23
+    for i in 1:length(Dates_Max_Annual_Discharge)
+        Current_Circular_Date = Dates_Max_Annual_Discharge[i] * 2 * pi / mean_DaysinYear
+        x = cos(Current_Circular_Date)
+        y = sin(Current_Circular_Date)
+        append!(Formula_x, x)
+        append!(Formula_y, y)
+    end
+    mean_x = mean(Formula_x)
+    mean_y = mean(Formula_y)
+    if mean_x > 0 && mean_y >= 0
+        Mean_Timing = atan(mean_y / mean_x) * mean_DaysinYear / (2*pi)
+    elseif mean_x <= 0
+        Mean_Timing = (atan(mean_y / mean_x) + pi) * mean_DaysinYear / (2*pi)
+    else
+        Mean_Timing = (atan(mean_y / mean_x) + 2*pi) * mean_DaysinYear / (2*pi)
+    end
+    concentration_floods = sqrt(mean_x^2 + mean_y^2)
+    std = sqrt(-2*log(concentration_floods)) * (mean_DaysinYear/ (2*pi))
+
+    return Mean_Timing, std
+end
+
 """
 Converts the timing to circular statistics and calculates the differences in days of occurence between past and future.
 
@@ -226,9 +253,9 @@ function change_max_Annual_Discharge(path_to_projections, Catchment_Name)
     end
     for (i, name) in enumerate(Name_Projections_45)
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
         println(size(Past_Discharge)[1])
-        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100_without_loss.csv", ',')
         #change_all_runs = Float64[]
         for run in 1:size(Past_Discharge)[1]
             max_Discharge_past, Date_max_Discharge_past = max_Annual_Discharge(Past_Discharge[run,:], Timeseries_Past)
@@ -277,8 +304,8 @@ function change_max_Annual_Discharge_Prob_Distribution(path_to_projections, Catc
     end
     for (i, name) in enumerate(Name_Projections_45)
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100_without_loss.csv", ',')
         println(size(Past_Discharge)[1])
         for run in 1:size(Past_Discharge)[1]
             max_Discharge_past, Date_max_Discharge_past = max_Annual_Discharge(Past_Discharge[run,:], Timeseries_Past)
@@ -308,149 +335,167 @@ function plot_Max_Flows(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, 
     Farben45=palette(:blues)
     Farben85=palette(:reds)
     # plot flows of each projection
-    for proj in 1:14
-        boxplot(Max_Flows_past45[1+(proj-1)*nr_runs: proj*nr_runs], color=[Farben45[1]])
-        boxplot!(Max_Flows_future45[1+(proj-1)*nr_runs: proj*nr_runs],color=[Farben45[2]])
-        boxplot!(Max_Flows_past85[1+(proj-1)*nr_runs: proj*nr_runs], color=[Farben85[1]])
-        boxplot!(Max_Flows_future85[1+(proj-1)*nr_runs: proj*nr_runs], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-        xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
-        ylabel!("mean annual maximum daily Discharge [m³/s]")
-        ylims!((15,35))
-        title!("Annual Maximum Discharge")
-        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_"*string(Name_Projections_45[proj])*".png")
-    end
-    # plot flows of all projections combined
-    boxplot(Max_Flows_past45, notch=true, color=[Farben45[1]])
-    boxplot!(Max_Flows_future45,notch=true, color=[Farben45[2]])
-    boxplot!(Max_Flows_past85, notch=true, color=[Farben85[1]])
-    boxplot!(Max_Flows_future85, notch=true, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:4;], ["Past", "Future 4.5", "Future 8.5"])
-    ylabel!("Mean annual maximum yearly Discharge [m³/s]")
-    #ylims!((40,100))
-    title!("Annual Maximum Discharge")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_notch.png")
-
-    #absolute and relative decrease
-    boxplot(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [m³/s]")
-    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    absolute_change = boxplot!()
-    # relative change
-    boxplot(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("relative change [%]")
-    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    relative_change = boxplot!()
-    plot(absolute_change, relative_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge.png")
-
-    #------------ ABSOLUTE AND RELATIVE CHANGE VIOLIN PLOTS ------------------------
-    violin(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    violin!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [m³/s]")
-    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    absolute_change = boxplot!()
-    # relative change
-    violin(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    violin!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("relative change [%]")
-    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    relative_change = boxplot!()
-
-    plot(absolute_change, relative_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge_violin.png")
-
-    #------------ mm/d -------------
-    Max_Flows_past45 = convertDischarge(Max_Flows_past45, Area_Catchment)
-    Max_Flows_future45 = convertDischarge(Max_Flows_future45, Area_Catchment)
-    Max_Flows_past85 = convertDischarge(Max_Flows_past85, Area_Catchment)
-    Max_Flows_future85 = convertDischarge(Max_Flows_future85, Area_Catchment)
-    boxplot(Max_Flows_past45, notch=true, color=[Farben45[1]])
-    boxplot!(Max_Flows_future45, notch=true, color=[Farben45[2]])
-    boxplot!(Max_Flows_past85, notch=true, color=[Farben85[1]])
-    boxplot!(Max_Flows_future85, notch=true, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:4;], ["Past", "Future 4.5", "Future 8.5"])
-    ylabel!("Mean annual maximum yearly Discharge [mm/d]")
-    #ylims!((40,100))
-    title!("Annual Maximum Discharge")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_mm_notch.png")
-
-    #absolute and relative decrease
-    boxplot(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [mm/d]")
-    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    absolute_change = boxplot!()
-    # relative change
-    boxplot(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    boxplot!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("relative change [%]")
-    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    relative_change = boxplot!()
-    plot(absolute_change, relative_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge_mm.png")
-
-    #------------ ABSOLUTE AND RELATIVE CHANGE VIOLIN PLOTS ------------------------
-    violin(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    violin!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [mm/d]")
-    #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    absolute_change = boxplot!()
-    # relative change
-    violin(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
-    #boxplot!(, color=[Farben85[1]])
-    violin!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("relative change [%]")
-    #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
-    relative_change = boxplot!()
-
-    plot(absolute_change, relative_change)
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge_violin_mm.png")
+    # for proj in 1:14
+    #     boxplot(Max_Flows_past45[1+(proj-1)*nr_runs: proj*nr_runs], color=[Farben45[1]])
+    #     boxplot!(Max_Flows_future45[1+(proj-1)*nr_runs: proj*nr_runs],color=[Farben45[2]])
+    #     boxplot!(Max_Flows_past85[1+(proj-1)*nr_runs: proj*nr_runs], color=[Farben85[1]])
+    #     boxplot!(Max_Flows_future85[1+(proj-1)*nr_runs: proj*nr_runs], size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    #     xticks!([1:4;], ["Past 4.5", "Future 4.5", "Past 8.5", "Future 8.5"])
+    #     ylabel!("mean annual maximum daily Discharge [m³/s]")
+    #     ylims!((15,35))
+    #     title!("Annual Maximum Discharge")
+    #     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_"*string(Name_Projections_45[proj])*".png")
+    # end
+    # # plot flows of all projections combined
+    # boxplot(Max_Flows_past45, notch=true, color=[Farben45[1]])
+    # boxplot!(Max_Flows_future45,notch=true, color=[Farben45[2]])
+    # boxplot!(Max_Flows_past85, notch=true, color=[Farben85[1]])
+    # boxplot!(Max_Flows_future85, notch=true, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:4;], ["Past", "Future 4.5", "Future 8.5"])
+    # ylabel!("Mean annual maximum yearly Discharge [m³/s]")
+    # #ylims!((40,100))
+    # title!("Annual Maximum Discharge")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_notch.png")
+    #
+    # #absolute and relative decrease
+    # boxplot(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [m³/s]")
+    # #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # absolute_change = boxplot!()
+    # # relative change
+    # boxplot(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("relative change [%]")
+    # #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # relative_change = boxplot!()
+    # plot(absolute_change, relative_change)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge.png")
+    #
+    # #------------ ABSOLUTE AND RELATIVE CHANGE VIOLIN PLOTS ------------------------
+    # violin(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # violin!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [m³/s]")
+    # #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # absolute_change = boxplot!()
+    # # relative change
+    # violin(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # violin!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("relative change [%]")
+    # #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # relative_change = boxplot!()
+    #
+    # plot(absolute_change, relative_change)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge_violin.png")
+    #
+    # #------------ mm/d -------------
+    # Max_Flows_past45 = convertDischarge(Max_Flows_past45, Area_Catchment)
+    # Max_Flows_future45 = convertDischarge(Max_Flows_future45, Area_Catchment)
+    # Max_Flows_past85 = convertDischarge(Max_Flows_past85, Area_Catchment)
+    # Max_Flows_future85 = convertDischarge(Max_Flows_future85, Area_Catchment)
+    # boxplot(Max_Flows_past45, notch=true, color=[Farben45[1]])
+    # boxplot!(Max_Flows_future45, notch=true, color=[Farben45[2]])
+    # boxplot!(Max_Flows_past85, notch=true, color=[Farben85[1]])
+    # boxplot!(Max_Flows_future85, notch=true, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:4;], ["Past", "Future 4.5", "Future 8.5"])
+    # ylabel!("Mean annual maximum yearly Discharge [mm/d]")
+    # #ylims!((40,100))
+    # title!("Annual Maximum Discharge")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_max_yearly_discharge_mm_notch.png")
+    #
+    # #absolute and relative decrease
+    # boxplot(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [mm/d]")
+    # #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # absolute_change = boxplot!()
+    # # relative change
+    # boxplot(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # boxplot!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("relative change [%]")
+    # #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # relative_change = boxplot!()
+    # plot(absolute_change, relative_change)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge_mm.png")
+    #
+    # #------------ ABSOLUTE AND RELATIVE CHANGE VIOLIN PLOTS ------------------------
+    # violin(Max_Flows_future45 - Max_Flows_past45,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # violin!(Max_Flows_future85 - Max_Flows_past85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [mm/d]")
+    # #title!("Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # absolute_change = boxplot!()
+    # # relative change
+    # violin(relative_error(Max_Flows_future45, Max_Flows_past45)*100,color=[Farben45[2]])
+    # #boxplot!(, color=[Farben85[1]])
+    # violin!(relative_error(Max_Flows_future85, Max_Flows_past85)*100, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("relative change [%]")
+    # #title!("Relative Change in Summer Low Flows 30 year average of Lowest 7 day runoff from May - Nov (Future - Present)")
+    # relative_change = boxplot!()
+    #
+    # plot(absolute_change, relative_change)
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_max_yearly_discharge_violin_mm.png")
 
     # ----------------- TIMING -----------------
-    boxplot(Timing_Max_Flows_past45, color=[Farben45[1]])
-    boxplot!(Timing_Max_Flows_future45,color=[Farben45[2]])
+    boxplot([1], Timing_Max_Flows_past45, color=[Farben45[1]])
+    boxplot!([2], Timing_Max_Flows_past85, color=[Farben45[1]])
+    boxplot!([3], Timing_Max_Flows_future45,color=[Farben45[2]])
     #boxplot!(Timing_Max_Flows_past85, color=[Farben85[1]])
-    boxplot!(Timing_Max_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:4;], ["Past", "Future 4.5", "Future 8.5"])
+    boxplot!([4], Timing_Max_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    violin!([1], Timing_Max_Flows_past45, color=[Farben45[1]], alpha=0.5)
+    violin!([2], Timing_Max_Flows_past85, color=[Farben45[1]], alpha=0.5)
+    violin!([3], Timing_Max_Flows_future45,color=[Farben45[2]], alpha=0.5)
+    #boxplot!(Timing_Max_Flows_past85, color=[Farben85[1]])
+    violin!([4], Timing_Max_Flows_future85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px, alpha=0.5)
+    xticks!([1:4;], ["Past45", "Past8.5", "Future 4.5", "Future 8.5"])
     ylabel!("Timing of Maximum Discharge")
     #ylims!((2,10))
     yticks!([1,32,60,91,121,152,182,213,244,274,305,335], ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7","1.8", "1.9", "1.10", "1.11", "1.12"])
     title!("Timing of Maximum Discharge")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_timing_max_yearly_discharge.png")
+    title!("past45 "*string(round(median(Timing_Max_Flows_past45)))*"past85 "*string(round(median(Timing_Max_Flows_past85)))*"future45 "*string(round(median(Timing_Max_Flows_future45)))*"future85 "*string(round(median(Timing_Max_Flows_future85))))
+    println("percentiles 25 past ", mean([quantile(Timing_Max_Flows_past45, 0.25), quantile(Timing_Max_Flows_past85, 0.25)]))
+    println("percentiles 75 past ", mean([quantile(Timing_Max_Flows_past45, 0.75), quantile(Timing_Max_Flows_past85, 0.75)]))
+    println("percentiles 25 future ", quantile(Timing_Max_Flows_future45, 0.25), " ", quantile(Timing_Max_Flows_future85, 0.25))
+    println("percentiles 75 future ", quantile(Timing_Max_Flows_future45, 0.75), " ", quantile(Timing_Max_Flows_future85, 0.75))
+    println("mean past45 "*string(round(mean(Timing_Max_Flows_past45)))*"past85 "*string(round(mean(Timing_Max_Flows_past85)))*"future45 "*string(round(mean(Timing_Max_Flows_future45)))*"future85 "*string(round(mean(Timing_Max_Flows_future85))))
+    println("mean past45 "*string(round(std(Timing_Max_Flows_past45)))*"past85 "*string(round(std(Timing_Max_Flows_past85)))*"future45 "*string(round(std(Timing_Max_Flows_future45)))*"future85 "*string(round(std(Timing_Max_Flows_future85))))
+    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_timing_max_yearly_discharge_new.png")
+
+    println("past 45 ", average_timing_simulations(Timing_Max_Flows_past45))
+    println("past 85 ", average_timing_simulations(Timing_Max_Flows_past85))
+    println("future 45 ", average_timing_simulations(Timing_Max_Flows_future45))
+    println("future 85 ", average_timing_simulations(Timing_Max_Flows_future85))
     #absolute and relative change in timing of low flows
     #   dates have to be transformed to circular coordinates
-    Difference_Timing_45 = difference_timing(Timing_Max_Flows_past45, Timing_Max_Flows_future45)
-    Difference_Timing_85 = difference_timing(Timing_Max_Flows_past85, Timing_Max_Flows_future85)
-    boxplot(Difference_Timing_45,color=[Farben45[2]])
-    boxplot!(Difference_Timing_85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [days]")
-    title!("Change in Occurence of Average Maximum Annual Discharge [days]")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_timing_max_yearly_discharge.png")
-    #
-    violin(Difference_Timing_45,color=[Farben45[2]])
-    violin!(Difference_Timing_85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
-    xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
-    ylabel!("absolute change [days]")
-    title!("Change in Occurence of Average Maximum Annual Discharge [days]")
-    savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_timing_max_yearly_discharge_violin.png")
+    # Difference_Timing_45 = difference_timing(Timing_Max_Flows_past45, Timing_Max_Flows_future45)
+    # Difference_Timing_85 = difference_timing(Timing_Max_Flows_past85, Timing_Max_Flows_future85)
+    # boxplot(Difference_Timing_45,color=[Farben45[2]])
+    # boxplot!(Difference_Timing_85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [days]")
+    # title!("Change in Occurence of Average Maximum Annual Discharge [days]")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_timing_max_yearly_discharge.png")
+    # #
+    # violin(Difference_Timing_45,color=[Farben45[2]])
+    # violin!(Difference_Timing_85, size=(1000,500), leg=false, left_margin = [5mm 0mm], xrotation = 60, color=[Farben85[2]], bottom_margin = 20px)
+    # xticks!([1:2;], ["RCP 4.5", "RCP 8.5"])
+    # ylabel!("absolute change [days]")
+    # title!("Change in Occurence of Average Maximum Annual Discharge [days]")
+    # savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/"*Catchment_Name*"_change_timing_max_yearly_discharge_violin.png")
 end
 
 function plot_Max_Flows_Prob_Distribution(Max_Flows_past45, Max_Flows_future45, Max_Flows_past85, Max_Flows_future85, Exceedance_Probability, Catchment_Name)
@@ -543,11 +588,11 @@ $(SIGNATURES)
 
 The function returns probability of occurence of AMF within a certain timerange of the year, and an array of this timerange
 """
-function get_distributed_dates(Date_Past, Timerange, nr_runs)
+function get_distributed_dates(Date_Past, Timerange, nr_runs, nr_years)
     nr_yearly_max_period_15_days = Float64[]
     day_range = Float64[]
     for i in 1:14*nr_runs
-        Current_Date_Past = Date_Past[1+(i-1)*30:30*i]
+        Current_Date_Past = Date_Past[1+(i-1)*nr_years:nr_years*i]
         for days in 1:Timerange:366
             current_days = filter(Current_Date_Past) do x
                 x >= days && x < days +Timerange
@@ -556,7 +601,7 @@ function get_distributed_dates(Date_Past, Timerange, nr_runs)
             if current_days == Float64[]
                 append!(nr_yearly_max_period_15_days, 0)
             else
-                append!(nr_yearly_max_period_15_days, length(current_days)/30)
+                append!(nr_yearly_max_period_15_days, length(current_days)/nr_years)
             end
         end
     end
@@ -629,3 +674,6 @@ function std_timing(All_Concentration_past_45, All_Concentration_future_45, All_
     title!("Standard Deviation of Timing between years in timeperiod")
     savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/"*Category*"/std_timing_past_85.png")
 end
+
+
+# precipitation statistics monthy

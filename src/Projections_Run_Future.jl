@@ -90,6 +90,8 @@ function run_projections_gailtal(path_to_projection, path_to_best_parameter, sta
         Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 4000
 
         Mean_Elevation_Catchment = 1500 # in reality 1476
         Elevations_Catchment = Elevations(200.0, 400.0, 2800.0,1140.0, 1140.0)
@@ -113,16 +115,15 @@ function run_projections_gailtal(path_to_projection, path_to_best_parameter, sta
         else
                 endyear = Dates.year(Timeseries[end])
                 # should be whole timeseries
-                startyear = startyear - spinup
-                #startyear = endyear - 29 - spinup # -3 for the spinup time
+                #startyear = startyear - spinup
+                startyear = endyear - 29 - spinup # -3 for the spinup time
                 indexend_Proj = length(Timeseries)
                 indexstart_Proj = findfirst(x-> x == startyear, Dates.year.(Timeseries))[1]
                 print(Timeseries[end])
         end
+        indexstart_Proj = findfirst(x-> x == startyear, Dates.year.(Timeseries))[1]
+        indexend_Proj = findlast(x-> x == endyear, Dates.year.(Timeseries))[1]
         Timeseries = Timeseries[indexstart_Proj:indexend_Proj]
-        #firstyear = Dates.year(Timeseries[1])
-        #lastyear = Dates.year(Timeseries[end])
-
 
 
         #------------ TEMPERATURE AND POT. EVAPORATION CALCULATIONS ---------------------
@@ -220,10 +221,10 @@ function run_projections_gailtal(path_to_projection, path_to_best_parameter, sta
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 push!(Inputs_All_Zones, all_inputs)
@@ -303,7 +304,7 @@ function run_projections_gailtal(path_to_projection, path_to_best_parameter, sta
         # save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
         #writedlm(path_to_projection*"0.01_model_results_discharge_"*period*".csv", All_Discharge, ',')
-        writedlm(path_to_projection*"100_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
+        writedlm(path_to_projection*"300_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
         #writedlm(path_to_projection*"0.01_model_results_snow_melt_"*period*".csv", All_Snowmelt, ',')
         #writedlm(path_to_projection*"0.01_model_results_snow_cover_"*period*".csv", All_Snow_Cover, ',')
         #writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
@@ -319,6 +320,8 @@ function run_projections_paltental(path_to_projection, path_to_best_parameter, s
         Area_Zones = [198175943.0, 56544073.0, 115284451.3]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 4000
 
         Mean_Elevation_Catchment = 1300 # in reality 1314
         # now station 106120 is taken for temp measurement thus elevation 1265 compared to 648 for calibration /validation
@@ -453,10 +456,10 @@ function run_projections_paltental(path_to_projection, path_to_best_parameter, s
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -517,23 +520,25 @@ function run_projections_paltental(path_to_projection, path_to_best_parameter, s
                 parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
                 parameters_array = parameters_best_calibrations[n, :]
 
-                Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
-                All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
-                #All_Snowstorage = hcat(All_Snowstorage, Snow_Storage[index_spinup:index_lastdate])
-                All_Snowmelt = hcat(All_Snowmelt, Snow_Melt[index_spinup:index_lastdate])
-                All_Snow_Cover = vcat(All_Snow_Cover, Snow_Cover[:,index_spinup:index_lastdate])
+                # Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
+                # All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
+                # #All_Snowstorage = hcat(All_Snowstorage, Snow_Storage[index_spinup:index_lastdate])
+                # All_Snowmelt = hcat(All_Snowmelt, Snow_Melt[index_spinup:index_lastdate])
+                # All_Snow_Cover = vcat(All_Snow_Cover, Snow_Cover[:,index_spinup:index_lastdate])
+                Discharge, GWstorage, Snowstorage = runmodelprecipitationzones_all_output(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
+                All_Snowstorage = hcat(All_Snowstorage, Snowstorage[index_spinup: index_lastdate])
         end
         #All_Goodness = transpose(All_Goodness[:, 2:end])
-        All_Discharge = transpose(All_Discharge[:, 2:end])
-        #All_Snowstorage = transpose(All_Snowstorage[:,2:end])
-        All_Snowmelt = transpose(All_Snowmelt[:,2:end])
-        All_Snow_Cover = All_Snow_Cover[2:end,:]
+        #All_Discharge = transpose(All_Discharge[:, 2:end])
+        All_Snowstorage = transpose(All_Snowstorage[:,2:end])
+        #All_Snowmelt = transpose(All_Snowmelt[:,2:end])
+        #All_Snow_Cover = All_Snow_Cover[2:end,:]
         #save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
-        writedlm(path_to_projection*"300_model_results_discharge_"*period*".csv", All_Discharge, ',')
-        #writedlm(path_to_projection*"100_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
-        writedlm(path_to_projection*"300_model_results_snow_melt_"*period*".csv", All_Snowmelt, ',')
-        writedlm(path_to_projection*"300_model_results_snow_cover_"*period*".csv", All_Snow_Cover, ',')
+        #writedlm(path_to_projection*"300_model_results_discharge_"*period*".csv", All_Discharge, ',')
+        writedlm(path_to_projection*"300_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
+        #writedlm(path_to_projection*"300_model_results_snow_melt_"*period*".csv", All_Snowmelt, ',')
+        #writedlm(path_to_projection*"300_model_results_snow_cover_"*period*".csv", All_Snow_Cover, ',')
         #writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
         #writedlm(path_to_projection*"results_precipitation_"*period*".csv", Total_Precipitation[index_spinup: index_lastdate], ',')
         #return All_Discharge
@@ -547,6 +552,8 @@ function run_projections_defreggental(path_to_projection, path_to_best_parameter
         Area_Zones = [235811198.0, 31497403.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 4000
 
         Mean_Elevation_Catchment =  2300 # in reality 2233.399986
         Elevations_Catchment = Elevations(200.0, 1000.0, 3600.0, 1385., 1385.) # take temp at 17700
@@ -615,15 +622,15 @@ function run_projections_defreggental(path_to_projection, path_to_best_parameter
                 push!(Elevations_Each_Precipitation_Zone, Elevation_HRUs)
 
                 #glacier area only for 17700, for 114926 file contains only zeros
-                Glacier_Area = CSV.read(local_path*"HBVModel/Defreggental/Glaciers_Elevations_"*string(ID_Prec_Zones[i])*"_evolution_69_15.csv",  header= true, delim=',')
-                Years = collect(startyear:endyear)
-                glacier_daily = zeros(Total_Elevationbands_Catchment)
-                for current_year in Years
-                        glacier_current_year = Glacier_Area[!, string(current_year)]
-                        current_glacier_daily = repeat(glacier_current_year, 1, Dates.daysinyear(current_year))
-                        glacier_daily = hcat(glacier_daily, current_glacier_daily)
-                end
-                push!(Glacier_All_Zones, glacier_daily[:,2:end])
+                # Glacier_Area = CSV.read(local_path*"HBVModel/Defreggental/Glaciers_Elevations_"*string(ID_Prec_Zones[i])*"_evolution_69_15.csv",  header= true, delim=',')
+                # Years = collect(startyear:endyear)
+                # glacier_daily = zeros(Total_Elevationbands_Catchment)
+                # for current_year in Years
+                #         glacier_current_year = Glacier_Area[!, string(current_year)]
+                #         current_glacier_daily = repeat(glacier_current_year, 1, Dates.daysinyear(current_year))
+                #         glacier_daily = hcat(glacier_daily, current_glacier_daily)
+                # end
+                # push!(Glacier_All_Zones, glacier_daily[:,2:end])
 
                 index_HRU = (findall(x -> x==ID_Prec_Zones[i], Areas_HRUs[1,2:end]))
                 # for each precipitation zone get the relevant areal extentd
@@ -652,11 +659,10 @@ function run_projections_defreggental(path_to_projection, path_to_best_parameter
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
-
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
                 push!(Inputs_All_Zones, all_inputs)
@@ -704,17 +710,17 @@ function run_projections_defreggental(path_to_projection, path_to_best_parameter
 
                 parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
                 parameters_array = parameters_best_calibrations[n, :]
-                Discharge, GWstorage, Snowstorage = runmodelprecipitationzones_all_output_glacier(Potential_Evaporation, Glacier_All_Zones,  Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
+                Discharge, GWstorage, Snowstorage = runmodelprecipitationzones_all_output(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
 
                 #All_Discharge = hcat(All_Discharges, Discharge[index_spinup: index_lastdate])
                 #All_GWstorage = hcat(All_GWstorage, GWstorage[index_spinup: index_lastdate])
-                All_Snowstorage = hcat(All_Snowstorage, Snowstorage[index_spinup: index_lastdate])
+                #All_Snowstorage = hcat(All_Snowstorage, Snowstorage[index_spinup: index_lastdate])
                 # parameter ranges
                 #parameters, parameters_array = parameter_selection()
                 #Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_glacier_future(Potential_Evaporation, Glacier_All_Zones, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
-                # Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
-                # All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
-                #All_Snowstorage = hcat(All_Snowstorage, Snow_Storage[index_spinup:index_lastdate])
+                #Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
+                #All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
+                All_Snowstorage = hcat(All_Snowstorage, Snowstorage[index_spinup:index_lastdate])
                 #All_Snowmelt = hcat(All_Snowmelt, Snow_Melt[index_spinup:index_lastdate])
                 #All_Snow_Cover = vcat(All_Snow_Cover, Snow_Cover[:,index_spinup:index_lastdate])
         end
@@ -725,10 +731,10 @@ function run_projections_defreggental(path_to_projection, path_to_best_parameter
         #All_Snow_Cover = All_Snow_Cover[2:end,:]
         #save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
-        #writedlm(path_to_projection*"300_model_results_discharge_"*period*".csv", All_Discharge, ',')
+        #writedlm(path_to_projection*"300_model_results_discharge_snow_redistr_"*period*".csv", All_Discharge, ',')
         writedlm(path_to_projection*"300_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
-        #writedlm(path_to_projection*"300_model_results_snow_melt_"*period*".csv", All_Snowmelt, ',')
-        #writedlm(path_to_projection*"300_model_results_snow_cover_"*period*".csv", All_Snow_Cover, ',')
+        #writedlm(path_to_projection*"300_model_results_snow_melt_snow_redistr_"*period*".csv", All_Snowmelt, ',')
+        #writedlm(path_to_projection*"300_model_results_snow_cover_snow_redistr_"*period*".csv", All_Snow_Cover, ',')
         #writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
         #writedlm(path_to_projection*"results_precipitation_"*period*".csv", Total_Precipitation[index_spinup: index_lastdate], ',')
         #return All_Discharge
@@ -743,6 +749,8 @@ function run_projections_silbertal(path_to_projection, path_to_best_parameter, s
 
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 4000
         #mean elevation needs to be determiend
 
         Mean_Elevation_Catchment = 1700 #in reality 1776 # in reality 1842.413038
@@ -835,10 +843,10 @@ function run_projections_silbertal(path_to_projection, path_to_best_parameter, s
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 push!(Inputs_All_Zones, all_inputs)
@@ -889,11 +897,11 @@ function run_projections_silbertal(path_to_projection, path_to_best_parameter, s
                 parameters = [bare_parameters, forest_parameters, grass_parameters, rip_parameters]
                 parameters_array = parameters_best_calibrations[n, :]
 
-                # Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_all_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
-                # #All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
-                # #All_Snowstorage = hcat(All_Snowstorage, Snow_Storage[index_spinup:index_lastdate])
-                # All_Snowmelt = hcat(All_Snowmelt, Snow_Melt[index_spinup:index_lastdate])
-                # All_Snow_Cover = vcat(All_Snow_Cover, Snow_Cover[:,index_spinup:index_lastdate])
+                #Discharge, Snow_Cover, Snow_Melt = runmodelprecipitationzones_future(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
+                #All_Discharge = hcat(All_Discharge, Discharge[index_spinup:index_lastdate])
+                #All_Snowstorage = hcat(All_Snowstorage, Snow_Storage[index_spinup:index_lastdate])
+                #All_Snowmelt = hcat(All_Snowmelt, Snow_Melt[index_spinup:index_lastdate])
+                #All_Snow_Cover = vcat(All_Snow_Cover, Snow_Cover[:,index_spinup:index_lastdate])
                 Discharge, GWstorage, Snowstorage = runmodelprecipitationzones_all_output(Potential_Evaporation, Precipitation_All_Zones, Temperature_Elevation_Catchment, Current_Inputs_All_Zones, Current_Storages_All_Zones, Current_GWStorage, parameters, slow_parameters, Area_Zones, Area_Zones_Percent, Elevation_Percentage, Elevation_Zone_Catchment, ID_Prec_Zones, Nr_Elevationbands_All_Zones, Elevations_Each_Precipitation_Zone)
 
                 #All_Discharge = hcat(All_Discharges, Discharge[index_spinup: index_lastdate])
@@ -908,10 +916,10 @@ function run_projections_silbertal(path_to_projection, path_to_best_parameter, s
         #All_Snow_Cover = All_Snow_Cover[2:end,:]
         #save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
-        #writedlm(path_to_projection*"300_model_results_discharge_"*period*".csv", All_Discharge, ',')
+        #writedlm(path_to_projection*"300_model_results_discharge_snow_redistr_"*period*".csv", All_Discharge, ',')
         writedlm(path_to_projection*"300_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
-        #writedlm(path_to_projection*"300_model_results_snow_melt_"*period*".csv", All_Snowmelt, ',')
-        #writedlm(path_to_projection*"300_model_results_snow_cover_"*period*".csv", All_Snow_Cover, ',')
+        #writedlm(path_to_projection*"300_model_results_snow_melt_snow_redistr_"*period*".csv", All_Snowmelt, ',')
+        #writedlm(path_to_projection*"300_model_results_snow_cover_snow_redistr_"*period*".csv", All_Snow_Cover, ',')
         #writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
         #writedlm(path_to_projection*"results_precipitation_"*period*".csv", Total_Precipitation[index_spinup: index_lastdate], ',')
         #return All_Discharge
@@ -926,6 +934,8 @@ function run_projections_pitztal(path_to_projection, path_to_best_parameter, sta
         Area_Zones = [20651736.0, 145191864.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 4000
 
         Mean_Elevation_Catchment = 2500 # in reality 2558
         # elevation of catchment and height of temp measurement
@@ -943,15 +953,13 @@ function run_projections_pitztal(path_to_projection, path_to_best_parameter, sta
         # timeperiod for which model should be run (look if timeseries of data has same length)
         Timeseries = readdlm(path_to_projection*"pr_model_timeseries.txt")
         Timeseries = Date.(Timeseries, Dates.DateFormat("y,m,d"))
-        if endyear < Dates.year(Timeseries[end])
+        if endyear <= Dates.year(Timeseries[end])
                 startyear =  endyear - 29 - spinup
                 indexstart_Proj = findfirst(x-> x == startyear, Dates.year.(Timeseries))[1]
                 indexend_Proj = findlast(x-> x == endyear, Dates.year.(Timeseries))[1]
         else
                 endyear = Dates.year(Timeseries[end])
-                # should be whole timeseries
-                startyear = startyear - spinup
-                #startyear = endyear - 29 - spinup # -3 for the spinup time
+                startyear = endyear - 29 - spinup # -3 for the spinup time
                 indexend_Proj = length(Timeseries)
                 indexstart_Proj = findfirst(x-> x == startyear, Dates.year.(Timeseries))[1]
                 print(Timeseries[end])
@@ -1035,11 +1043,10 @@ function run_projections_pitztal(path_to_projection, path_to_best_parameter, sta
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
-
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
                 push!(Inputs_All_Zones, all_inputs)
@@ -1116,10 +1123,10 @@ function run_projections_pitztal(path_to_projection, path_to_best_parameter, sta
         #save the results for the projections
         #writedlm(path_to_projection*"100_model_results_05_10.csv", All_Goodness, ',')
         #writedlm(path_to_projection*"300_model_results_discharge_"*period*"_without_loss.csv", All_Discharge, ',')
-        print(size(All_Snowstorage))
+        #print(size(All_Snowstorage))
         writedlm(path_to_projection*"300_model_results_snow_storage_"*period*".csv", All_Snowstorage, ',')
         #writedlm(path_to_projection*"300_model_results_snow_melt_"*period*".csv", All_Snowmelt, ',')
-        #writedlm(path_to_projection*"300_model_results_snow_cover_"*period*".csv", All_Snow_Cover, ',')
+        #writedlm(path_to_projection*"300_model_results_snow_cover_snow_redistr_"*period*".csv", All_Snow_Cover, ',')
         #writedlm(path_to_projection*"results_epot_"*period*".csv", Potential_Evaporation[index_spinup: index_lastdate], ',')
         #writedlm(path_to_projection*"results_precipitation_"*period*".csv", Total_Precipitation[index_spinup: index_lastdate], ',')
         #return All_Discharge
@@ -1130,11 +1137,11 @@ path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45
 Name_Projections = readdir(path)
 # for (i, name) in enumerate(Name_Projections)
 #         println(i)
-#         @time begin
-#         Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 1981, 2010, "past_2010",3, "45")
-#         end
-#         # discharge_pitz = readdlm(path*name*"/Pitztal/300_model_results_snow_melt_past_future.csv", ',')
-#         # writedlm(path*name*"/Pitztal/300_model_results_snow_melt_past_2010.csv", discharge_pitz[:,1:10957], ',')
+#         # @time begin
+#         # Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 1981, 2010, "past_2010",3, "45")
+#         # end
+#         discharge_pitz = readdlm(path*name*"/Pitztal/300_model_results_snow_cover_past_future.csv", ',')
+#         writedlm(path*name*"/Pitztal/300_model_results_snow_cover_past_2010.csv", discharge_pitz[:,1:10957], ',')
 #         # writedlm(path*name*"/Pitztal/300_model_results_snow_melt_future_2100.csv", discharge_pitz[:,end-10956:end], ',')
 #         # discharge_defreggenfuture = readdlm(path*name*"/Pitztal/results_precipitation_future_2100.csv", ',')
 #         # discharge_defreggenpast = readdlm(path*name*"/Pitztal/results_precipitation_past_2010.csv", ',')'
@@ -1143,31 +1150,70 @@ Name_Projections = readdir(path)
 #         # println("defr future", size(discharge_defreggenfuture))
 # end
 
-
-#path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
-# 14 different projections
+# path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
+# #14 different projections
 # Name_Projections = readdir(path)
-# for (i, name) in enumerate(Name_Projections)
+# for (i, name) in enumerate(Name_Projections[10:12])
 #         @time begin
-#         Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 1981, 2100, "past_future",3, "45")
+#         println("current scenario", name)
+#         # Discharge_present = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 1981, 2010, "past_2010",3)
+#         # Discharge_present = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 2071, 2100, "future_2100", 10)
+#         # Discharge_present = run_projections_paltental(path*name*"/Palten/", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv", 1981, 2010, "past_2010",3)
+#         # Discharge_present = run_projections_paltental(path*name*"/Palten/", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv", 2071, 2100, "future_2100", 10)
+#         #Discharge_present = run_projections_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1981, 2010, "past_2010",3)
+#         Discharge_present = run_projections_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 2071, 2100, "future_2100", 10)
+#         # Discharge_present = run_projections_defreggental(path*name*"/Defreggental/", "/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_All_runs_less_dates_best_proj.csv", 1981, 2010, "past_2010",3)
+#         # Discharge_present = run_projections_defreggental(path*name*"/Defreggental/", "/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_All_runs_less_dates_best_proj.csv", 2071, 2100, "future_2100", 10)
+#         # Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 1981, 2010, "past_2010",3, "45")
+#         # Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 2071, 2100, "future_2100", 10, "45")
+#
 #         end
 # end
-# for (i, name) in enumerate(Name_Projections)
-#         print(i)
-#         name = Name_Projections[i]
-#         Discharge_present = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 1981, 2010, "past_2010",3)
-#         Discharge_future = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 2071, 2100, "future_2100", 10)
-# end
-#
 
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
+#14 different projections
+Name_Projections = readdir(path)
+for (i, name) in enumerate(Name_Projections)
+        @time begin
+        println("current scenario", name)
+        # Discharge_present = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 1981, 2010, "past_2010",3)
+        # Discharge_present = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 2071, 2100, "future_2100", 10)
+        # Discharge_present = run_projections_paltental(path*name*"/Palten/", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv", 1981, 2010, "past_2010",3)
+        # Discharge_present = run_projections_paltental(path*name*"/Palten/", "/home/sarah/Master/Thesis/Calibrations/Paltental_less_dates/Paltental_Parameterfit_All_less_dates_unique_best_300.csv", 2071, 2100, "future_2100", 10)
+        #Discharge_present = run_projections_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1981, 2010, "past_2010",3)
+        #Discharge_present = run_projections_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 2071, 2100, "future_2100", 10)
+        Discharge_present = run_projections_defreggental(path*name*"/Defreggental/", "/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_All_runs_less_dates_best_proj.csv", 1981, 2010, "past_2010",3)
+        # Discharge_present = run_projections_defreggental(path*name*"/Defreggental/", "/home/sarah/Master/Thesis/Calibrations/Defreggental_less_dates/Defreggental_Parameterfit_All_runs_less_dates_best_proj.csv", 2071, 2100, "future_2100", 10)
+        #Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 1981, 2010, "past_2010",3, "85")
+        #Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 2071, 2100, "future_2100", 10, "85")
+        end
+end
+
+
+#for (i, name) in enumerate(Name_Projections[11:14])
+         #print(i)
+         name = Name_Projections[1]
+         println("current scenario", name)
+         # Discharge_present = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_300.csv", 1981, 2010, "past_2010",3)
+         # Discharge_present = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_300.csv", 2071, 2100, "future_2100",10)
+         #Discharge_present = run_projections_defreggental(path*name*"/Defreggental/", "/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_All_runs_snow_redistr_best_300.csv", 1981, 2010, "past_2010",3)
+         #Discharge_present = run_projections_defreggental(path*name*"/Defreggental/", "/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_All_runs_snow_redistr_best_300.csv", 2071, 2100, "future_2010",10)
+         #Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_300.csv", 1981, 2010, "past_2010",3, "45")
+         #Discharge_present = run_projections_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_300.csv", 2071, 2100, "future_2100",10, "45")
+# #
+# #
+# #         Discharge_future = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 2071, 2100, "future_2100", 10)
+#end
+# #
+# end
 # path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
 # # 14 different projections
 # Name_Projections = readdir(path)
 #
 #
-for (i, name) in enumerate(Name_Projections)
-        print(i)
-        name = Name_Projections[i]
-        Discharge_present = run_projections_gailtal(path*name*"/Gailtal/",  "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1981, 2010, "past_2010",3)
-        #Discharge_future = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 2071, 2100, "future_2100", 10)
-end
+# for (i, name) in enumerate(Name_Projections)
+#         print(i)
+#         name = Name_Projections[i]
+#         Discharge_present = run_projections_gailtal(path*name*"/Gailtal/",  "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1981, 2010, "past_2010",3)
+#         #Discharge_future = run_projections_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 2071, 2100, "future_2100", 10)
+# end

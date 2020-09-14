@@ -5,6 +5,8 @@ mutable struct HRU_Input
     Area_Glacier::Array{Float64,1} # smaller than 1
     Elevation_Count::Array{Int64}
     Nr_Elevationbands:: Int8
+    Catchment_Elevation::Tuple
+    Snow_Redistribution::Tuple
     #Potential_Evaporation::Array{Float64,1} #muss später auch Array werden!!! average Epot for soiL!!!
     Potential_Evaporation_Mean:: Float64
     Precipitation::Array{Float64,1}
@@ -77,4 +79,23 @@ mutable struct Drought
     Max_Intensity_Future::Array{Float64,1}
     Mean_Intensity_Past::Array{Float64,1}
     Mean_Intensity_Future::Array{Float64,1}
+end
+
+mutable struct Drought_Extremes
+    Longest_Drought_Length_Past::Array{Float64,1}
+    Longest_Drought_Length_Future ::Array{Float64,1}
+    Longest_Drought_Deficit_Past::Array{Float64,1}
+    Longest_Drought_Deficit_Future::Array{Float64,1}
+    Longest_Drought_Start_Past::Array{Float64,1}
+    Longest_Drought_Start_Future::Array{Float64,1}
+    Longest_Drought_End_Past::Array{Float64,1}
+    Longest_Drought_End_Future::Array{Float64,1}
+    Severest_Drought_Length_Past::Array{Float64,1}
+    Severest_Drought_Length_Future ::Array{Float64,1}
+    Severest_Drought_Deficit_Past::Array{Float64,1}
+    Severest_Drought_Deficit_Future::Array{Float64,1}
+    Severest_Drought_Start_Past::Array{Float64,1}
+    Severest_Drought_Start_Future::Array{Float64,1}
+    Severest_Drought_End_Past::Array{Float64,1}
+    Severest_Drought_End_Future::Array{Float64,1}
 end

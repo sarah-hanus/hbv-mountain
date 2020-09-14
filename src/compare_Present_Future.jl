@@ -66,6 +66,24 @@ function monthly_precipitation(Discharge, Timeseries)
     return Monthly_Discharge, All_Months
 end
 
+function monthly_snowmelt(Discharge, Timeseries)
+    #print(size(Discharge))
+    Months = collect(1:12)
+    Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
+    Monthly_Discharge = Float64[]
+    All_Months = Int[]
+    for (j, Current_Month) in enumerate(Months)
+            Dates_Current_Month = filter(Timeseries) do x
+                              Dates.Month(x) == Dates.Month(Current_Month)
+                          end
+            Current_Discharge = Discharge[indexin(Dates_Current_Month, Timeseries)]
+            Current_Monthly_Discharge = sum(Current_Discharge) / 30
+            append!(Monthly_Discharge, Current_Monthly_Discharge)
+            append!(All_Months, Current_Month)
+    end
+    return Monthly_Discharge, All_Months
+end
+
 # ----------------  AVERAGE MONTHLY INPUTS ------------------
 """
 Plots the average Monthly Temperature and Precipitation of 1980-2010 and 2070-2100 of the projections in the given path (14 projectiosn). Also plots the absolute changes.
@@ -276,6 +294,207 @@ function plot_Monthly_Temperature_Precipitation(path_to_projections, Catchment_N
     return average_monthly_Precipitation_past, average_monthly_Precipitation_future, average_monthly_Temperature_past, average_monthly_Temperature_future, all_months_all_runs
 end
 
+# --------------------------------- STATISCTIS MONTHLY PRECIPITATION (INTENSITY, RAIN DAYS ETC) -----------------------------------
+
+function storm_statistics_past_future(Precipitation::Array{Float64,1})
+        dry_days = findall(x -> x == 0.0, Precipitation)
+        rainy_days = findall(x -> x != 0.0, Precipitation)
+        Nr_rainy_days = length(rainy_days)[1]
+        length_interstorm = Float64[]
+        length_storm = Float64[]
+        storm_intensity = Float64[]
+        # calculate length of interstorm periods
+        count = 1
+        for i in 1 : length(dry_days)
+                if i < length(dry_days) && dry_days[i+1] == dry_days[i] + 1
+                        count += 1
+                elseif dry_days[i] != length(Precipitation)
+                        append!(length_interstorm, count)
+                        count = 1
+                end
+        end
+        # calculate length of storm period
+        count = 1
+        # only calculate rain statistics if there are rainy days in the precipitation data
+        if rainy_days != Int64[]
+                current_Prec = Precipitation[rainy_days[1]]
+                for i in 1 : length(rainy_days)
+                        if i < length(rainy_days) && rainy_days[i+1] == rainy_days[i] + 1
+                                count += 1
+                                current_Prec += Precipitation[rainy_days[i+1]]
+                        elseif rainy_days[i] != length(Precipitation)
+                                append!(length_storm, count)
+                                append!(storm_intensity, current_Prec / count)
+                                count = 1
+                                if i != length(rainy_days)
+                                        current_Prec = Precipitation[rainy_days[i+1]]
+                                end
+                        end
+                end
+        else
+                append!(length_storm, 0)
+                append!(storm_intensity, 0)
+        end
+        Total_Precipitation = sum(Precipitation)
+        if Precipitation[1] != 0
+                length_storm = length_storm[2:end]
+                storm_intensity = storm_intensity[2:end]
+        else
+                length_interstorm = length_interstorm[2:end]
+        end
+        # make sure there are no Nan values
+        if length_interstorm == Array{Float64,1}[]
+                length_interstorm = [0.]
+        end
+        if length_storm == Array{Float64,1}[]
+                length_storm = [0.]
+        end
+        if storm_intensity == Array{Float64,1}[]
+                storm_intensity = [0.]
+        end
+        return length_storm::Array{Float64,1}, length_interstorm::Array{Float64,1}, storm_intensity::Array{Float64,1}, Total_Precipitation::Float64, Nr_rainy_days
+end
+
+function monthly_storm_statistics_past_future(Precipitation::Array{Float64,1}, Timeseries::Array{Date,1}, mean_max)
+        # calculate the monthly statistics for each year
+        Months = collect(1:12)
+        Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
+        statistics = zeros(7)
+        for (i, Current_Year) in enumerate(Years)
+                for (j, Current_Month) in enumerate(Months)
+                        Dates_Current_Month = filter(Timeseries) do x
+                                          Dates.Year(x) == Dates.Year(Current_Year) &&
+                                          Dates.Month(x) == Dates.Month(Current_Month)
+                                      end
+                                  #print(length(Dates_Current_Month),"\n")
+                                 # print(Current_Month)
+                    Current_Precipitation = Precipitation[indexin(Dates_Current_Month, Timeseries)]
+                    max_prec_in_month = maximum(Current_Precipitation)
+                    #print(Current_Precipitation,"\n")
+                    #print("Prec", length(Precipitation[indexin(Dates_Current_Month, Timeseries)]), "\n")
+
+                    storm_length, interstorm_length, storm_intensity, Total_Precipitation, Nr_Rain_Days = storm_statistics_past_future(Current_Precipitation)
+                    #print(storm_length, interstorm_length, storm_intensity, Total_Precipitation, "\n")
+                    #print([Current_Month, Current_Year, mean(storm_length), mean(interstorm_length), mean(storm_intensity), Total_Precipitation],"\n")
+                    if mean_max == "mean"
+                        Current_Statistics = [Current_Month, mean(storm_length), mean(interstorm_length), mean(storm_intensity), Total_Precipitation, Nr_Rain_Days, max_prec_in_month]
+                    elseif mean_max == "max"
+                        Current_Statistics = [Current_Month, maximum(storm_length), maximum(interstorm_length), maximum(storm_intensity), Total_Precipitation, Nr_Rain_Days, max_prec_in_month]
+                    end
+                    statistics = hcat(statistics, Current_Statistics)
+                end
+
+        end
+        return transpose(statistics[:, 2:end])
+end
+
+function monthly_prec_statistics(path_to_projections, Catchment_Name, mean_max)
+    Name_Projections_45 = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    change_all_runs = Float64[]
+    average_max_Discharge_past = Float64[]
+    average_max_Discharge_future = Float64[]
+    Timing_max_Discharge_past = Float64[]
+    Timing_max_Discharge_future = Float64[]
+    All_Concentration_past = Float64[]
+    All_Concentration_future = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    if rcp == "45"
+        precipitation_past = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_past_45.txt", ',')
+        precipitation_future = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_future_45.txt", ',')
+    elseif rcp =="85"
+        precipitation_past = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_past_85.txt", ',')
+        precipitation_future = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_future_85.txt", ',')
+    end
+    all_storm_statistics_past = zeros(6)
+    all_storm_statistics_future = zeros(6)
+    for (i, name) in enumerate(Name_Projections_45)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        current_precipitation_past = precipitation_past[:,i]
+        current_precipitation_future = precipitation_future[:,i]
+        # gets the storm statistics (6) for all 30 years
+        statistics_past = monthly_storm_statistics_past_future(current_precipitation_past, Timeseries_Past, mean_max)
+        statistics_future = monthly_storm_statistics_past_future(current_precipitation_future, Timeseries_Future, mean_max)
+        # append to all storm data
+        # should results in 14*12*30 rows and 6 columns
+        # get the mean of each month
+        #println("statistics past", size(statistics_past))
+        statistics_past_mean = Float64[]
+        statistics_future_mean = Float64[]
+        for month in 1:12
+            index_month = findall(x-> x == month, statistics_past[:,1])
+            all_storm_statistics_past = hcat(all_storm_statistics_past, transpose(mean(statistics_past[index_month,2:end], dims=1)))
+            all_storm_statistics_future = hcat(all_storm_statistics_future, transpose(mean(statistics_future[index_month,2:end], dims=1)))
+        end
+        #println(size(all_storm_statistics_past))
+        # all_storm_statistics_past = hcat(all_storm_statistics_past, transpose(statistics_past))
+        # all_storm_statistics_future = hcat(all_storm_statistics_future, transpose(statistics_future))
+    end
+    println("all ", size(all_storm_statistics_past))
+    return all_storm_statistics_past[:,2:end], all_storm_statistics_future[:,2:end]
+end
+
+function monthly_prec_statistics_all_years(path_to_projections, Catchment_Name, mean_max)
+    Name_Projections_45 = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    change_all_runs = Float64[]
+    average_max_Discharge_past = Float64[]
+    average_max_Discharge_future = Float64[]
+    Timing_max_Discharge_past = Float64[]
+    Timing_max_Discharge_future = Float64[]
+    All_Concentration_past = Float64[]
+    All_Concentration_future = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    if rcp == "45"
+        precipitation_past = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_past_45.txt", ',')
+        precipitation_future = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_future_45.txt", ',')
+    elseif rcp =="85"
+        precipitation_past = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_past_85.txt", ',')
+        precipitation_future = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Inputs/prec_future_85.txt", ',')
+    end
+    all_storm_statistics_past = zeros(7)
+    all_storm_statistics_future = zeros(7)
+    for (i, name) in enumerate(Name_Projections_45)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        current_precipitation_past = precipitation_past[:,i]
+        current_precipitation_future = precipitation_future[:,i]
+        # gets the storm statistics (6) for all 30 years
+        statistics_past = monthly_storm_statistics_past_future(current_precipitation_past, Timeseries_Past, mean_max)
+        statistics_future = monthly_storm_statistics_past_future(current_precipitation_future, Timeseries_Future, mean_max)
+        # append to all storm data
+        # should results in 14*12*30 rows and 6 columns
+        # get the mean of each month
+        #println("statistics past", size(statistics_past))]
+        # for month in 1:12
+        #     index_month = findall(x-> x == month, statistics_past[:,1])
+        #     all_storm_statistics_past = hcat(all_storm_statistics_past, transpose(mean(statistics_past[index_month,2:end], dims=1)))
+        #     all_storm_statistics_future = hcat(all_storm_statistics_future, transpose(mean(statistics_future[index_month,2:end], dims=1)))
+        # end
+        #println(size(all_storm_statistics_past))
+        all_storm_statistics_past = hcat(all_storm_statistics_past, transpose(statistics_past))
+        all_storm_statistics_future = hcat(all_storm_statistics_future, transpose(statistics_future))
+    end
+    println("all ", size(all_storm_statistics_past))
+    return all_storm_statistics_past[:,2:end], all_storm_statistics_future[:,2:end]
+end
 # -------------------------------- AVERAGE MONTHLY RUNOFF --------------------------
 """
 Computes the monthly discharges of the past and future and the relative changes, of the projections of the path and the different parameter sets
@@ -304,7 +523,7 @@ function change_monthly_Discharge(path_to_projections, Catchment_Name)
     for (i, name) in enumerate(Name_Projections_45)
         Timeseries_Future_45 = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
         Past_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
-        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_20100_without_loss.csv", ',')
+        Future_Discharge_45 = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100_without_loss.csv", ',')
         println(size(Past_Discharge_45)[1])
         for run in 1:size(Past_Discharge_45)[1]
             # computes mean monthly discharge of each month
@@ -338,7 +557,7 @@ function annual_discharge_new(monthly_Discharge_past, monthly_Discharge_future, 
     yearly_discharge_future = Float64[]
     relative_change = Float64[]
     days_in_month = [31,28.25, 31,30,31, 30, 31, 31, 30, 31, 30,31]
-    for run in 1: 14*nr_runs
+    for run in 1:14*nr_runs
         current_average_yearly_discharge_past = sum(monthly_Discharge_past[1+((run-1)*12):run*12] .* days_in_month)
         current_average_yearly_discharge_future = sum(monthly_Discharge_future[1+((run-1)*12):run*12] .* days_in_month)
         current_relative_change = relative_error(current_average_yearly_discharge_future, current_average_yearly_discharge_past)
@@ -513,8 +732,8 @@ function plot_change_total_discharge(path_to_projections_45, path_to_projections
     Total_Discharge_Past_85 = Float64[]
     Total_Discharge_Future_85 = Float64[]
     for (i, name) in enumerate(Name_Projections_45)
-        Past_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_45*name*"/"*Name_Catchment*"/300_model_results_discharge_future_2100_without_loss.csv", ',')
         # get FDCs from each discharge
         for run in 1: size(Past_Discharge)[1]
             # for each run get the total discharge
@@ -527,8 +746,8 @@ function plot_change_total_discharge(path_to_projections_45, path_to_projections
         end
     end
     for (i, name) in enumerate(Name_Projections_85)
-        Past_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"300__model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_85*name*"/"*Name_Catchment*"300__model_results_discharge_future_2100_without_loss.csv", ',')
         # get FDCs from each discharge
         for run in 1: size(Past_Discharge)[1]
             # for each run get the total discharge
@@ -631,8 +850,8 @@ function change_annual_discharge(path_to_projections_45, path_to_projections_85,
     Total_Discharge_Future_85 = Float64[]
     # ---------- RCP 4.5 --------------
     for (i, name) in enumerate(Name_Projections_45)
-        Past_Discharge = readdlm(path_to_projections_45*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections_45*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections_45*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_45*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100_without_loss.csv", ',')
         Timeseries_Future_45 = collect(Date(Timeseries_End[i,1]-29,1,1):Day(1):Date(Timeseries_End[i,1],12,31))
         # get FDCs from each discharge
         for run in 1: size(Past_Discharge)[1]
@@ -647,8 +866,8 @@ function change_annual_discharge(path_to_projections_45, path_to_projections_85,
     end
     # ---------- RCP 8.5 --------------
     for (i, name) in enumerate(Name_Projections_85)
-        Past_Discharge = readdlm(path_to_projections_85*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections_85*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections_85*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections_85*name*"/"*Catchment_Name*"/300_model_results_discharge_future_2100_without_loss.csv", ',')
         Timeseries_Future_85 = collect(Date(Timeseries_End[i,2]-29,1,1):Day(1):Date(Timeseries_End[i,2],12,31))
         # get FDCs from each discharge
         for run in 1: size(Past_Discharge)[1]
@@ -747,8 +966,8 @@ function FDC_compare_percentile(path_to_projections, percentile, Name_Catchment)
         print(rcp, " ", rcp)
     end
     for (i, name) in enumerate(Name_Projections)
-        Past_Discharge = readdlm(path_to_projections*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010.csv", ',')
-        Future_Discharge = readdlm(path_to_projections*name*"/"*Name_Catchment*"/300_model_results_discharge_future_2100.csv", ',')
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Name_Catchment*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Name_Catchment*"/300_model_results_discharge_future_2100_without_loss.csv", ',')
         # get FDCs from each discharge
         for run in 1: size(Past_Discharge)[1]
             # for each run get the Flow duration curves
@@ -883,8 +1102,8 @@ function aridity_evaporative_index(path_to_projections, Area_Catchment, Catchmen
     end
     for (i, name) in enumerate(Name_Projections)
         Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
-        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_past_2010_without_loss.csv", ',')
-        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_future_20100_without_loss.csv", ',')
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_future_2100_without_loss.csv", ',')
         Past_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_past_2010.csv", ',')
         Future_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_future_2100.csv", ',')
         Past_Epot = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_epot_past_2010.csv", ',')
@@ -909,6 +1128,73 @@ function aridity_evaporative_index(path_to_projections, Area_Catchment, Catchmen
     end
     return Aridity_Index_past, Aridity_Index_future, Evaporative_Index_past_all_runs, Evaporative_Index_future_all_runs, Past_Precipitation_all_runs, Future_Precipitation_all_runs
 end
+
+function aridity_evaporative_index_each_decade(path_to_projections, Area_Catchment, Catchment_Name)
+
+    Name_Projections = readdir(path_to_projections)
+    Timeseries_Past = collect(Date(1981,1,1):Day(1):Date(2010,12,31))
+    Timeseries_End = readdlm("/home/sarah/Master/Thesis/Data/Projektionen/End_Timeseries_45_85.txt",',')
+    Evaporative_Index_past_all_runs = zeros(3) # will be 100x14
+    Evaporative_Index_future_all_runs = zeros(3) # will be 100x14
+    Aridity_Index_past = zeros(3) # will be 14 long * 3
+    Aridity_Index_future = zeros(3) # will be 14 long *3
+    Past_Precipitation_all_runs = Float64[]
+    Future_Precipitation_all_runs = Float64[]
+    if path_to_projections[end-2:end-1] == "45"
+        index = 1
+        rcp = "45"
+        print(rcp, " ", rcp)
+    elseif path_to_projections[end-2:end-1] == "85"
+        index = 2
+        rcp="85"
+        print(rcp, " ", rcp)
+    end
+    for (i, name) in enumerate(Name_Projections)
+        Timeseries_Future = collect(Date(Timeseries_End[i,index]-29,1,1):Day(1):Date(Timeseries_End[i,index],12,31))
+        Past_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_past_2010_without_loss.csv", ',')
+        Future_Discharge = readdlm(path_to_projections*name*"/"*Catchment_Name*"/300_model_results_discharge_snow_redistr_future_2100_without_loss.csv", ',')
+        Past_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_past_2010.csv", ',')
+        Future_Precipitation = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_precipitation_future_2100.csv", ',')
+        Past_Epot = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_epot_past_2010.csv", ',')
+        Future_Epot = readdlm(path_to_projections*name*"/"*Catchment_Name*"/results_epot_future_2100.csv", ',')
+        # get the aridity index per decade for past
+        # Timeseries_80s = collect(Date(1981,1,1):Day(1):Date(1990,12,31))
+        # Timeseries_90s = collect(Date(1991,1,1):Day(1):Date(2000,12,31))
+        # Timeseries_00s = collect(Date(2001,1,1):Day(1):Date(2010,12,31))
+        # index_80s = findall(x->x==Timeseries_80s, Timeseries_Past)
+        # index_90s = findall(x->x==Timeseries_90s, Timeseries_Past)
+        # index_00s = findall(x->x==Timeseries_00s, Timeseries_Past)
+        Current_Aridity_Index_80s =  mean(Past_Epot[1:3652]) / mean(Past_Precipitation[1:3652])
+        Current_Aridity_Index_90s =  mean(Past_Epot[3653:7304]) / mean(Past_Precipitation[3653:7304])
+        Current_Aridity_Index_00s =  mean(Past_Epot[7305:end]) / mean(Past_Precipitation[7305:end])
+        Current_Aridity_Index_past = [Current_Aridity_Index_80s, Current_Aridity_Index_90s, Current_Aridity_Index_00s]
+        # get aridity index per decade for future (problem some projections stop in 1999) take always steps of 3652
+        Current_Aridity_Index_2070s =  mean(Future_Epot[1:3652]) / mean(Future_Precipitation[1:3652])
+        Current_Aridity_Index_2080s =  mean(Future_Epot[3653:7304]) / mean(Future_Precipitation[3653:7304])
+        Current_Aridity_Index_2090s =  mean(Future_Epot[7305:end]) / mean(Future_Precipitation[7305:end])
+        Current_Aridity_Index_future = [Current_Aridity_Index_2070s, Current_Aridity_Index_2080s, Current_Aridity_Index_2090s]
+        Aridity_Index_past = hcat(Aridity_Index_past, Current_Aridity_Index_past)
+        Aridity_Index_future = hcat(Aridity_Index_future, Current_Aridity_Index_future)
+        println(size(Past_Discharge)[1])
+        # if Catchment_Name == "Pitztal"
+        #     Past_Discharge =
+        for run in 1:size(Past_Discharge)[1]
+            Evaporative_Index_past_80s = 1 - mean(convertDischarge(Past_Discharge[run,1:3652], Area_Catchment)) /mean(Past_Precipitation[1:3652])
+            Evaporative_Index_past_90s = 1 - mean(convertDischarge(Past_Discharge[run,3653:7304], Area_Catchment)) /mean(Past_Precipitation[3653:7304])
+            Evaporative_Index_past_00s = 1 - mean(convertDischarge(Past_Discharge[run,7305:end], Area_Catchment)) /mean(Past_Precipitation[7305:end])
+            Evaporative_Index_past = [Evaporative_Index_past_80s, Evaporative_Index_past_90s, Evaporative_Index_past_00s]
+            Evaporative_Index_future_2070s = 1 - mean(convertDischarge(Future_Discharge[run,1:3652], Area_Catchment))/ mean(Future_Precipitation[1:3652])
+            Evaporative_Index_future_2080s = 1 - mean(convertDischarge(Future_Discharge[run,3653:7304], Area_Catchment))/ mean(Future_Precipitation[3653:7304])
+            Evaporative_Index_future_2090s = 1 - mean(convertDischarge(Future_Discharge[run,7305:end], Area_Catchment))/ mean(Future_Precipitation[7305:end])
+            Evaporative_Index_future = [Evaporative_Index_future_2070s, Evaporative_Index_future_2080s, Evaporative_Index_future_2090s]
+            Evaporative_Index_past_all_runs = hcat(Evaporative_Index_past_all_runs, Evaporative_Index_past)
+            Evaporative_Index_future_all_runs = hcat(Evaporative_Index_future_all_runs, Evaporative_Index_future)
+        end
+    end
+    return Aridity_Index_past[:,2:end], Aridity_Index_future[:,2:end], Evaporative_Index_past_all_runs[:,2:end], Evaporative_Index_future_all_runs[:,2:end]
+end
+
+
 """
 Plots the catchment in the Budyko framework (past and future for RCP 4.5 and RCP 8.5).
 

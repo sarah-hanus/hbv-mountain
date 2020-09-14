@@ -3,7 +3,7 @@ using DelimitedFiles
 using Plots
 using DocStringExtensions
 
-#include("loadfunctions.jl")
+include("loadfunctions.jl")
 """
 Runs the model for the projections for validating the historical input
 
@@ -648,6 +648,8 @@ function run_projections_validation_defreggental(path_to_projection, path_to_bes
         Area_Zones = [235811198.0, 31497403.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2700
 
         Mean_Elevation_Catchment =  2300 # in reality 2233.399986
         Elevations_Catchment = Elevations(200.0, 1000.0, 3600.0, 1385., 1385.) # take temp at 17700
@@ -774,10 +776,10 @@ function run_projections_validation_defreggental(path_to_projection, path_to_bes
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -847,7 +849,7 @@ function run_projections_validation_defreggental(path_to_projection, path_to_bes
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"300_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
+        writedlm(path_to_projection*"300_model_results_snow_redistr_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
@@ -861,6 +863,8 @@ function run_projections_validation_silbertal(path_to_projection, path_to_best_p
 
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2500
         #mean elevation needs to be determiend
 
         Mean_Elevation_Catchment = 1700 #in reality 1776 # in reality 1842.413038
@@ -979,10 +983,10 @@ function run_projections_validation_silbertal(path_to_projection, path_to_best_p
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 push!(Inputs_All_Zones, all_inputs)
@@ -1050,7 +1054,7 @@ function run_projections_validation_silbertal(path_to_projection, path_to_best_p
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"300_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
+        writedlm(path_to_projection*"300_model_results_snow_redistr_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
@@ -1064,6 +1068,8 @@ function run_projections_validation_pitztal(path_to_projection, path_to_best_par
         Area_Zones = [20651736.0, 145191864.0]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
+        Snow_Threshold = 600
+        Height_Threshold = 2700
 
         Mean_Elevation_Catchment = 2500 # in reality 2558
         # elevation of catchment and height of temp measurement
@@ -1192,10 +1198,10 @@ function run_projections_validation_pitztal(path_to_projection, path_to_best_par
                 @assert 0.99 <= sum(Perc_Elevation) <= 1.01
                 push!(Elevation_Percentage, Perc_Elevation)
                 # calculate the inputs once for every precipitation zone because they will stay the same during the Monte Carlo Sampling
-                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), 0, [0], 0, [0], 0, 0)
-                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), 0, [0], 0, [0],  0, 0)
-                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), 0, [0], 0, [0],  0, 0)
+                bare_input = HRU_Input(Area_Bare_Elevations, Current_Percentage_HRU[1],zeros(length(Bare_Elevation_Count)) , Bare_Elevation_Count, length(Bare_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0], 0, 0)
+                forest_input = HRU_Input(Area_Forest_Elevations, Current_Percentage_HRU[2], zeros(length(Forest_Elevation_Count)) , Forest_Elevation_Count, length(Forest_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                grass_input = HRU_Input(Area_Grass_Elevations, Current_Percentage_HRU[3], zeros(length(Grass_Elevation_Count)) , Grass_Elevation_Count,length(Grass_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100), (Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
+                rip_input = HRU_Input(Area_Rip_Elevations, Current_Percentage_HRU[4], zeros(length(Rip_Elevation_Count)) , Rip_Elevation_Count, length(Rip_Elevation_Count), (Elevations_All_Zones[i].Min_elevation + 100, Elevations_All_Zones[i].Max_elevation - 100),(Snow_Threshold, Height_Threshold), 0, [0], 0, [0],  0, 0)
 
                 all_inputs = [bare_input, forest_input, grass_input, rip_input]
                 #print(typeof(all_inputs))
@@ -1268,26 +1274,34 @@ function run_projections_validation_pitztal(path_to_projection, path_to_best_par
         All_Goodness = transpose(All_Goodness[:, 2:end])
         #All_Discharge = transpose(All_Discharge[:, 2:end])
         # save the results for the projections
-        writedlm(path_to_projection*"300_model_results_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
+        writedlm(path_to_projection*"300_model_results_snow_redistr_"*string(startyear+3)*"_"*string(endyear)*".csv", All_Goodness, ',')
         #writedlm(path_to_projection*"100_model_results_05_10_discharge.csv", All_Discharge, ',')
         return All_Goodness
 end
 
-path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
-# 14 different projections
-Name_Projections = readdir(path)
-#run the model for all projections using the best 0.01% parameter sets
-# for (i, name) in enumerate(Name_Projections)
-#         observed_monthly_runoff = run_projections_validation_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1983, 2005)
-# end
-
-# ---------- for Palten
-# #
+# path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
+# # 14 different projections
+# Name_Projections = readdir(path)
+# #run the model for all projections using the best 0.01% parameter sets
+# # for (i, name) in enumerate(Name_Projections)
+# #         observed_monthly_runoff = run_projections_validation_gailtal(path*name*"/Gailtal/", "/home/sarah/Master/Thesis/Calibrations/Gailtal_less_dates/Gailtal_Parameterfit_All_less_dates_best_proj.csv", 1983, 2005)
+# # end
+#
+# # ---------- for Palten
+# # #
 # for (i, name) in enumerate(Name_Projections)
 #         println(i)
-#         observed_monthly_runoff = run_projections_validation_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 1983, 2005)
+#         observed_monthly_runoff = run_projections_validation_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_300.csv", 1983, 2005)
 # end
 
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
+# 14 different projections
+Name_Projections = readdir(path)
+
+# for (i, name) in enumerate(Name_Projections)
+#         println(i)
+#         observed_monthly_runoff = run_projections_validation_silbertal(path*name*"/IllSugadin/", "/home/sarah/Master/Thesis/Calibrations/Silbertal_Snow_Redistribution/Silbertal_Parameterfit_All_runs_snow_redistr_best_300.csv", 1983, 2005)
+# end
 # path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/"
 # # 14 different projections
 # Name_Projections = readdir(path)
@@ -1298,15 +1312,19 @@ Name_Projections = readdir(path)
 
 # ---------- for Palten
 
-# for (i, name) in enumerate(Name_Projections)
-#         println(i)
-#                 observed_monthly_runoff = run_projections_validation_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", 1983, 2005)
-# end
+for (i, name) in enumerate(Name_Projections)
+        println(i)
+                observed_monthly_runoff = run_projections_validation_pitztal(path*name*"/Pitztal/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_300.csv", 1983, 2005)
+end
 
 # for (i, name) in enumerate(Name_Projections)
 #         observed_monthly_runoff = run_projections_validation_feistritz(path*name*"/Pitten/", "/home/sarah/Master/Thesis/Calibrations/Feistritz/Feistritz_Parameterfit_All_best_100.csv", 1983, 2005)
 # end
-println("new")
-for (i, name) in enumerate(Name_Projections)
-        println(readdlm(path*name*"/Pitztal/pr_model_timeseries.txt")[end,1])
-end
+
+# for (i, name) in enumerate(Name_Projections)
+#         observed_monthly_runoff = run_projections_validation_defreggental(path*name*"/Defreggental/", "/home/sarah/Master/Thesis/Calibrations/Defreggental_Snow_Redistribution/Defreggental_Parameterfit_All_runs_snow_redistr_best_300.csv", 1983, 2005)
+# end
+# println("new")
+# for (i, name) in enumerate(Name_Projections)
+#         println(readdlm(path*name*"/Pitztal/pr_model_timeseries.txt")[end,1])
+# end

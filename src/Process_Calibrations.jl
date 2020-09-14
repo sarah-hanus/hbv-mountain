@@ -170,7 +170,7 @@ function boxplot_projection(path_to_calibration, path, number_best, Catchment_Na
     # run the model for all projections using the best 100 parameter sets
     All_Obj_Functions = Array{Float64,2}[]
     for (i, name) in enumerate(Name_Projections)
-            getData = readdlm(path*name*"/IllSugadin/300_model_results_1986_2005.csv",',')
+            getData = readdlm(path*name*"/"*Catchment_Name*"/300_model_results_snow_redistr_1986_2005.csv",',')
             push!(All_Obj_Functions, getData[1:number_best,1:9])
     end
 
@@ -283,21 +283,21 @@ function plot_FDC(path)
 
 end
 
-#boxplot_projection("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_300.csv", "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", 300, "Pitztal")
+boxplot_projection("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_300.csv", "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", 300, "Pitztal")
 #Modelled_Discharge_Observations = plot_FDC("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
 
 
 
 
 # #----------------- COMBINE RESULTS OF ONE DEVICE-------------
-#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs.csv")
+#combine_calibrations("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/", "/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr.csv")
 # --------------- STORE BEST PARAMETER SETS ---------------------
-#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_100000.csv", 300)
+#getbest_parametersets("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr.csv", 300)
 # -------------- GET STATISTICS -------
 
-calibration_statistics("/home/sarah/Master/Thesis/Calibrations/Silbertal_less_dates/Silbertal_Parameterfit_All_less_dates_best_300.csv", 300, 0.7)
+#calibration_statistics_pitztal("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_10000.csv", 10000, 0.7)
 
-# Defreggen_parameters = readdlm("/home/sarah/Master/Thesis/Calibrations/Pitztal_loss_less_dates/Pitztal_Parameterfit_All_runs_best_10000.csv", ',')
+# Defreggen_parameters = readdlm("/home/sarah/Master/Thesis/Calibrations/Pitztal_Snow_Redistribution/Pitztal_Parameterfit_All_runs_snow_redistr_best_1000.csv", ',')
 # #
 # Params_unique = unique(DataFrame(Defreggen_parameters))
 # test2 = convert(Vector, Params_unique[:,1])

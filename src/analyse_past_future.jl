@@ -13,7 +13,6 @@ include("compare_Present_Future_High_Flows.jl")
 include("compare_Present_Future_snow.jl")
 include("compare_Present_Future_low_flows.jl")
 
-
 Area_Catchment_Gailtal = sum([98227533.0, 184294158.0, 83478138.0, 220613195.0])
 Area_Catchment_Palten = sum([198175943.0, 56544073.0, 115284451.3])
 Area_Catchment_Pitten = 115496400.
@@ -28,9 +27,9 @@ Discharge_Silbertal = CSV.read("/home/sarah/HBVModel/Silbertal/Q-Tagesmittel-200
 Discharge_Defreggental = CSV.read("/home/sarah/HBVModel/Defreggental/Q-Tagesmittel-212100.csv", header= false, skipto=26, decimal=',', delim = ';', types=[String, Float64])
 Discharge_Pitztal = CSV.read("/home/sarah/HBVModel/Pitztal/Q-Tagesmittel-201335.csv", header= false, skipto=23, decimal=',', delim = ';', types=[String, Float64])
 
-Catchment_Name = "Palten"
-Area_Catchment = Area_Catchment_Palten
-Discharge_Catchment = Discharge_Palten
+Catchment_Name = "Pitten"
+Area_Catchment = Area_Catchment_Pitten
+Discharge_Catchment = Discharge_Feistritz
 nr_runs = 300
 scaling_factor_discharge = 1
 # make folder Projections/Catchment_Name/PastvsFuture/ - (Inputs, Monthly_Discharge, Annual_Discharge, FDC, Budyko, Annual_Max_Discharge/Circular, LowFlows, Snow_Cover, Drought (/none, /summer /winter)
@@ -39,32 +38,35 @@ scaling_factor_discharge = 1
 #Prec_past, Prec_Future,Temp_past, Temp_Future, Months = plot_Monthly_Temperature_Precipitation(path_45, Catchment_Name)
 #Prec_past, Prec_Future,Temp_past, Temp_Future, Months = plot_Monthly_Temperature_Precipitation(path_85, Catchment_Name)
 
+Prec_statistics_past_45, Prec_statistics_future_45 = monthly_prec_statistics(path_45, Catchment_Name)
+Prec_statistics_past_85, Prec_statistics_future_85 = monthly_prec_statistics(path_85, Catchment_Name)
+
 # ----------------- MONTHLY DISCHARGES ------------------------
 # saves the results to a textfile
 # @time begin
 # Monthly_Discharge_Change_85, monthly_Discharge_past_85, monthly_Discharge_future_85, months_85 = change_monthly_Discharge(path_85, Catchment_Name)
-# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_8.5_without_loss.txt",hcat(months_85, monthly_Discharge_past_85, monthly_Discharge_future_85, Monthly_Discharge_Change_85),',')
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_8.5.txt",hcat(months_85, monthly_Discharge_past_85, monthly_Discharge_future_85, Monthly_Discharge_Change_85),',')
 # end
 # #
 # @time begin
 # Monthly_Discharge_Change_45, monthly_Discharge_past_45, monthly_Discharge_future_45, months_45 = change_monthly_Discharge(path_45, Catchment_Name)
-# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_4.5_without_loss.txt",hcat(months_45, monthly_Discharge_past_45, monthly_Discharge_future_45, Monthly_Discharge_Change_45),',')
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_4.5.txt",hcat(months_45, monthly_Discharge_past_45, monthly_Discharge_future_45, Monthly_Discharge_Change_45),',')
 # end
 #
-# monthly_changes_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_8.5_without_loss.txt", ',')
+# monthly_changes_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_8.5.txt", ',')
 # months_85 = monthly_changes_85[:,1]
 # monthly_Discharge_past_85 = monthly_changes_85[:,2]
 # monthly_Discharge_future_85  = monthly_changes_85[:,3]
 # Monthly_Discharge_Change_85  = monthly_changes_85[:,4]
-# monthly_changes_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_4.5_without_loss.txt", ',')
+# monthly_changes_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Monthly_Discharge/discharge_months_4.5.txt", ',')
 # months_45 = monthly_changes_45[:,1]
 # monthly_Discharge_past_45 = monthly_changes_45[:,2]
 # monthly_Discharge_future_45  = monthly_changes_45[:,3]
 # Monthly_Discharge_Change_45  = monthly_changes_45[:,4]
 # # #
-#plot_changes_monthly_discharge(monthly_Discharge_past_45, monthly_Discharge_future_45, monthly_Discharge_past_85, monthly_Discharge_future_85, months_45, Catchment_Name, nr_runs)
+# plot_changes_monthly_discharge(monthly_Discharge_past_45, monthly_Discharge_future_45, monthly_Discharge_past_85, monthly_Discharge_future_85, months_45, Catchment_Name, nr_runs)
 # #
-#plot_changes_monthly_discharge_mm(monthly_Discharge_past_45, monthly_Discharge_future_45, monthly_Discharge_past_85, monthly_Discharge_future_85, months_45, Area_Catchment, Catchment_Name)
+# plot_changes_monthly_discharge_mm(monthly_Discharge_past_45, monthly_Discharge_future_45, monthly_Discharge_past_85, monthly_Discharge_future_85, months_45, Area_Catchment, Catchment_Name)
 #
 
 ## -------------- PLOT MONTHLY DISCHARGE PAST REAL DATA ---------------------------------
@@ -91,8 +93,8 @@ scaling_factor_discharge = 1
 #
 # # ---------------- ANNUAL DISCHARGE --------------------
 #
-#relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45 = annual_discharge_new(monthly_Discharge_past_45, monthly_Discharge_future_45, Area_Catchment, nr_runs)
-#relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85 = annual_discharge_new(monthly_Discharge_past_85, monthly_Discharge_future_85, Area_Catchment, nr_runs)
+# relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45 = annual_discharge_new(monthly_Discharge_past_45, monthly_Discharge_future_45, Area_Catchment, nr_runs)
+# relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85 = annual_discharge_new(monthly_Discharge_past_85, monthly_Discharge_future_85, Area_Catchment, nr_runs)
 
 # #can also be calculate directly from discharge data but takes more time
 #relative_change_45, Total_Discharge_Past_45, Total_Discharge_Future_45, relative_change_85, Total_Discharge_Past_85, Total_Discharge_Future_85 = change_annual_discharge(path_45, path_85, Catchment_Name, Area_Catchment)
@@ -115,12 +117,12 @@ scaling_factor_discharge = 1
 # --------------------------- BUDYKO -------------------------
 
 ## calculates the evaporative and aridity index
-# aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45, prec_past45, prec_future_45 = aridity_evaporative_index(path_45, Area_Catchment, Catchment_Name)
+#aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45 = aridity_evaporative_index(path_45, Area_Catchment, Catchment_Name)
 # aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85,  prec_past85, prec_future_85 = aridity_evaporative_index(path_85, Area_Catchment, Catchment_Name)
 # plot_Budyko(aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45, aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85, path_45, Catchment_Name, nr_runs)
 # plot_changes_Budyko(aridity_past45, aridity_future_45, evaporative_past_45, evaporative_future_45, aridity_past85, aridity_future_85, evaporative_past_85, evaporative_future_85, Area_Catchment, Catchment_Name, nr_runs)
-
-# --------------------------- Maximum Annual Discharge -------------------
+#
+# # --------------------------- Maximum Annual Discharge -------------------
 #
 # @time begin
 # average_max_Discharge_past_45, average_max_Discharge_future_45, Timing_max_Discharge_past_45, Timing_max_Discharge_future_45, All_Concentration_past_45, All_Concentration_future_45 =  change_max_Annual_Discharge(path_45, Catchment_Name)
@@ -131,7 +133,7 @@ scaling_factor_discharge = 1
 # average_max_Discharge_past_85, average_max_Discharge_future_85, Timing_max_Discharge_past_85, Timing_max_Discharge_future_85, All_Concentration_past_85, All_Concentration_future_85 =  change_max_Annual_Discharge(path_85, Catchment_Name)
 # writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/change_max_Annual_Discharge_8.5.txt",hcat(average_max_Discharge_past_85, average_max_Discharge_future_85, Timing_max_Discharge_past_85, Timing_max_Discharge_future_85, All_Concentration_past_85, All_Concentration_future_85),',')
 # end
-#
+# #
 # annual_max_flow_45 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/change_max_Annual_Discharge_4.5.txt",',')
 # annual_max_flow_85 = readdlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/change_max_Annual_Discharge_8.5.txt",',')
 # average_max_Discharge_past_45 = annual_max_flow_45[:,1]
@@ -147,9 +149,9 @@ scaling_factor_discharge = 1
 # All_Concentration_past_85 = annual_max_flow_85[:,5]
 # All_Concentration_future_85 = annual_max_flow_85[:,6]
 # plot_Max_Flows(average_max_Discharge_past_45, average_max_Discharge_future_45, average_max_Discharge_past_85, average_max_Discharge_future_85, Timing_max_Discharge_past_45, Timing_max_Discharge_future_45, Timing_max_Discharge_past_85, Timing_max_Discharge_future_85, Catchment_Name, Area_Catchment, nr_runs)
-
+#
 # std_timing(All_Concentration_past_45, All_Concentration_future_45, All_Concentration_past_85, All_Concentration_future_85, "Annual_Max_Discharge")
-# # #--------------using probability distribution
+# # # # #--------------using probability distribution
 # @time begin
 # max_Discharge_Past_45, Max_Discharge_Future_45, Exceedance_Probability_45, Date_Past_45, Date_Future_45 =  change_max_Annual_Discharge_Prob_Distribution(path_45, Catchment_Name)
 # writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Annual_Max_Discharge/change_max_Annual_Discharge_prob_distr_4.5.txt",hcat(max_Discharge_Past_45, Max_Discharge_Future_45, Exceedance_Probability_45, Date_Past_45, Date_Future_45), ',')
@@ -176,9 +178,9 @@ scaling_factor_discharge = 1
 # plot_change_timing_AMF_over_year(Date_Past_45, Date_Future_45, Catchment_Name, nr_runs, "45")
 # plot_change_timing_AMF_over_year(Date_Past_85, Date_Future_85, Catchment_Name, nr_runs, "85")
 # mean_change, min_change, max_change, std_change = plot_Max_Flows_Prob_Distribution(max_Discharge_Past_45, Max_Discharge_Future_45, max_Discharge_Past_85, Max_Discharge_Future_85, Exceedance_Probability_45, Catchment_Name)
-
-## ---------------- SUMMER LOW FLOWS 7 days ----------------------
-
+# #
+# # # ---------------- SUMMER LOW FLOWS 7 days ----------------------
+# #
 # @time begin
 # Summer_Low_Flows_past45, Summer_Low_Flows_future45, Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45, concentration_past_45, concentration_future_45 = analyse_low_flows(path_45, Catchment_Name, "summer")
 # writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/LowFlows/low_flows_summer4.5.txt",hcat(Summer_Low_Flows_past45, Summer_Low_Flows_future45, Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45, concentration_past_45, concentration_future_45),',')
@@ -206,7 +208,7 @@ scaling_factor_discharge = 1
 # plot_low_flows_summer(Summer_Low_Flows_past45, Summer_Low_Flows_future45, Summer_Low_Flows_past85, Summer_Low_Flows_future85,  Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45,  Timing_Summer_Low_Flows_Past_85, Timing_Summer_Low_Flows_Future_85, Catchment_Name, Area_Catchment, nr_runs)
 #
 # std_timing(concentration_past_45, concentration_future_45, concentration_past_85, concentration_future_85, "LowFlows/Summer")
-# # # ----------------------- WINTER LOW FLOWS 7 DAYS ------------------------
+# # # # # ----------------------- WINTER LOW FLOWS 7 DAYS ------------------------
 # @time begin
 # Winter_Low_Flows_past45, Winter_Low_Flows_future45, Timing_Winter_Low_Flows_Past_45, Timing_Winter_Low_Flows_Future_45, concentration_past_45, concentration_future_45  = analyse_low_flows(path_45, Catchment_Name, "winter")
 # writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/LowFlows/low_flows_winter4.5.txt",hcat(Winter_Low_Flows_past45, Winter_Low_Flows_future45, Timing_Winter_Low_Flows_Past_45, Timing_Winter_Low_Flows_Future_45, concentration_past_45, concentration_future_45),',')
@@ -235,9 +237,28 @@ scaling_factor_discharge = 1
 #
 # std_timing(concentration_past_45, concentration_future_45, concentration_past_85, concentration_future_85, "LowFlows/Winter")
 
+# ------------------- LOW FLOWS ALL YEAR --------------------
+# @time begin
+# Summer_Low_Flows_past45, Summer_Low_Flows_future45, Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45, concentration_past_45, concentration_future_45 = analyse_low_flows(path_45, Catchment_Name, "none")
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/LowFlows/low_flows_whole_year4.5.txt",hcat(Summer_Low_Flows_past45, Summer_Low_Flows_future45, Timing_Summer_Low_Flows_Past_45, Timing_Summer_Low_Flows_Future_45, concentration_past_45, concentration_future_45),',')
+# end
+# @time begin
+# Summer_Low_Flows_past85, Summer_Low_Flows_future85, Timing_Summer_Low_Flows_Past_85, Timing_Summer_Low_Flows_Future_85, concentration_past_85, concentration_future_85  = analyse_low_flows(path_85, Catchment_Name, "none")
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/LowFlows/low_flows_whole_year8.5.txt",hcat(Summer_Low_Flows_past85, Summer_Low_Flows_future85, Timing_Summer_Low_Flows_Past_85, Timing_Summer_Low_Flows_Future_85, concentration_past_85, concentration_future_85),',')
+# end
+#
+# @time begin
+# max_Discharge_Past_45, Max_Discharge_Future_45, Exceedance_Probability_45, Date_Past_45, Date_Future_45 =  analyse_low_flows_prob_distr(path_45, Catchment_Name)
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/LowFlows/low_flows_prob_distr_4.5.txt",hcat(max_Discharge_Past_45, Max_Discharge_Future_45, Exceedance_Probability_45, Date_Past_45, Date_Future_45), ',')
+# end
+# @time begin
+# max_Discharge_Past_85, Max_Discharge_Future_85, Exceedance_Probability_85, Date_Past_85, Date_Future_85 =  analyse_low_flows_prob_distr(path_85, Catchment_Name)
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/LowFlows/low_flows_prob_distr_8.5.txt",hcat(max_Discharge_Past_85, Max_Discharge_Future_85, Exceedance_Probability_85, Date_Past_85, Date_Future_85), ',')
+# end
+
 ## --------------- HYDROLOGICAL DROUGHT ----------------------------
 
-threshold = get_threshold_hydrological_drought(Discharge_Catchment, 1981,2010, 0.9, scaling_factor_discharge)
+#threshold = get_threshold_hydrological_drought(Discharge_Catchment, 1981,2010, 0.9, scaling_factor_discharge)
 # "whole" means over whole timeseries
 # season = "winter" # "summer", "winter", "none"
 # @time begin
@@ -264,11 +285,20 @@ threshold = get_threshold_hydrological_drought(Discharge_Catchment, 1981,2010, 0
 # plot_drought_statistics(Drought_45, Drought_85, threshold, Catchment_Name, Area_Catchment, season)
 #
 # @time begin
-# Nr_Days_Drought_monthly_past_45, Nr_Days_Drought_monthly_future_45, Deficit_monthly_past_45, Deficit_monthly_future_45 = monthly_days_Q90(path_45, threshold, Area_Catchment, Catchment_Name)
-# Nr_Days_Drought_monthly_past_85, Nr_Days_Drought_monthly_future_85, Deficit_monthly_past_85, Deficit_monthly_future_85 = monthly_days_Q90(path_85, threshold, Area_Catchment, Catchment_Name)
+# Drought_Extremes_45 = compare_hydrological_drought_extremes(path_45, Area_Catchment, Catchment_Name)
+# Drought_Extremes_85 = compare_hydrological_drought_extremes(path_85, Area_Catchment, Catchment_Name)
+# # plot_drought_extremes_statistics(Drought_Extremes_45, Drought_Extremes_85, Catchment_Name)
+# plot_drought_extremes_statistics_change(Drought_Extremes_45, Drought_Extremes_85, Catchment_Name)
+# end
+
+@time begin
+# Nr_Days_Drought_monthly_past_45, Nr_Days_Drought_monthly_future_45, Deficit_monthly_past_45, Deficit_monthly_future_45, Threshold_45 = monthly_days_Q90(path_45, Area_Catchment, Catchment_Name)
+# Nr_Days_Drought_monthly_past_85, Nr_Days_Drought_monthly_future_85, Deficit_monthly_past_85, Deficit_monthly_future_85, Threshold_85 = monthly_days_Q90(path_85, Area_Catchment, Catchment_Name)
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/monthly_days_deficit_Q90_4.5.txt",hcat(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought_monthly_future_45, Deficit_monthly_past_45, Deficit_monthly_future_45, Threshold_45),',')
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Drought/monthly_days_deficit_Q90_8.5.txt",hcat(Nr_Days_Drought_monthly_past_85, Nr_Days_Drought_monthly_future_85, Deficit_monthly_past_85, Deficit_monthly_future_85, Threshold_85),',')
 # plot_monthly_low_flows(Nr_Days_Drought_monthly_past_45, Nr_Days_Drought_monthly_future_45, Nr_Days_Drought_monthly_past_85, Nr_Days_Drought_monthly_future_85, Catchment_Name, nr_runs)
 # plot_monthly_deficit(Deficit_monthly_past_45, Deficit_monthly_future_45, Deficit_monthly_past_85, Deficit_monthly_future_85, Catchment_Name, nr_runs)
-# end
+end
 # --------------- SNOW MELT ----------------
 
 # @time begin
@@ -276,3 +306,23 @@ threshold = get_threshold_hydrological_drought(Discharge_Catchment, 1981,2010, 0
 # Snow_Storage_Past45, Snow_Storage_Future45 = snow_contribution_yearly_projections(path_45, Catchment_Name)
 # end
 # plot_snow_storage_contribution(Snow_Storage_Past45, Snow_Storage_Future45, Snow_Storage_Past85, Snow_Storage_Future85, Catchment_Name)
+
+# @time begin
+# Monthly_Discharge_Change_85, monthly_Discharge_past_85, monthly_Discharge_future_85, months_85 = change_monthly_snowmelt(path_85, Catchment_Name)
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/snow_melt_months_8.5.txt",hcat(months_85, monthly_Discharge_past_85, monthly_Discharge_future_85, Monthly_Discharge_Change_85),',')
+# end
+# #
+# @time begin
+# Monthly_Discharge_Change_45, monthly_Discharge_past_45, monthly_Discharge_future_45, months_45 = change_monthly_snowmelt(path_45, Catchment_Name)
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/snow_melt_months_4.5.txt",hcat(months_45, monthly_Discharge_past_45, monthly_Discharge_future_45, Monthly_Discharge_Change_45),',')
+# end
+
+# @time begin
+# Monthly_Discharge_Change_85, monthly_Discharge_past_85, monthly_Discharge_future_85, months_85 = change_monthly_snowstorage(path_85, Catchment_Name)
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/snow_storage_months_8.5_new.txt",hcat(months_85, monthly_Discharge_past_85, monthly_Discharge_future_85, Monthly_Discharge_Change_85),',')
+# end
+# #
+# @time begin
+# Monthly_Discharge_Change_45, monthly_Discharge_past_45, monthly_Discharge_future_45, months_45 = change_monthly_snowstorage(path_45, Catchment_Name)
+# writedlm("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/PastvsFuture/Snow_Cover/snow_storage_months_4.5_new.txt",hcat(months_45, monthly_Discharge_past_45, monthly_Discharge_future_45, Monthly_Discharge_Change_45),',')
+# end
