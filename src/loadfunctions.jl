@@ -1,23 +1,23 @@
 # load list of structs
-include("structs.jl")
+include("Model_Core/structs.jl")
 # load components of models represented by buckets
-include("processes_buckets.jl")
+include("Model_Core/processes_buckets.jl")
 # load functions that combine all components of one HRU
-include("elevations.jl")
+include("Model_Core/elevations.jl")
 # load functions for combining all HRUs and for running the model
-include("allHRU.jl")
+include("Model_Core/allHRU.jl")
 # load function for running model which just returns the necessary output for calibration
-include("run_model.jl")
+include("Model_Core/run_model.jl")
 # load functions for preprocessing temperature and precipitation data
 include("Preprocessing.jl")
 # load functions for calculating the potential evaporation
-include("Potential_Evaporation.jl")
+include("Model_Core/Potential_Evaporation.jl")
 # load objective functionsM
-include("ObjectiveFunctions.jl")
+include("Model_Core/ObjectiveFunctions.jl")
 # load parameterselection
-include("parameterselection.jl")
+include("Model_Core/parameterselection.jl")
 # load running model in several precipitation zones
-include("runmodel_Prec_Zones.jl")
+include("Model_Core/runmodel_Prec_Zones.jl")
 
 function convertDischarge(Discharge, Area)
         Discharge_mm = Discharge / Area * (24 * 3600 * 1000)

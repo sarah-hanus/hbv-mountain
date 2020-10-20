@@ -231,3 +231,23 @@ end
 # ylabel!("[mm]")
 # title!("Yearly Discharge Defreggental: Mean= "*string(round(mean(Annual_Discharge))))
 # savefig("/home/sarah/Master/Thesis/Results/Calibration/Defreggental/check_discharge_prec_6_years_ohnegletscher.png")
+
+"""
+Computes the discharge based on the Budyko formula
+
+$(SIGNATURES)
+
+The function returns the yearly average discharge [mm] based on the potential evaporation and precipitation and the Budyko formula.
+"""
+function budyko_discharge(Potential_Evaporation, Precipitation)
+        Epot_Prec = Potential_Evaporation ./ Precipitation
+        Eact_Prec = (Epot_Prec * tanh(1/Epot_Prec)* (1 - exp(-Epot_Prec)))^0.5
+        Discharge1 = (1 - Eact_Prec)
+        Eact_Prec = Epot_Prec * tanh(1/Epot_Prec)
+        Discharge2 = (1 - Eact_Prec)
+        Eact_Prec = (1 - exp(-Epot_Prec))
+        Discharge3 = (1 - Eact_Prec)
+        Eact_Prec = 1 ./ ((0.9+(1/Epot_Prec).^2).^0.5)
+        Discharge4 = (1 - Eact_Prec)
+        return Discharge1, Discharge2, Discharge3, Discharge4
+end

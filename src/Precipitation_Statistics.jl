@@ -51,6 +51,8 @@ function load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_
                 startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
                 endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
                 Temperature_Obs = Temperature_Array[startindex[1]:endindex[1]]
+                Mean_Elevation_Catchment = 900 # in reality 917
+                Elevations_Catchment = Elevations(200.0, 400.0, 1600.0, 488., 488.)
         elseif Catchment_Name == "Pitztal"
                 Temperature = CSV.read(local_path*"HBVModel/Pitztal/prenner_tag_14621.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
                 Temperature = dropmissing(Temperature)
@@ -59,6 +61,8 @@ function load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_
                 startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
                 endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
                 Temperature_Obs = Temperature_Array[startindex[1]:endindex[1]]
+                Mean_Elevation_Catchment = 2500 # in reality 2558
+                Elevations_Catchment = Elevations(200.0, 1200.0, 3800.0, 1462.0, 1462.0)
         elseif Catchment_Name == "Montafon"
                 Temperature = CSV.read(local_path*"HBVModel/Montafon/prenner_tag_14200.dat", header = true, skipto = 3, delim = ' ', ignorerepeated = true)
                 Temperature = dropmissing(Temperature)
@@ -67,6 +71,8 @@ function load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_
                 startindex = findfirst(isequal(Date(startyear, 1, 1)), Timeseries_Temp)
                 endindex = findfirst(isequal(Date(endyear, 12, 31)), Timeseries_Temp)
                 Temperature_Obs = Temperature_Array[startindex[1]:endindex[1]]
+                Mean_Elevation_Catchment = 1700 #in reality 1776 # in reality 1842.413038
+                Elevations_Catchment = Elevations(200.0, 600.0, 2800.0, 670.0, 670.0) # take Vadans for temp 670
         else
                 Temperature = CSV.read(local_path*"HBVModel/"*Catchment_Name*"/"*path_to_temp_data*".csv", header=false, skipto = skip_to_temp, missingstring = "L\xfccke", decimal='.', delim = ';')
                 Temperature_Array = convert(Matrix, Temperature)
@@ -76,8 +82,16 @@ function load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_
                 Temperature_Array[:,1] = Date.(Temperature_Array[:,1], Dates.DateFormat("d.m.y H:M:S"))
                 Dates_Temperature_Daily, Temperature_Obs = daily_mean(Temperature_Array)
         end
+        if Catchment_Name == "Gailtal"
+                Mean_Elevation_Catchment = 1500 # in reality 1476
+                Elevations_Catchment = Elevations(200.0, 400.0, 2800.0,1140.0, 1140.0)
+        end
 
-        return Total_Precipitation, Temperature_Obs, Timeseries
+        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Obs)
+        # get the temperature data at the mean elevation to calculate the mean potential evaporation
+        Temperature_Mean_Elevation = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+
+        return Total_Precipitation, Temperature_Mean_Elevation, Timeseries
 end
 
 #---------------- LOAD PROJECTION DATA -----------------
@@ -111,15 +125,24 @@ function load_temp_prec_projections(path, Catchment_Name, Area_Zones_Percent::Ar
                 if Catchment_Name == "Palten"
                         Mean_Elevation_Catchment = 1300 # in reality 1314
                         Elevations_Catchment = Elevations(200.0, 600.0, 2600.0, 1265.0, 1265.0)
-                        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
-                        # get the temperature data at the mean elevation to calculate the mean potential evaporation
-                        Temperature_Daily = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
                 elseif Catchment_Name == "Defreggental"
                         Mean_Elevation_Catchment =  2300 # in reality 2233.399986
                         Elevations_Catchment = Elevations(200.0, 1000.0, 3600.0, 1385., 1385.)
-                        Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
-                        Temperature_Daily = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
+                elseif Catchment_Name == "Pitten"
+                        Mean_Elevation_Catchment = 900 # in reality 917
+                        Elevations_Catchment = Elevations(200.0, 400.0, 1600.0, 488., 488.)
+                elseif Catchment_Name == "Gailtal"
+                        Mean_Elevation_Catchment = 1500 # in reality 1476
+                        Elevations_Catchment = Elevations(200.0, 400.0, 2800.0,1140.0, 1140.0)
+                elseif Catchment_Name == "IllSugadin"
+                        Mean_Elevation_Catchment = 1700 #in reality 1776 # in reality 1842.413038
+                        Elevations_Catchment = Elevations(200.0, 600.0, 2800.0, 670.0, 670.0) # take Vadans for temp 670
+                elseif Catchment_Name == "Pitztal"
+                        Mean_Elevation_Catchment = 2500 # in reality 2558
+                        Elevations_Catchment = Elevations(200.0, 1200.0, 3800.0, 1410.0, 1410.0)
                 end
+                Elevation_Zone_Catchment, Temperature_Elevation_Catchment, Total_Elevationbands_Catchment = gettemperatureatelevation(Elevations_Catchment, Temperature_Daily)
+                Temperature_Daily = Temperature_Elevation_Catchment[:,findfirst(x-> x==Mean_Elevation_Catchment, Elevation_Zone_Catchment)]
                 All_Projections_Temperature = hcat(All_Projections_Temperature, Temperature_Daily)
 
                 Precipitation_All_Zones = Array{Float64, 1}[]
@@ -273,7 +296,6 @@ function monthly_temp_statistics(Temperature::Array{Float64,1}, Timeseries::Arra
 end
 
 function plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, name_projection, Catchment_Name)
-
         statistics_names = ["Mean Storm Length [d]", "Mean Interstorm Length [d]", "Mean Storm Intensity [mm/d]", "Total Precipitation [mm/month]"]
         months = ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         months_proj = ["Jan Proj", "Feb Proj", "Mar Proj", "Apr Proj", "May Proj","Jun Proj", "Jul Proj", "Aug Proj", "Sep Proj", "Oct Proj", "Nov Proj", "Dec Proj"]
@@ -301,6 +323,94 @@ function plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, n
         # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
         title!(Catchment_Name)
         savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Precipitation_Statistics_Proj"*string(name_projection)*".png")
+end
+
+function plot_Prec_Statistics_all_proj(path_to_projections, Precipitation_Observed, All_Projections_Prec, Timeseries, Catchment_Name, startyear, endyear, rcp)
+        # calculate statistics for projected data set
+        prec_statistics_obs = monthly_storm_statistics(Precipitation_Observed, Timeseries)
+        Name_Projections = readdir(path_to_projections)
+        prec_statistics_all_proj = transpose(zeros(6))
+        for (i, name) in enumerate(Name_Projections)
+                current_statistics = monthly_storm_statistics(All_Projections_Prec[:,i], Timeseries)
+                println(size(current_statistics))
+                prec_statistics_all_proj = vcat(prec_statistics_all_proj, current_statistics)
+        end
+        println("size ", size(prec_statistics_all_proj))
+        prec_statistics_all_proj = prec_statistics_all_proj[2:end, :]
+        println(size(prec_statistics_all_proj))
+        #         statistics_all_Zones_Proj =
+        statistics_names = ["Mean Storm Length [d]", "Mean Interstorm Length [d]", "Mean Storm Intensity [mm/d]", "Total Precipitation [mm/month]"]
+        all_boxplots = []
+        Farben = palette(:tab20)
+        for j in 1:4
+                ID = 2+j
+
+                plot()
+                box = []
+                for i in 1:12
+                        current_month_statistics = prec_statistics_obs[findall(x-> x == i, prec_statistics_obs[:,1]),:]
+                        current_month_statistics_proj = prec_statistics_all_proj[findall(x-> x == i, prec_statistics_all_proj[:,1]),:]
+                        #print(current_month_statistics)
+                        box = boxplot!(current_month_statistics[:,ID], color = [Farben[i]], leg=false, outliers=true)
+                        box = boxplot!(current_month_statistics_proj[:,ID],  color = [Farben[i]], leg=false, outliers=true)
+                end
+                ylabel!(statistics_names[j])
+                xticks!([1:1:24;], ["Jan", "Jan Proj", "Feb", "Feb Proj", "Mar","Mar Proj", "Apr", "Apr Proj", "May","May Proj","Jun", "Jun Proj" ,"Jul","Jul Proj", "Aug","Aug Proj", "Sep", "Sep Proj", "Oct","Oct Proj", "Nov","Nov Proj", "Dec", "Dec Proj"])
+                push!(all_boxplots, box)
+        end
+        plot(all_boxplots[1], all_boxplots[2], all_boxplots[3], all_boxplots[4], layout= (2,2), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60,yguidefontsize=14, xtickfont = font(14), ytickfont = font(14))
+        # xlabel!("Months")
+        # ylabel!("Inter-Storm Lengths [d]")
+        # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
+        title!(Catchment_Name)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/Precipitation_Statistics_Proj"*string(startyear)*"_"*string(endyear)*"_rcp"*rcp*".png")
+        all_boxplots = []
+        for j in 1:4
+                ID = 2+j
+
+                plot()
+                box = []
+                for i in 1:12
+                        current_month_statistics = prec_statistics_obs[findall(x-> x == i, prec_statistics_obs[:,1]),:]
+                        current_month_statistics_proj = prec_statistics_all_proj[findall(x-> x == i, prec_statistics_all_proj[:,1]),:]
+                        #print(current_month_statistics)
+                        box = boxplot!(current_month_statistics[:,ID], color = [Farben[i]], leg=false, outliers=false)
+                        box = boxplot!(current_month_statistics_proj[:,ID],  color = [Farben[i]], leg=false, outliers=false)
+                end
+                ylabel!(statistics_names[j])
+                xticks!([1:1:24;], ["Jan", "Jan Proj", "Feb", "Feb Proj", "Mar","Mar Proj", "Apr", "Apr Proj", "May","May Proj","Jun", "Jun Proj" ,"Jul","Jul Proj", "Aug","Aug Proj", "Sep", "Sep Proj", "Oct","Oct Proj", "Nov","Nov Proj", "Dec", "Dec Proj"])
+                push!(all_boxplots, box)
+        end
+        plot(all_boxplots[1], all_boxplots[2], all_boxplots[3], all_boxplots[4], layout= (2,2), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60,yguidefontsize=14, xtickfont = font(14), ytickfont = font(14))
+        # xlabel!("Months")
+        # ylabel!("Inter-Storm Lengths [d]")
+        # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
+        title!(Catchment_Name)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/Precipitation_Statistics_Proj"*string(startyear)*"_"*string(endyear)*"_rcp"*rcp*"_without_outliers.png")
+        all_boxplots = []
+        for j in 1:4
+                ID = 2+j
+
+                plot()
+                box = []
+                for i in 1:12
+                        current_month_statistics = prec_statistics_obs[findall(x-> x == i, prec_statistics_obs[:,1]),:]
+                        current_month_statistics_proj = prec_statistics_all_proj[findall(x-> x == i, prec_statistics_all_proj[:,1]),:]
+                        #print(current_month_statistics)
+                        box = violin!(current_month_statistics[:,ID], color = [Farben[i]], leg=false)
+                        box = violin!(current_month_statistics_proj[:,ID],  color = [Farben[i]], leg=false)
+                end
+                ylabel!(statistics_names[j])
+                xticks!([1:1:24;], ["Jan", "Jan Proj", "Feb", "Feb Proj", "Mar","Mar Proj", "Apr", "Apr Proj", "May","May Proj","Jun", "Jun Proj" ,"Jul","Jul Proj", "Aug","Aug Proj", "Sep", "Sep Proj", "Oct","Oct Proj", "Nov","Nov Proj", "Dec", "Dec Proj"])
+                push!(all_boxplots, box)
+        end
+        plot(all_boxplots[1], all_boxplots[2], all_boxplots[3], all_boxplots[4], layout= (2,2), legend = false, size=(2000,1000), left_margin = [5mm 0mm], bottom_margin = 20px, xrotation = 60,yguidefontsize=14, xtickfont = font(14), ytickfont = font(14))
+        # xlabel!("Months")
+        # ylabel!("Inter-Storm Lengths [d]")
+        # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
+        title!(Catchment_Name)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/Precipitation_Statistics_Proj"*string(startyear)*"_"*string(endyear)*"_rcp"*rcp*"_violin.png")
+
 end
 
 function plot_Temperature_Statistics(temp_statistics, temp_statistics_proj, name_projection, Catchment_Name)
@@ -332,10 +442,59 @@ function plot_Temperature_Statistics(temp_statistics, temp_statistics_proj, name
         savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Temperature/Temperature_Statistics_Proj"*string(name_projection)*".png")
 end
 
+function plot_Temperature_Statistics_All_proj(path_to_projections, Temperature_Observed, All_Projections_Temp, Timeseries, Catchment_Name, startyear, endyear, rcp)
+        # calculate statistics for observed data set
+        temp_statistics_obs = monthly_temp_statistics(Temperature_Observed, Timeseries)
+        # calculate statistics for projected data set
+        Name_Projections = readdir(path_to_projections)
+        temp_statistics_all_proj = transpose(zeros(5))
+        for (i, name) in enumerate(Name_Projections)
+                current_statistics = monthly_temp_statistics(All_Projections_Temp[:,i], Timeseries)
+                println(size(current_statistics))
+                temp_statistics_all_proj = vcat(temp_statistics_all_proj, current_statistics)
+                #plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal_loss_less")
+        end
+        println("size ", size(temp_statistics_all_proj))
+        temp_statistics_all_proj = temp_statistics_all_proj[2:end, :]
+        println(size(temp_statistics_all_proj))
+        statistics_names = ["Mean Monthly Temp [°C]", "Max Monthly Temp [°C]", "Min Monthly Temp [°C]"]
+        months = ["Jan", "Feb", "Mar", "Apr", "May","Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        months_proj = ["Jan Proj", "Feb Proj", "Mar Proj", "Apr Proj", "May Proj","Jun Proj", "Jul Proj", "Aug Proj", "Sep Proj", "Oct Proj", "Nov Proj", "Dec Proj"]
+        all_boxplots = []
+        Farben = palette(:tab20)
+        for j in 1:3
+                ID = 2+j
+
+                plot()
+                box = []
+                for i in 1:12
+                        current_month_statistics = temp_statistics_obs[findall(x-> x == i, temp_statistics_obs[:,1]),:]
+                        current_month_statistics_proj = temp_statistics_all_proj[findall(x-> x == i, temp_statistics_all_proj[:,1]),:]
+                        #print(current_month_statistics)
+                        # box = boxplot!([months[i]],current_month_statistics[:,ID], color = [Farben[i]], leg=false, outliers=true)
+                        # box = boxplot!([months_proj[i]],current_month_statistics_proj[:,ID],  color = [Farben[i]], leg=false, outliers=true)
+                        box = boxplot!(current_month_statistics[:,ID], color = [Farben[i]], leg=false, outliers=true)
+                        box = boxplot!(current_month_statistics_proj[:,ID],  color = [Farben[i]], leg=false, outliers=true)
+                        # box = boxplot!(current_month_statistics[:,ID], color = ["grey"], leg=false, outliers=true)
+                        # box = boxplot!(current_month_statistics_proj[:,ID],  color = ["blue"], leg=false, outliers=true)
+                end
+                ylabel!(statistics_names[j])
+                xticks!([1:1:24;], ["Jan", "Jan Proj", "Feb", "Feb Proj", "Mar", "Mar Proj", "Apr", "Apr Proj", "May", "May Proj","Jun", "Jun Proj", "Jul", "Jul Proj", "Aug", "Aug Proj", "Sep", "Sep Proj", "Oct", "Oct Proj", "Nov", "Nov Proj", "Dec", "Dec Proj"])
+                push!(all_boxplots, box)
+        end
+
+        plot(all_boxplots[1], all_boxplots[2], all_boxplots[3], layout= (3,1), legend = false, size=(3000,1500), left_margin = [7mm 0mm], bottom_margin = 25px, xrotation = 60, yguidefontsize=20, xtickfont = font(20), titlefont = font(20), ytickfont = font(20), dpi=300)
+        # xlabel!("Months")
+        # ylabel!("Inter-Storm Lengths [d]")
+        # title!("Monthly Mean Inter-Storm Length [d] 1983-2005")
+        title!(Catchment_Name)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Temperature/Temperature_Statistics_all_proj"*string(startyear)*"_"*string(endyear)*"_rcp"*rcp*".png")
+end
+
 function max_Annual_Precipitation(Precipitation, Timeseries)
         Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
-        statistics = zeros(3)
-        statistics_7days = zeros(3)
+        statistics = zeros(4)
+        statistics_7days = zeros(4)
         for (i, Current_Year) in enumerate(Years)
                 Dates_Current_Year = filter(Timeseries) do x
                                   Dates.Year(x) == Dates.Year(Current_Year)
@@ -344,7 +503,7 @@ function max_Annual_Precipitation(Precipitation, Timeseries)
                 # find maximum precipitation
                 max_Prec = maximum(Current_Precipitation)
                 Date_max_Prec = Dates_Current_Year[findfirst(x-> x == max_Prec, Current_Precipitation)]
-                statistics = hcat(statistics, [max_Prec, Dates.month(Date_max_Prec), Dates.day(Date_max_Prec)])
+                statistics = hcat(statistics, [max_Prec, Dates.month(Date_max_Prec), Dates.day(Date_max_Prec), Dates.dayofyear(Date_max_Prec)])
 
                 # get the 7 days with most rainfall
                 Precipitation_7days = Float64[]
@@ -353,77 +512,145 @@ function max_Annual_Precipitation(Precipitation, Timeseries)
                 end
                 max_Precipitation_7days = maximum(Precipitation_7days)
                 Date_max_Prec_7days = Dates_Current_Year[findfirst(x-> x == max_Precipitation_7days, Precipitation_7days)]
-                statistics_7days = hcat(statistics_7days, [max_Precipitation_7days, Dates.month(Date_max_Prec_7days), Dates.day(Date_max_Prec_7days)])
+                statistics_7days = hcat(statistics_7days, [max_Precipitation_7days, Dates.month(Date_max_Prec_7days), Dates.day(Date_max_Prec_7days), Dates.dayofyear(Date_max_Prec_7days)])
         end
         return transpose(statistics[:, 2:end]), transpose(statistics_7days[:, 2:end])
 end
 
 function plot_max_Annual_Precipitation(All_Projections_Precipitation, Precipitation_Observed, Timseries, Catchment_Name, RCP)
+        # plot()
+        # timing_amount = 1
+        # Farben = palette(:tab20)
+        # for i in 1:14
+        #         max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+        #         violin!(["Proj " *string(i)], max_Prec[:,timing_amount], color=[Farben[i]])
+        #         boxplot!(["Proj " *string(i)], max_Prec[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        # end
+        # max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        # violin!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        # boxplot!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        # ylabel!("Amount [mm/d]")
+        # title!("Maximum Annual Precipitation RCP "*RCP)
+        # savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*".png")
+
+        # plot timing in which month
+        # plot()
+        # timing_amount = 2
+        # Farben = palette(:tab20)
+        # for i in 1:14
+        #         max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+        #         violin!(["Proj " *string(i)], max_Prec[:,timing_amount], color=[Farben[i]])
+        #         boxplot!(["Proj " *string(i)], max_Prec[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        # end
+        # max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        # violin!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        # boxplot!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        # ylabel!("Timing [month]")
+        # title!("Maximum Annual Precipitation RCP "*RCP)
+        # savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_Timing.png")
+
+        # plot timing as cumulative distribution function
         plot()
-        timing_amount = 1
-        Farben = palette(:tab20)
         for i in 1:14
                 max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
-                violin!(["Proj " *string(i)], max_Prec[:,timing_amount], color=[Farben[i]])
-                boxplot!(["Proj " *string(i)], max_Prec[:,timing_amount], alpha=0.8, color=[Farben[i]])
+                if i == 1
+                        plot!(StatsBase.ecdf(max_Prec[:,4]), label="Projections", color="black")
+                else
+                        plot!(StatsBase.ecdf(max_Prec[:,4]), label=:none, color="black")
+                end
         end
         max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
-        violin!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
-        boxplot!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
-        ylabel!("Amount [mm/d]")
-        title!("Maximum Annual Precipitation RCP "*RCP)
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*".png")
-
+        plot!(StatsBase.ecdf(max_Prec[:,4]), label="measured", color="red", size=(1000,800), dpi=300, linewidth=4)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/ECDF_timing_max_prec"*rcp*".png")
 
         plot()
-        timing_amount = 2
-        Farben = palette(:tab20)
         for i in 1:14
                 max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
-                violin!(["Proj " *string(i)], max_Prec[:,timing_amount], color=[Farben[i]])
-                boxplot!(["Proj " *string(i)], max_Prec[:,timing_amount], alpha=0.8, color=[Farben[i]])
+                if i == 1
+                        plot!(StatsBase.ecdf(max_Prec[:,1]), label="Projections", color="black")
+                else
+                        plot!(StatsBase.ecdf(max_Prec[:,1]), label=:none, color="black")
+                end
         end
         max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
-        violin!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
-        boxplot!(["Obs"], max_Prec[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
-        ylabel!("Timing [month]")
-        title!("Maximum Annual Precipitation RCP "*RCP)
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_Timing.png")
+        plot!(StatsBase.ecdf(max_Prec[:,1]), label="measured", color="red", size=(1000,800), dpi=300, linewidth=4)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/ECDF_amount_max_prec"*rcp*".png")
+        plot()
+        for i in 1:14
+                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+                if i == 1
+                        plot!(StatsBase.ecdf(max_Prec_7[:,4]), label="Projections", color="black")
+                else
+                        plot!(StatsBase.ecdf(max_Prec_7[:,4]), label=:none, color="black")
+                end
+        end
+        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        plot!(StatsBase.ecdf(max_Prec_7[:,4]), label="measured", color="red", size=(1000,800), dpi=300, linewidth=4)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/ECDF_timing_max_prec_7days_"*rcp*".png")
 
+        plot()
+        for i in 1:14
+                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+                if i == 1
+                        plot!(StatsBase.ecdf(max_Prec_7[:,1]), label="Projections", color="black")
+                else
+                        plot!(StatsBase.ecdf(max_Prec_7[:,1]), label=:none, color="black")
+                end
+        end
+        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        plot!(StatsBase.ecdf(max_Prec_7[:,1]), label="measured", color="red", size=(1000,800), dpi=300, linewidth=4)
+        savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/ECDF_amount_max_prec_7days_"*rcp*".png")
         # --------------- 7 days max -----------------------
 
-        plot()
-        timing_amount = 1
-        Farben = palette(:tab20)
-        for i in 1:14
-                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
-                violin!(["Proj " *string(i)], max_Prec_7[:,timing_amount], color=[Farben[i]])
-                boxplot!(["Proj " *string(i)], max_Prec_7[:,timing_amount], alpha=0.8, color=[Farben[i]])
-        end
-        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
-        violin!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
-        boxplot!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
-        ylabel!("Amount [mm/d]")
-        title!("Maximum Annual Precipitation RCP "*RCP)
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_7days.png")
-
-
-        plot()
-        timing_amount = 2
-        Farben = palette(:tab20)
-        for i in 1:14
-                max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
-                violin!(["Proj " *string(i)], max_Prec_7[:,timing_amount], color=[Farben[i]])
-                boxplot!(["Proj " *string(i)], max_Prec_7[:,timing_amount], alpha=0.8, color=[Farben[i]])
-        end
-        max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
-        violin!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
-        boxplot!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
-        ylabel!("Timing [month]")
-        title!("Maximum Annual Precipitation RCP "*RCP)
-        savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_Timing_7days.png")
+        # plot()
+        # timing_amount = 1
+        # Farben = palette(:tab20)
+        # for i in 1:14
+        #         max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+        #         violin!(["Proj " *string(i)], max_Prec_7[:,timing_amount], color=[Farben[i]])
+        #         boxplot!(["Proj " *string(i)], max_Prec_7[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        # end
+        # max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        # violin!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        # boxplot!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        # ylabel!("Amount [mm/d]")
+        # title!("Maximum Annual Precipitation RCP "*RCP)
+        # savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_7days.png")
+        #
+        #
+        # plot()
+        # timing_amount = 2
+        # Farben = palette(:tab20)
+        # for i in 1:14
+        #         max_Prec, max_Prec_7 = max_Annual_Precipitation(All_Projections_Precipitation[:,i], Timeseries)
+        #         violin!(["Proj " *string(i)], max_Prec_7[:,timing_amount], color=[Farben[i]])
+        #         boxplot!(["Proj " *string(i)], max_Prec_7[:,timing_amount], alpha=0.8, color=[Farben[i]])
+        # end
+        # max_Prec, max_Prec_7 = max_Annual_Precipitation(Precipitation_Observed, Timeseries)
+        # violin!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), color=[Farben[15]])
+        # boxplot!(["Obs"], max_Prec_7[:,timing_amount], xrotation = 60, leg=false, size=(1000,700), alpha=0.8, color=[Farben[15]])
+        # ylabel!("Timing [month]")
+        # title!("Maximum Annual Precipitation RCP "*RCP)
+        # savefig("/home/sarah/Master/Thesis/Results/Calibration/"*Catchment_Name*"/Precipitation/Max_Annual_Precipitation_Proj_Amount_RCP"*RCP*"_Timing_7days.png")
 end
 
+function annual_precipitation(Precipitation, Timeseries)
+        Annual_Precipitation = Float64[]
+        Years = collect(Dates.year(Timeseries[1]): Dates.year(Timeseries[end]))
+        for (i, Current_Year) in enumerate(Years)
+                Dates_Current_Year = filter(Timeseries) do x
+                                  Dates.Year(x) == Dates.Year(Current_Year)
+                              end
+                Current_Precipitation = Precipitation[indexin(Dates_Current_Year, Timeseries)]
+                append!(Annual_Precipitation, sum(Current_Precipitation))
+        end
+        return mean(Annual_Precipitation)
+end
+
+startyear = 1983
+endyear = 2012
+path = "/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/"
+rcp = "45"
 #-------------- Calculations for Gailtal ------------------------
 # ID_Prec_Zones = [113589, 113597, 113670, 114538]
 # Area_Zones = [98227533.0, 184294158.0, 83478138.0, 220613195.0]
@@ -431,49 +658,41 @@ end
 # Area_Zones_Percent_Gailtal = Area_Zones / Area_Catchment
 # local_path = "/home/sarah/"
 # Skipto = [24, 22, 22, 22]
-# startyear = 1983
-# endyear = 2005
+#
 # path_to_temp_data = "LTkont113597"
 # paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1]), "/N-Tagessummen-"*string(ID_Prec_Zones[2]), "/N-Tagessummen-"*string(ID_Prec_Zones[3]), "/N-Tagessummen-"*string(ID_Prec_Zones[4])]
 # skip_to_temp = 20
 # Catchment_Name = "Gailtal"
 #
 # Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
-# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Gailtal, ID_Prec_Zones, 113597, startyear, endyear)
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections(path, Catchment_Name, Area_Zones_Percent_Gailtal, ID_Prec_Zones, 113597, startyear, endyear)
 
 
-# --------------------------- Silbertal -------------------------
-
-
-
-# skip_to_temp = 0
-# Skipto = [26]
-# Catchment_Name = "Silbertal"
-# ID_Prec_Zones = [100206]
-# Catchment_Name_Proj = "IllSugadin"
-# path_to_temp_data = "bla"
-# paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1])]
-# # size of the area of precipitation zones
-# Area_Zones = [102000000]
-# Area_Catchment = sum(Area_Zones)
-# ID_Temp = 14200
-# Area_Zones_Percent_Silbertal = Area_Zones / Area_Catchment
-# startyear = 1983
-# endyear = 2005
-# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, "Montafon", Skipto, skip_to_temp, startyear, endyear)
-# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/", Catchment_Name_Proj, Area_Zones_Percent_Silbertal, ID_Prec_Zones, ID_Temp, startyear, endyear)
-
+# --------------------------- Silbertal ------------------------
+skip_to_temp = 0
+Skipto = [26]
+Catchment_Name = "Silbertal"
+ID_Prec_Zones = [100206]
+Catchment_Name_Proj = "IllSugadin"
+path_to_temp_data = "bla"
+paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1])]
+# size of the area of precipitation zones
+Area_Zones = [102000000]
+Area_Catchment = sum(Area_Zones)
+ID_Temp = 14200
+Area_Zones_Percent_Silbertal = Area_Zones / Area_Catchment
+Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, "Montafon", Skipto, skip_to_temp, startyear, endyear)
+All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections(path, Catchment_Name_Proj, Area_Zones_Percent_Silbertal, ID_Prec_Zones, ID_Temp, startyear, endyear)
+# Catchment_Name = "IllSugadin"
 
 # ------------- Paltental---------------------------------------------
 
-function load_historic_data_palten()
+function load_historic_data_palten(startyear, endyear)
         ID_Prec_Zones = [106120, 111815, 9900]
         ID_Temp = 9900
         Area_Zones = [198175943.0, 56544073.0, 115284451.3]
         Area_Catchment = sum(Area_Zones)
         Area_Zones_Percent = Area_Zones / Area_Catchment
-        startyear = 1981
-        endyear = 2010
         Catchment_Name = "Palten"
 
         local_path = "/home/sarah/"
@@ -603,7 +822,7 @@ function load_historic_data_palten()
         return Total_Precipitation, Temperature_Mean_Elevation, Timeseries
 end
 
-function load_historic_data_defreggental()
+function load_historic_data_defreggental(startyear, endyear)
         local_path = "/home/sarah/"
         # ------------ CATCHMENT SPECIFIC INPUTS----------------
         ID_Prec_Zones = [17700, 114926]
@@ -622,8 +841,6 @@ function load_historic_data_defreggental()
         # get the percentage of each HRU of the precipitation zone
         Percentage_HRU = CSV.read(local_path*"HBVModel/Defreggental/HRU_Prec_Zones.csv", header=[1], decimal='.', delim = ',')
         Elevation_Catchment = convert(Vector, Areas_HRUs[2:end,1])
-        startyear = 1983
-        endyear = 2005
         scale_factor_Discharge = 0.65
         # timeperiod for which model should be run (look if timeseries of data has same length)
         Timeseries = collect(Date(startyear, 1, 1):Day(1):Date(endyear,12,31))
@@ -685,13 +902,11 @@ end
 # Area_Zones = [198175943.0, 56544073.0, 115284451.3]
 # Area_Catchment = sum(Area_Zones)
 # Area_Zones_Percent_Palten = Area_Zones / Area_Catchment
-# startyear = 1981
-# endyear = 2010
 # Catchment_Name = "Palten"
-Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/")
+# Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/")
 #
-# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten()
-# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Palten, ID_Prec_Zones, ID_Temp, startyear, endyear)
+# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_palten(startyear, endyear)
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections(path, Catchment_Name, Area_Zones_Percent_Palten, ID_Prec_Zones, ID_Temp, startyear, endyear)
 
 # -------------------------- Defreggental -----------------
 
@@ -701,10 +916,8 @@ Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_stat
 # ID_Temp = 17700
 # Area_Catchment = sum(Area_Zones)
 # Area_Zones_Percent_Defreggen = Area_Zones / Area_Catchment
-# startyear = 1983
-# endyear = 2005
-# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_defreggental()
-# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name, Area_Zones_Percent_Defreggen, ID_Prec_Zones, ID_Temp, startyear, endyear)
+# Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data_defreggental(startyear, endyear)
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections(path, Catchment_Name, Area_Zones_Percent_Defreggen, ID_Prec_Zones, ID_Temp, startyear, endyear)
 
 
 
@@ -716,8 +929,6 @@ Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_stat
 # Area_Zones_Percent_Feistritz = Area_Zones / Area_Catchment
 # Catchment_Name = "Feistritz"
 # ID_Temperature = 10510
-# startyear = 1983
-# endyear = 2010
 # Catchment_Name_Proj = "Pitten"
 # path_to_temp_data = "LTkont113597"
 # paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1])]
@@ -725,58 +936,113 @@ Name_Projections = readdir("/home/sarah/Master/Thesis/Data/Projektionen/new_stat
 # Skipto = [24]
 #
 # Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
-# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp45/rcp45/", Catchment_Name_Proj, Area_Zones_Percent_Feistritz, ID_Prec_Zones, ID_Temperature, startyear, endyear)
-#
+# All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections(path, Catchment_Name_Proj, Area_Zones_Percent_Feistritz, ID_Prec_Zones, ID_Temperature, startyear, endyear)
+# Catchment_Name = "Pitten"
 
 # ------------------- Pitztal -----------------------------
 #
-ID_Prec_Zones = [102061, 102046]
-# size of the area of precipitation zones
-Area_Zones = [20651736.0, 145191864.0]
-Area_Catchment = sum(Area_Zones)
-Area_Zones_Percent_Pitztal = Area_Zones / Area_Catchment
-Catchment_Name = "Pitztal"
-ID_Temperature = 14621
-ID_Temperature_Proj = 14620 # 52 m lower than 14621
-path_to_temp_data = "LTkont113597"
-paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1]), "/N-Tagessummen-"*string(ID_Prec_Zones[2])]
-startyear = 1983
-endyear = 2005
-skip_to_temp = 0
-Skipto = [26, 26]
-
-Precipitation_Observed, Temperature_Observed, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
-All_Projections_Prec, All_Projections_Temp = load_temp_prec_projections("/home/sarah/Master/Thesis/Data/Projektionen/new_station_data_rcp85/rcp85/", Catchment_Name, Area_Zones_Percent_Pitztal, ID_Prec_Zones, ID_Temperature_Proj, startyear, endyear)
+# ID_Prec_Zones = [102061, 102046]
+# # size of the area of precipitation zones
+# Area_Zones = [20651736.0, 145191864.0]
+# Area_Catchment = sum(Area_Zones)
+# Area_Zones_Percent_Pitztal = Area_Zones / Area_Catchment
+# Catchment_Name = "Pitztal"
+# ID_Temperature = 14621
+# ID_Temperature_Proj = 14620 # 52 m lower than 14621
+# path_to_temp_data = "LTkont113597"
+# paths_to_prec_data = ["/N-Tagessummen-"*string(ID_Prec_Zones[1]), "/N-Tagessummen-"*string(ID_Prec_Zones[2])]
+# skip_to_temp = 0
+# Skipto = [26, 26]
+#
+# Precipitation_Observed, Temperature_Observed_bla, Timeseries =load_historic_data(ID_Prec_Zones, Area_Zones, paths_to_prec_data, path_to_temp_data, Catchment_Name, Skipto, skip_to_temp, startyear, endyear)
+# All_Projections_Prec, All_Projections_Temp_bla = load_temp_prec_projections(path, Catchment_Name, Area_Zones_Percent_Pitztal, ID_Prec_Zones, ID_Temperature_Proj, startyear, endyear)
 
 #----- PLOT TEMP STATISTICS --------
 #
 # statistics_all_Zones = monthly_temp_statistics(Temperature_Observed, Timeseries)
 # for i in 1:14
 #         statistics_all_Zones_Proj = monthly_temp_statistics(All_Projections_Temp[:,i], Timeseries)
-#         plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal_loss_less")
+#         #plot_Temperature_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Pitztal_loss_less")
 # end
 #
 # #------ PLOT PREC STATISTICS --------------
-yearly_prec_real = Float64[]
-statistics_all_Zones = monthly_storm_statistics(Precipitation_Observed, Timeseries)
+# yearly_prec_real = Float64[]
+# statistics_all_Zones = monthly_storm_statistics(Precipitation_Observed, Timeseries)
 # for j in 1:Int(size(statistics_all_Zones)[1]/12)
 #         append!(yearly_prec_real, sum(statistics_all_Zones[1+(j-1)*12:j*12, 6]))
 # end
 # yearly_prec_real = mean(yearly_prec_real)
 #
 # mean_yearly_prec = Float64[]
-# for i in 1:14
+# # for i in 1:14
+# i = 9
 #         global yearly_prec = Float64[]
 #         statistics_all_Zones_Proj = monthly_storm_statistics(All_Projections_Prec[:,i], Timeseries)
-#         for j in 1:Int(size(statistics_all_Zones_Proj)[1]/12)
-#                 append!(yearly_prec, sum(statistics_all_Zones_Proj[1+(j-1)*12:j*12, 6]))
-#         end
-#         append!(mean_yearly_prec, mean(yearly_prec))
-#
-#         #plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Defreggental")
-# end
+        # for j in 1:Int(size(statistics_all_Zones_Proj)[1]/12)
+        #         append!(yearly_prec, sum(statistics_all_Zones_Proj[1+(j-1)*12:j*12, 6]))
+        # end
+        # append!(mean_yearly_prec, mean(yearly_prec))
+
+        #plot_Prec_Statistics(statistics_all_Zones, statistics_all_Zones_Proj, Name_Projections[i], "Defreggental")
+#end
 # println("min", minimum(mean_yearly_prec))
 # println("max", maximum(mean_yearly_prec))
 # println("mean", mean(mean_yearly_prec))
 # println("real", yearly_prec_real)
 #plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, "Defreggental", "4.5")
+
+# -------------- PLOT ALL CATCHMENTS TOGETHER -----------
+
+# plot_Temperature_Statistics_All_proj(path, Temperature_Observed, All_Projections_Temp, Timeseries, Catchment_Name, startyear, endyear, rcp)
+# plot_Prec_Statistics_all_proj(path, Precipitation_Observed, All_Projections_Prec, Timeseries, Catchment_Name, startyear, endyear, rcp)
+# plot_max_Annual_Precipitation(All_Projections_Prec, Precipitation_Observed, Timeseries, Catchment_Name, rcp)
+
+# mean_annual_prec_all_proj = Float64[]
+# for proj in 1:14
+#         append!(mean_annual_prec_all_proj, annual_precipitation(All_Projections_Prec[:,proj], Timeseries))
+# end
+# mean_annual_prec_obs = annual_precipitation(Precipitation_Observed, Timeseries)
+# scatter(ones(14), mean_annual_prec_all_proj, color="black")
+# scatter!([1], [mean_annual_prec_obs], color ="red", legend=false, dpi=200)
+# savefig("/home/sarah/Master/Thesis/Results/Projektionen/"*Catchment_Name*"/Comparison_Real_Proj/Precipitation/annual_prec"*string(startyear)*"_"*string(endyear)*"_rcp"*rcp*".png")
+
+#----------------- T-Test ----------------------
+# using HypothesisTests
+# p_value = Float64[]
+# p_value2 = Float64[]
+#
+# index_month = findall(x-> (x== Dates.Month(1) || x== Dates.Month(2) || x== Dates.Month(12)), Dates.Month.(Timeseries))
+# append!(p_value, pvalue(UnequalVarianceTTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+# append!(p_value2, pvalue(MannWhitneyUTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+# index_month = findall(x-> (x== Dates.Month(3) || x== Dates.Month(4) || x== Dates.Month(5)), Dates.Month.(Timeseries))
+# append!(p_value, pvalue(UnequalVarianceTTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+# append!(p_value2, pvalue(MannWhitneyUTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+# index_month = findall(x-> (x== Dates.Month(6) || x== Dates.Month(7) || x== Dates.Month(8)), Dates.Month.(Timeseries))
+# append!(p_value, pvalue(UnequalVarianceTTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+# append!(p_value2, pvalue(MannWhitneyUTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+# index_month = findall(x-> (x== Dates.Month(9) || x== Dates.Month(10) || x== Dates.Month(11)), Dates.Month.(Timeseries))
+# append!(p_value, pvalue(UnequalVarianceTTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+# append!(p_value2, pvalue(MannWhitneyUTest(Precipitation_Observed[index_month], All_Projections_Prec[index_month,i])))
+
+
+# index_month = findall(x -> (x==12 || x==1 || x==2) , statistics_all_Zones[:,1])
+# monthly_rain_real = statistics_all_Zones[index_month, 6]
+# monthly_rain_proj = statistics_all_Zones_Proj[index_month, 6]
+# append!(p_value, pvalue(UnequalVarianceTTest(monthly_rain_real, monthly_rain_proj)))
+# append!(p_value2, pvalue(MannWhitneyUTest(monthly_rain_real, monthly_rain_proj)))
+# index_month = findall(x -> (x==3 || x==4 || x==5) , statistics_all_Zones[:,1])
+# monthly_rain_real = statistics_all_Zones[index_month, 6]
+# monthly_rain_proj = statistics_all_Zones_Proj[index_month, 6]
+# append!(p_value, pvalue(UnequalVarianceTTest(monthly_rain_real, monthly_rain_proj)))
+# append!(p_value2, pvalue(MannWhitneyUTest(monthly_rain_real, monthly_rain_proj)))
+# index_month = findall(x -> (x==6 || x==7 || x==8) , statistics_all_Zones[:,1])
+# monthly_rain_real = statistics_all_Zones[index_month, 6]
+# monthly_rain_proj = statistics_all_Zones_Proj[index_month, 6]
+# append!(p_value, pvalue(UnequalVarianceTTest(monthly_rain_real, monthly_rain_proj)))
+# append!(p_value2, pvalue(MannWhitneyUTest(monthly_rain_real, monthly_rain_proj)))
+# index_month = findall(x -> (x==9 || x==10 || x==11) , statistics_all_Zones[:,1])
+# monthly_rain_real = statistics_all_Zones[index_month, 6]
+# monthly_rain_proj = statistics_all_Zones_Proj[index_month, 6]
+# append!(p_value, pvalue(UnequalVarianceTTest(monthly_rain_real, monthly_rain_proj)))
+# append!(p_value2, pvalue(MannWhitneyUTest(monthly_rain_real, monthly_rain_proj)))
+#end
