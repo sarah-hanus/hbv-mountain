@@ -12,25 +12,25 @@ using Distributed
 @everywhere push!(LOAD_PATH, $module_dir)
 
 # load list of structs
-@everywhere include("structs.jl")
+@everywhere include(module_dir*"Model_Core/structs.jl")
 # load components of models represented by buckets
-@everywhere include("processes_buckets.jl")
+@everywhere include(module_dir*"Model_Core/processes_buckets.jl")
 # load functions that combine all components of one HRU
-@everywhere include("elevations.jl")
+@everywhere include(module_dir*"Model_Core/elevations.jl")
 # load functions for combining all HRUs and for running the model
-@everywhere include("allHRU.jl")
+@everywhere include(module_dir*"Model_Core/allHRU.jl")
 # load function for running model which just returns the necessary output for calibration
-@everywhere include("run_model.jl")
+@everywhere include(module_dir*"Model_Core/run_model.jl")
 # load functions for preprocessing temperature and precipitation data
-@everywhere include("Preprocessing.jl")
+@everywhere include(module_dir*"Model_Core/Preprocessing.jl")
 # load functions for calculating the potential evaporation
-@everywhere include("Potential_Evaporation.jl")
+@everywhere include(module_dir*"Model_Core/Potential_Evaporation.jl")
 # load objective functionsM
-@everywhere include("ObjectiveFunctions.jl")
+@everywhere include(module_dir*"Model_Core/ObjectiveFunctions.jl")
 # load parameterselection
-@everywhere include("parameterselection.jl")
+@everywhere include(module_dir*"Model_Core/parameterselection.jl")
 # load running model in several precipitation zones
-@everywhere include("runmodel_Prec_Zones.jl")
+@everywhere include(module_dir*"Model_Core/runmodel_Prec_Zones.jl")
 #
 #
 @everywhere function run_MC(ID, nmax)
